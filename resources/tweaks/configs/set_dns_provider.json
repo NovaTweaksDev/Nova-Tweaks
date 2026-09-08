@@ -1,0 +1,129 @@
+{
+  "id": "set_dns_provider",
+  "name": "Set DNS Provider",
+  "description": "Switches your network adapter to a specific DNS provider like Cloudflare or Google for faster lookups, but does not increase raw internet speed.",
+  "description_i18n": {
+    "en": "Switches your network adapter to a specific DNS provider like Cloudflare or Google for faster lookups, but does not increase raw internet speed.",
+    "de": "Wechselt den Netzwerkadapter auf einen bestimmten DNS-Anbieter wie Cloudflare oder Google für schnellere Suchanfragen, erhöht aber nicht die Roh-Internetgeschwindigkeit.",
+    "fr": "Basculer l'adaptateur réseau vers un fournisseur DNS spécifique comme Cloudflare ou Google pour des recherches plus rapides, mais cela n'accélère pas la vitesse brute de connexion."
+  },
+  "script": "set_dns_provider.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 3,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "one_shot_selection",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "network",
+    "dns",
+    "adapter",
+    "ping",
+    "maintenance"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "required",
+      "message": "This tweak requires an elevated administrator session to modify network settings",
+      "icon": "shield-alert",
+      "source": "config"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies IPv4 server addresses in the registry under HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces and uses Set-DnsClientServerAddress to apply changes",
+  "selections": [
+    "Automatic (DHCP)",
+    "Cloudflare (1.1.1.1 / 1.0.0.1)",
+    "Google (8.8.8.8 / 8.8.4.4)",
+    "Quad9 (9.9.9.9 / 149.112.112.112)"
+  ],
+  "recommended_selection": "Cloudflare (1.1.1.1 / 1.0.0.1)",
+  "execution": {
+    "type": "powershell",
+    "script": "set_dns_provider.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true,
+        "allowed_params": [
+          "Selection"
+        ]
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true,
+        "allowed_params": [
+          "Selection"
+        ]
+      }
+    }
+  },
+  "profiles": [
+    {
+      "id": "gaming_performance",
+      "defaultChecked": true,
+      "params": {
+        "Selection": "Cloudflare (1.1.1.1 / 1.0.0.1)"
+      }
+    },
+    {
+      "id": "network_boost",
+      "defaultChecked": true,
+      "params": {
+        "Selection": "Cloudflare (1.1.1.1 / 1.0.0.1)"
+      }
+    }
+  ],
+  "premium": false,
+  "supports_status_detection": true,
+  "category": "Network",
+  "subcategory": "DNS"
+}

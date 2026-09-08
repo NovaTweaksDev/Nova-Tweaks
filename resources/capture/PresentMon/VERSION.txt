@@ -1,0 +1,5 @@
+﻿tag=v2.5.1
+asset=PresentMon-2.5.1-x64.exe
+url=https://github.com/GameTechDev/PresentMon/releases/download/v2.5.1/PresentMon-2.5.1-x64.exe
+legacyTag=v1.10.0
+legacyPath=PresentMonLegacy.exe

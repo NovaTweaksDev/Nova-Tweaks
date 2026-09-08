@@ -1,0 +1,104 @@
+{
+  "id": "disable_recent_items_tracking",
+  "name": "Disable Recent Items Tracking",
+  "description": "Disables tracking of recently opened items in Windows, including recent documents and Start menu suggestions. Existing history entries remain visible until manually cleared.",
+  "description_i18n": {
+    "en": "Disables tracking of recently opened items in Windows, including recent documents and Start menu suggestions. Existing history entries remain visible until manually cleared.",
+    "de": "Deaktiviert die Nachverfolgung zuletzt geöffneter Elemente in Windows, einschließlich aktueller Dokumente und Vorschläge im Startmenü. Bestehende Einträge bleiben sichtbar bis zur manüllen Löschung.",
+    "fr": "Désactivé le suivi des éléments récemment ouverts dans Windows, y compris les documents récents et les suggestions du menu Démarrer. Les historiques existants restent visibles jusqu'à suppression manuelle."
+  },
+  "script": "disable_recent_items_tracking.ps1",
+  "requires_admin": false,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 1,
+  "recommended": false,
+  "premium": false,
+  "last_updated": "2026-05-13",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "privacy",
+    "hardening",
+    "registry"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Existing history remains visible",
+      "message": "This tweak prevents future tracking but does not remove already existing history entries. Use a separate clear-history tool to delete past records",
+      "icon": "file-warning",
+      "source": "config"
+    },
+    {
+      "severity": "info",
+      "title": "Explorer refresh",
+      "message": "Changes maying Windows Explorer, signing out and back in, or reopening affected apps to take full effect",
+      "icon": "rotate-ccw",
+      "source": "config"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Updates current-user Explorer and policy registry values by setting Start_TrackDocs to 0 under HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced, ShowRecent to 0 under HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer, and NoRecentDocsHistory to 1 under HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer",
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "disable_recent_items_tracking.ps1",
+    "requires_admin": false,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      }
+    }
+  },
+  "category": "General",
+  "subcategory": "System",
+  "profiles": []
+}

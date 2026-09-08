@@ -1,0 +1,101 @@
+{
+  "id": "restore_default_network_latency_profile",
+  "name": "Restore Default Network Latency Profile",
+  "description": "Restores default Windows network latency settings to improve connection stability and throughput for online gaming.",
+  "description_i18n": {
+    "en": "Restores default Windows network latency settings to improve connection stability and throughput for online gaming.",
+    "de": "Stellt die Standard-Netzwerklatenz-Einstellungen von Windows wieder her, um Verbindungsstabilität und Durchsatz für Online-Gaming zu verbessern.",
+    "fr": "Restaure les paramètres de latence réseau par défaut de Windows pour améliorer la stabilité et le débit des connexions en ligne."
+  },
+  "script": "restore_default_network_latency_profile.ps1",
+  "requires_admin": true,
+  "reboot_required": true,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": false,
+  "premium": false,
+  "last_updated": "2026-05-31",
+  "container_type": "one_shot_action",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "network",
+    "network latency",
+    "tcp ip",
+    "adapter",
+    "ping"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Sets NetworkThrottlingIndex to 10 and SystemResponsiveness to 20 in the Multimedia SystemProfile registry Removes TcpAckFrequency, TCPNoDelay, and TcpDelAckTicks from active physical network adapter interfaces",
+  "profiles": [],
+  "supports_status_detection": false,
+  "execution": {
+    "type": "powershell",
+    "script": "restore_default_network_latency_profile.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "category": "Network",
+  "subcategory": "Network Latency"
+}

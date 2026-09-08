@@ -1,0 +1,96 @@
+{
+  "id": "processor_boost_mode_aggressive",
+  "name": "CPU Boost Mode (Aggressive)",
+  "description": "Enables aggressive CPU boost behavior to prioritize performance under load, which may increase power consumption and heat output.",
+  "description_i18n": {
+    "en": "Enables aggressive CPU boost behavior to prioritize performance under load, which may increase power consumption and heat output.",
+    "de": "Aktiviert aggressives CPU-Boost-Verhalten zur Priorisierung der Leistung unter Last, was den Stromverbrauch und die Wärmeentwicklung erhöhen kann.",
+    "fr": "Active un comportement de boost du processeur agressif pour prioriser les performances sous charge, ce qui peut augmenter la consommation d'énergie et la chaleur."
+  },
+  "script": "processor_boost_mode_aggressive.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "medium",
+  "impact": 3,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "power",
+    "cpu"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Power consumption increase",
+      "message": "Aggressive CPU boosting may cause higher battery drain on laptops or increased heat generation under heavy workloads",
+      "icon": "power",
+      "source": "inference"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies the processor power settings in Windows by setting both AC and DC value indices to 2 via the powercfg utility",
+  "execution": {
+    "type": "powershell",
+    "script": "processor_boost_mode_aggressive.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [],
+  "premium": true,
+  "supports_status_detection": true,
+  "category": "Hardware",
+  "subcategory": "Power"
+}

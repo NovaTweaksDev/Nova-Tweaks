@@ -1,0 +1,155 @@
+{
+  "id": "nova_balanced_powerplan",
+  "name": "Nova Tweaks Balanced Power Plan",
+  "description": "Applies a balanced power plan that prioritizes responsiveness and moderate efficiency for mixed workloads.",
+  "description_i18n": {
+    "en": "Applies a balanced power plan that prioritizes responsiveness and moderate efficiency for mixed workloads.",
+    "de": "Wendet einen ausgewogenen Energieplan an, der Reaktionsfähigkeit und mäßige Effizienz für gemischte Arbeitslasten priorisiert.",
+    "fr": "Applique un plan d'alimentation équilibré qui privilégie la réactivité et une efficacité modérée pour les charges de travail mixtes."
+  },
+  "script": "nova_balanced_powerplan.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 3,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "power_plan",
+  "tags": [
+    "windows",
+    "latency",
+    "power",
+    "cpu"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Power behavior change",
+      "message": "Power behavior may change, which can affect battery life, heat, or fan noise",
+      "icon": "power",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Creates or activates a custom power scheme named 'Nova Tweaks Balanced' and configures processor performance settings including minimum/maximum processor states, energy efficiency preference (EPP), cooling policies, boost modes, and parking thresholds",
+  "supports_status_detection": true,
+  "ui": {
+    "variant": "compact_rating",
+    "size": "square",
+    "show_profile_badge": false,
+    "show_target_system": false,
+    "show_tradeoffs": false,
+    "show_bulletpoints": false,
+    "max_metrics": 4
+  },
+  "profile": {
+    "label": "Balanced",
+    "icon": "scale"
+  },
+  "metrics": [
+    {
+      "icon": "bolt",
+      "label": "Responsiveness Improvement",
+      "value": 3,
+      "max": 5,
+      "direction": "positive"
+    },
+    {
+      "icon": "gamepad",
+      "label": "FPS Stability Improvement",
+      "value": 3,
+      "max": 5,
+      "direction": "positive"
+    },
+    {
+      "icon": "plug",
+      "label": "Power Consumption",
+      "value": 2,
+      "max": 5,
+      "direction": "negative"
+    },
+    {
+      "icon": "thermometer",
+      "label": "Temperature Increase",
+      "value": 2,
+      "max": 5,
+      "direction": "negative"
+    }
+  ],
+  "status_labels": {
+    "active": "Currently Applied",
+    "inactive": "Inactive"
+  },
+  "cta_labels": {
+    "default": "Apply",
+    "active": "Currently Applied"
+  },
+  "target_system": [
+    "desktop",
+    "laptop",
+    "general_use",
+    "mixed_workloads"
+  ],
+  "compact_description": "Balances performance, efficiency, and thermals for general use, gaming, and daily multitasking.",
+  "execution": {
+    "type": "powershell",
+    "script": "nova_balanced_powerplan.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "premium": false,
+  "category": "General",
+  "subcategory": "Power Plans",
+  "profiles": []
+}

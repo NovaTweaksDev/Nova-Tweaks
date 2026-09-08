@@ -1,0 +1,106 @@
+{
+  "id": "analyze_component_store",
+  "name": "Analyze Component Store",
+  "description": "Reports the size of Windows update leftovers in the component store without deleting any files or repairing issues.",
+  "description_i18n": {
+    "en": "Reports the size of Windows update leftovers in the component store without deleting any files or repairing issues.",
+    "de": "Zeigt die Größe von Update-Resten im Komponentenspeicher an, löscht keine Dateien und behebt keine Probleme selbstständig.",
+    "fr": "Affiche la taille des résidus de mise à jour dans le magasin de composants sans supprimer de fichiers ni réparer les problèmes."
+  },
+  "script": "analyze_component_store.ps1",
+  "requires_admin": false,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 1,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "fix",
+  "tags": [
+    "windows",
+    "cleanup",
+    "maintenance",
+    "repair",
+    "storage",
+    "updates",
+    "windows update",
+    "troubleshooting"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Read-only Analysis",
+      "message": "This tool only reports current status; it does not clean, optimize, or repair the system by itself. Do not delete WinSxS files manually based on this result",
+      "icon": "shield-alert",
+      "source": "config"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Executes DISM /Online /Cleanup-Image /AnalyzeComponentStore to inspect the WinSxS folder and report its apparent size The action is a one-shot analysis that does not modify system components or remove files",
+  "supports_status_detection": false,
+  "execution": {
+    "type": "powershell",
+    "script": "analyze_component_store.ps1",
+    "requires_admin": false,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      }
+    }
+  },
+  "premium": false,
+  "category": "General",
+  "subcategory": "Maintenance",
+  "profiles": [
+    {
+      "id": "system_cleanup",
+      "defaultChecked": true
+    }
+  ]
+}

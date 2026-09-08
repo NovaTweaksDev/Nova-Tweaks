@@ -1,0 +1,24 @@
+export const SHARED_LIST_GRID_CLASS = 'grid-cols-1 md:grid-cols-[3rem_minmax(150px,1fr)_130px_112px_180px_1.25rem]';
+export const TWEAK_LIST_GRID_CLASS = 'grid-cols-1 md:grid-cols-[3rem_minmax(150px,1fr)_130px_96px_180px_1.25rem]';
+export const TWEAK_LIST_HEADER_PADDING_CLASS = 'px-9';
+export const SHARED_LIST_HEADER_DIVIDER_CLASS = "relative before:pointer-events-none before:absolute before:-bottom-3 before:-left-2 before:-top-3 before:w-px before:bg-[color:color-mix(in_srgb,var(--border)_42%,transparent)] before:content-['']";
+export const SHARED_LIST_GAP_CLASS = 'gap-4';
+export const BACKUP_LIST_HEADER_DIVIDER_CLASS = "relative before:pointer-events-none before:absolute before:-bottom-3 before:-left-1.5 before:-top-3 before:w-px before:bg-[color:color-mix(in_srgb,var(--border)_42%,transparent)] before:content-['']";
+export const APPS_LIST_HEADER_PADDING_CLASS = 'px-8';
+export const SHARED_LIST_HEADER_PADDING_CLASS = 'px-5';
+export const SHARED_LIST_ROW_PADDING_CLASS = 'px-5 py-4';
+export const SHARED_LIST_ROW_MIN_HEIGHT_CLASS = 'min-h-[96px]';
+export const SHARED_LIST_ICON_CELL_CLASS = 'flex items-center md:justify-center';
+export const TWEAK_LIST_ICON_CELL_CLASS = 'flex items-center md:justify-end';
+export const SHARED_LIST_MAIN_CELL_CLASS = 'min-w-0';
+export const SHARED_LIST_CATEGORY_CELL_CLASS = 'min-w-0';
+export const SHARED_LIST_STATUS_CELL_CLASS = 'min-w-0';
+export const SHARED_LIST_ACTIONS_CLASS = 'flex items-center justify-start gap-2 md:justify-center';
+export const SHARED_LIST_CHEVRON_CELL_CLASS = 'hidden items-center justify-center md:flex';
+
+export const TWEAK_ROW_ACTION_GROUP_CLASS = 'grid w-full grid-cols-[5.75rem_2.25rem_2rem] items-center justify-end gap-2';
+export const TWEAK_ROW_PRIMARY_ACTION_SLOT_CLASS = 'flex shrink-0 items-center justify-center';
+export const TWEAK_ROW_PRIMARY_ACTION_WIDTH_CLASS = 'w-[5.75rem]';
+export const TWEAK_ROW_PRIMARY_BUTTON_CLASS = 'ui-btn ui-btn-primary ui-btn-sm h-9 w-[6.5rem]';
+export const TWEAK_ROW_SETTINGS_SLOT_CLASS = 'flex w-9 items-center justify-center';
+export const TWEAK_ROW_FAVORITE_SLOT_CLASS = 'flex w-8 items-center justify-center';

@@ -1,0 +1,106 @@
+{
+  "id": "enable_adapter_rss",
+  "name": "Enable Adapter RSS",
+  "description": "Enables Receive Side Scaling on supported physical network adapters to distribute incoming traffic across multiple CPU cores. This improves responsiveness and stability for online gaming, streaming, or heavy downloads without increasing raw internet speed.",
+  "description_i18n": {
+    "en": "Enables Receive Side Scaling on supported physical network adapters to distribute incoming traffic across multiple CPU cores. This improves responsiveness and stability for online gaming, streaming, or heavy downloads without increasing raw internet speed.",
+    "de": "Aktiviert Receive Side Scaling auf unterstützten physischen Netzwerkadaptern, um eingehenden Verkehr über mehrere CPU-Kerne zu verteilen. Dies verbessert die Reaktionsfähigkeit und Stabilität für Online-Gaming oder Downloads ohne den Internetgeschwindigkeitsschub.",
+    "fr": "Active l'échelle latérale de réception sur les adaptateurs réseau physiques compatibles pour répartir le trafic entrant sur plusieurs cœurs CPU. Cela améliore la réactivité et la stabilité sans augmenter la vitesse brute d'internet."
+  },
+  "script": "enable_adapter_rss.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 3,
+  "recommended": true,
+  "premium": false,
+  "last_updated": "2026-06-01",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "network",
+    "adapter",
+    "security",
+    "cpu",
+    "hypervisor"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Adapter restart may be needed",
+      "message": "Network adapters may briefly reconnect or for the changes to fully apply",
+      "icon": "rotate-ccw",
+      "source": "config"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "The script uses Get-NetAdapter to detect physical network adapters and excludes virtual, VPN, loopback, Bluetooth, Hyper-V, VMware, VirtualBox, Npcap, or Wireshark interfaces It then checks each adapter with Get-NetAdapterRss for support before enabling Receive Side Scaling via Enable-NetAdapterRss on supported hardware",
+  "profiles": [
+    {
+      "id": "network_boost",
+      "defaultChecked": true
+    }
+  ],
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "enable_adapter_rss.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "category": "Network",
+  "subcategory": "Adapter"
+}

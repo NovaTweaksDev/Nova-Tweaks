@@ -1,0 +1,99 @@
+{
+  "id": "restart_explorer",
+  "name": "Restart Explorer",
+  "description": "Restarts Windows Explorer to refresh the desktop, taskbar, Start menu, and File Explorer without restarting your PC. This helps when icons do not update or the interface freezes.",
+  "description_i18n": {
+    "en": "Restarts Windows Explorer to refresh the desktop, taskbar, Start menu, and File Explorer without restarting your PC. This helps when icons do not update or the interface freezes.",
+    "de": "Startet den Windows-Explorer neu, um Desktop, Taskleiste und Datei-Explorer zu aktualisieren, ohne Ihren PC neu zu starten. Hilft bei nicht aktualisierten Symbolen oder eingefrorener Oberfläche.",
+    "fr": "Redémarre l'Explorateur Windows pour rafraîchir le bureau et la barre des tâches sans redémarrer votre ordinateur. Utile lorsque les icônes ne se mettent pas à jour ou que l'interface gèle."
+  },
+  "script": "restart_explorer.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 4,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "fix",
+  "tags": [
+    "windows",
+    "maintenance",
+    "repair",
+    "updates",
+    "windows update",
+    "power"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Explorer refresh",
+      "message": "Windows Explorer may close briefly while the desktop, taskbar, and File Explorer are refreshed. Your open windows will remain intact but you must wait a moment for them to reappear",
+      "icon": "rotate-ccw",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "The script terminates the explorer.exe process and immediately launches a new instance to restore functionality",
+  "supports_status_detection": false,
+  "execution": {
+    "type": "powershell",
+    "script": "restart_explorer.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [],
+  "premium": false,
+  "category": "General",
+  "subcategory": "Maintenance"
+}

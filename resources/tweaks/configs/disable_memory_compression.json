@@ -1,0 +1,88 @@
+{
+  "id": "disable_memory_compression",
+  "name": "Disable Memory Compression",
+  "description": "Disables Windows memory compression to reduce CPU overhead during paging, which may increase RAM usage.",
+  "description_i18n": {
+    "en": "Disables Windows memory compression to reduce CPU overhead during paging, which may increase RAM usage.",
+    "de": "Deaktiviert die Speicherkomprimierung in Windows, um den CPU-Overhead beim Auslagern zu verringern; dies kann mehr Arbeitsspeicher verbrauchen.",
+    "fr": "Désactive la compression de mémoire dans Windows pour réduire le surcoût du processeur lors de l'échange de pages ; cela peut augmenter l'utilisation de la RAM."
+  },
+  "script": "disable_memory_compression.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "medium",
+  "impact": 3,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "cpu",
+    "memory"
+  ],
+  "warnings": [],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "The tweak modifies the MemoryCompression setting within the MMAgent configuration to control whether memory pages are compressed before being paged out",
+  "execution": {
+    "type": "powershell",
+    "script": "disable_memory_compression.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [],
+  "premium": true,
+  "supports_status_detection": true,
+  "category": "Hardware",
+  "subcategory": "Memory"
+}

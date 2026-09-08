@@ -1,0 +1,108 @@
+{
+  "id": "clear_component_store",
+  "name": "Clear Component Store",
+  "description": "Removes superseded Windows update components to free up disk space in the WinSxS folder without breaking system updates.",
+  "description_i18n": {
+    "en": "Removes superseded Windows update components to free up disk space in the WinSxS folder without breaking system updates.",
+    "de": "Entfernt veraltete Update-Komponenten, um Speicherplatz im WinSxS-Ordner zu sparen, ohne Systemupdates zu beeinträchtigen.",
+    "fr": "Supprime les composants de mise à jour obsolètes pour libérer de l'espace disque dans le dossier WinSxS sans rompre les mises à jour système."
+  },
+  "script": "clear_component_store.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "one_shot_action",
+  "tags": [
+    "windows",
+    "cleanup",
+    "maintenance",
+    "repair",
+    "storage",
+    "updates",
+    "windows update",
+    "troubleshooting"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Disk Activity Spike",
+      "message": "The cleanup process will temporarily increase CPU usage and disk activity. Do not interrupt the script while it is running",
+      "icon": "rotate-ccw",
+      "source": "script"
+    },
+    {
+      "severity": "info",
+      "title": "No Performance Gain",
+      "message": "This action does not increase raw internet speed, lower ping, or improve gaming latency. It only recovers disk space",
+      "icon": "network",
+      "source": "config"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Executes DISM /Online /Cleanup-Image /StartComponentCleanup to remove superseded components and update leftovers from the Windows component store",
+  "supports_status_detection": false,
+  "execution": {
+    "type": "powershell",
+    "script": "clear_component_store.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "premium": false,
+  "category": "General",
+  "subcategory": "Cleanup",
+  "profiles": []
+}

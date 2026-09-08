@@ -1,0 +1,88 @@
+{
+  "id": "disable_page_combining",
+  "name": "Disable Page Combining",
+  "description": "Disables memory page combining to reduce background deduplication work and lower CPU overhead.",
+  "description_i18n": {
+    "en": "Disables memory page combining to reduce background deduplication work and lower CPU overhead.",
+    "de": "Deaktiviert die Zusammenführung von Speicherseiten, um Hintergrund-Deduplizierungsarbeit zu reduzieren und den CPU-Overhead zu senken.",
+    "fr": "Désactive la combinaison des pages mémoire pour réduire le travail de déduplication en arrière-plan et diminuer la charge du processeur."
+  },
+  "script": "disable_page_combining.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "medium",
+  "impact": 3,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "cpu",
+    "memory"
+  ],
+  "warnings": [],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "The tweak uses the MMAgent API to disable memory page combining This changes system behavior by stopping background deduplication of identical data blocks in physical memory",
+  "execution": {
+    "type": "powershell",
+    "script": "disable_page_combining.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [],
+  "premium": true,
+  "supports_status_detection": true,
+  "category": "Hardware",
+  "subcategory": "Memory"
+}

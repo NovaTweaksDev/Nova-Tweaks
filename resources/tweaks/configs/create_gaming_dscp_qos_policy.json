@@ -1,0 +1,101 @@
+{
+  "id": "create_gaming_dscp_qos_policy",
+  "name": "Gaming DSCP QoS Policy",
+  "description": "Creates local Windows QoS policies that mark outbound UDP traffic from common game executables with DSCP 46. This can help supported routers or managed networks prioritize real-time gaming traffic, but it does not increase internet speed and only has an effect if the network path",
+  "description_i18n": {
+    "en": "Creates local Windows QoS policies that mark outbound UDP traffic from common game executables with DSCP 46. This can help supported routers or managed networks prioritize real-time gaming traffic, but it does not increase internet speed and only has an effect if the network path",
+    "de": "Erstellt lokale Windows-QoS-Richtlinien, die ausgehenden UDP-Traffic gängiger Spiel-Executables mit DSCP 46 markieren. Das kann unterstützten Routern oder verwalteten Netzwerken helfen, Echtzeit-Gaming-Traffic zu priorisieren, erhöht aber nicht die Internetgeschwindigkeit und wirkt nur, wenn das Netzwerk DSCP-Markierun",
+    "fr": "Crée des stratégies QoS Windows locales qui marquent le trafic UDP sortant de jeux courants avec DSCP 46. Cela peut aider les routeurs compatibles ou les réseaux gérés à prioriser le trafic gaming en temps réel, mais cela n'augmente pas la vitesse Internet et ne fonctionne que si le réseau respecte les marquages DSCP."
+  },
+  "script": "create_gaming_dscp_qos_policy.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": false,
+  "premium": false,
+  "last_updated": "2026-06-01",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "network",
+    "packet handling",
+    "qos",
+    "fortnite",
+    "valorant"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Network dependency",
+      "message": "DSCP markings only help if the router or managed network respects QoS values. Many consumer routers and ISPs ignore these settings, so this tweak may provide no benefit on your specific connection",
+      "icon": "network",
+      "source": "config"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Creates local Windows QoS policies in the PersistentStore using New-NetQosPolicy The policies target common game executable names and mark outbound UDP traffic with DSCP value 46, also known as Expedited Forwarding",
+  "profiles": [],
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "create_gaming_dscp_qos_policy.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "category": "Network",
+  "subcategory": "Packet Handling"
+}

@@ -1,0 +1,112 @@
+{
+  "id": "nvidia_profile_presets",
+  "name": "NVIDIA Profile Presets",
+  "description": "Applies a selected NVIDIA global driver preset, including Competitive, Balanced, Quality, or Restore Defaults.",
+  "description_i18n": {
+    "en": "Applies a selected NVIDIA global driver preset, including Competitive, Balanced, Quality, or Restore Defaults.",
+    "de": "Wendet ein ausgewähltes globales NVIDIA-Treiber-Preset an: Competitive, Balanced, Quality oder Restore Defaults.",
+    "fr": "Applique un profil de pilote NVIDIA global pour optimiser les jeux ou le rendu et restaurer les paramètres d'usine."
+  },
+  "script": "nvidia_profile_presets.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "medium",
+  "impact": 4,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "one_shot_selection",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "maintenance",
+    "gpu",
+    "nvidia"
+  ],
+  "warnings": [],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Vendor-specific compatibility: nvidia."
+  },
+  "technical_details": "Executes the nvidia-profile-helper utility to apply, check status of, or restore default settings for the selected preset",
+  "supports_status_detection": false,
+  "selections": [
+    "Competitive",
+    "Balanced",
+    "Quality",
+    "Restore Defaults"
+  ],
+  "recommended_selection": "Competitive",
+  "execution": {
+    "type": "powershell",
+    "script": "nvidia_profile_presets.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true,
+        "allowed_params": [
+          "Selection"
+        ]
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true,
+        "allowed_params": [
+          "Selection"
+        ]
+      }
+    }
+  },
+  "profiles": [
+    {
+      "id": "gaming_performance",
+      "defaultChecked": true,
+      "params": {
+        "Selection": "Competitive"
+      }
+    }
+  ],
+  "premium": true,
+  "category": "Hardware",
+  "subcategory": "GPU"
+}

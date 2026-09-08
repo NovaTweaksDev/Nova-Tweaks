@@ -1,0 +1,104 @@
+{
+  "id": "restart_audio_services",
+  "name": "Restart Audio Services",
+  "description": "Restarts the main Windows audio services to fix common sound issues when devices are not detected correctly or apps cannot access playback and recording devices.",
+  "description_i18n": {
+    "en": "Restarts the main Windows audio services to fix common sound issues when devices are not detected correctly or apps cannot access playback and recording devices.",
+    "de": "Startet die wichtigsten Windows-Audiodienste neu, um häufige Soundprobleme zu beheben. Dies hilft bei der Erkennung von Geräten und dem Zugriff auf Wiedergabe- oder Aufnahmegeräte in Apps.",
+    "fr": "Redémarre les principaux services audio de Windows afin de corriger des problèmes sonores courants lorsque les périphériques ne sont pas détectés ou que les applications n'ont pas accès aux appareils."
+  },
+  "script": "restart_audio_services.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 4,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "fix",
+  "tags": [
+    "windows",
+    "maintenance",
+    "repair",
+    "services"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Audio interruption",
+      "message": "Sound may briefly stop while audio devices are restarted by the system",
+      "icon": "rotate-ccw",
+      "source": "script"
+    },
+    {
+      "severity": "warning",
+      "title": "Service state change",
+      "message": "Related Windows services may stop or restart briefly while the action runs",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Restarts the AudioEndpointBuilder and Audiosrv system services The script checks if a service is running before restarting it or starts it directly",
+  "supports_status_detection": false,
+  "execution": {
+    "type": "powershell",
+    "script": "restart_audio_services.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [],
+  "premium": false,
+  "category": "General",
+  "subcategory": "Maintenance"
+}

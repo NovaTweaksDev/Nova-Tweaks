@@ -1,0 +1,112 @@
+{
+  "id": "clear_font_cache",
+  "name": "Clear Font Cache",
+  "description": "Clears the Windows font cache to fix missing fonts or broken text rendering caused by corrupted data. The system rebuilds this temporary file automatically after cleaning.",
+  "description_i18n": {
+    "en": "Clears the Windows font cache to fix missing fonts or broken text rendering caused by corrupted data. The system rebuilds this temporary file automatically after cleaning.",
+    "de": "Leert den Windows-Schriftarten-Cache zur Behebung von fehlenden Schriftarten oder Textdarstellungsfehlern durch beschädigte Daten. Das System baut diese temporäre Datei nach der Reinigung automatisch neu auf.",
+    "fr": "Vide le cache des polices de Windows pour corriger les problèmes d'affichage ou de texte causés par des données corrompues. Le système reconstruit ce fichier temporaire automatiquement après le nettoyage."
+  },
+  "script": "clear_font_cache.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 1,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "one_shot_action",
+  "tags": [
+    "windows",
+    "cleanup",
+    "cache",
+    "maintenance",
+    "services",
+    "power",
+    "troubleshooting"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Temporary slowdown during rebuild",
+      "message": "Windows may take longer to load fonts while the cache is rebuilt after cleanup. This action does not repair broken font files or reinstall missing fonts",
+      "icon": "rotate-ccw",
+      "source": "script"
+    },
+    {
+      "severity": "warning",
+      "title": "Service state change",
+      "message": "Related Windows services may stop or restart briefly while the action runs",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Stops the FontCache and FontCache3.0.0.0 services, removes local font cache databases in ServiceProfiles\\LocalService\\AppData\\Local and deletes FNTCACHE.DAT from System32",
+  "supports_status_detection": false,
+  "execution": {
+    "type": "powershell",
+    "script": "clear_font_cache.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "premium": false,
+  "category": "General",
+  "subcategory": "Cleanup",
+  "profiles": [
+    {
+      "id": "system_cleanup",
+      "defaultChecked": true
+    }
+  ]
+}

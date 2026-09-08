@@ -1,0 +1,103 @@
+{
+  "id": "xbox_services",
+  "name": "Disable Xbox Services",
+  "description": "Disables Xbox background services to reduce resource usage on systems that do not use gaming integration features. Some app functions may stop working until the tweak is reversed.",
+  "description_i18n": {
+    "en": "Disables Xbox background services to reduce resource usage on systems that do not use gaming integration features. Some app functions may stop working until the tweak is reversed.",
+    "de": "Deaktiviert Xbox-Hintergrunddienste, um Ressourcen auf Systemen zu sparen, die keine Gaming-Integration nutzen. Einige App-Funktionen funktionieren nicht mehr bis der Tweak rückgängig gemacht wird.",
+    "fr": "Désactive les services d'arrière-plan Xbox pour réduire l'utilisation des ressources sur les systèmes qui n'utilisent pas l'intégration de jeu. Certaines fonctions peuvent cesser de fonctionner jusqu'à ce que le réglage soit inversé."
+  },
+  "script": "xbox_services.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "debloat",
+    "services"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Service behavior change",
+      "message": "Disabling these services stops background processes related to game discovery and social features. Some Xbox app functions may no longer work until the tweak is reversed or a system restart occurs",
+      "icon": "shield-alert",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Disables the startup of five specific Windows services: XboxGipSvc, XboxNetApiSvc, XblAuthManager, XblGameSave, and XboxSvc by setting their StartupType to Disabled or Manual",
+  "execution": {
+    "type": "powershell",
+    "script": "xbox_services.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [
+    {
+      "id": "gaming_performance",
+      "defaultChecked": true
+    }
+  ],
+  "premium": false,
+  "supports_status_detection": true,
+  "category": "Debloat",
+  "subcategory": "Services"
+}

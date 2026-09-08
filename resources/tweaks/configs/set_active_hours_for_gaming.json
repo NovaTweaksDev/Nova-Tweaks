@@ -1,0 +1,113 @@
+{
+  "id": "set_active_hours_for_gaming",
+  "name": "Set Active Hours for Gaming",
+  "description": "Sets Windows Update active hours to a gaming-friendly time window so the PC is less likely to restart during gameplay, rendering, or streaming sessions.",
+  "description_i18n": {
+    "en": "Sets Windows Update active hours to a gaming-friendly time window so the PC is less likely to restart during gameplay, rendering, or streaming sessions.",
+    "de": "Setzt die aktiven Stunden für Windows-Updates auf ein Zeitfenster zum Spielen, damit der PC seltener während von Gameplay-, Rendering- oder Streaming-Sitzungen neu startet.",
+    "fr": "Définit les heures d'activité de Windows Update sur une plage adaptée au jeu afin que l'ordinateur ne redémarre pas pendant des sessions de jeu, de rendu ou de streaming."
+  },
+  "script": "set_active_hours_for_gaming.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "last_updated": "2026-05-30",
+  "container_type": "one_shot_selection",
+  "tags": [
+    "windows",
+    "gaming",
+    "maintenance",
+    "updates",
+    "windows update",
+    "quality of life"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Policy Override Risk",
+      "message": "Enterprise, domain, or MDM policies may override the active hours settings configured by this tweak",
+      "icon": "shield-alert",
+      "source": "config"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Uses Windows Update active hours policy values supported on Windows 10 and Windows 11."
+  },
+  "technical_details": "Configures the registry policy SetActiveHours to enable active hours management and writes ActiveHoursStart/End values based on selected presets Selecting Windows Managed removes these policy values to restore default behavior",
+  "selections": [
+    "Windows Managed (Default)",
+    "Daytime Gaming (12:00 - 00:00)",
+    "Evening Gaming (16:00 - 02:00)",
+    "Night Gaming (18:00 - 04:00)",
+    "Streaming / Workday (10:00 - 22:00)"
+  ],
+  "recommended_selection": "Evening Gaming (16:00 - 02:00)",
+  "execution": {
+    "type": "powershell",
+    "script": "set_active_hours_for_gaming.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true,
+        "allowed_params": [
+          "Selection"
+        ]
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true,
+        "allowed_params": [
+          "Selection"
+        ]
+      }
+    }
+  },
+  "profiles": [],
+  "premium": false,
+  "supports_status_detection": false,
+  "category": "General",
+  "subcategory": "System"
+}

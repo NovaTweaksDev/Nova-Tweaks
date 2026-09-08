@@ -1,0 +1,97 @@
+{
+  "id": "disable_timer_coalescing",
+  "name": "Disable Timer Coalescing",
+  "description": "Disables timer coalescing to favor more immediate scheduling behavior on some systems, which may affect background task timing.",
+  "description_i18n": {
+    "en": "Disables timer coalescing to favor more immediate scheduling behavior on some systems, which may affect background task timing.",
+    "de": "Deaktiviert die Timer-Verzögerung für sofortiges Zeitplanverhalten auf einigen Systemen; dies kann das Timing von Hintergrundaufgaben beeinflussen.",
+    "fr": "Désactive la coalescence des temporisateurs pour favoriser un comportement de planification plus immédiat sur certains systèmes, ce qui peut affecter le timing des tâches en arrière-plan."
+  },
+  "script": "disable_timer_coalescing.ps1",
+  "requires_admin": true,
+  "reboot_required": true,
+  "risk_level": "medium",
+  "impact": 3,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "latency",
+    "timer",
+    "registry"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Experimental setting applied",
+      "message": "This tweak applies an experimental registry change that alters how Windows schedules background timers; results vary by system",
+      "icon": "shield-alert",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies the registry value CoalescingTimerInterval at HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager to a DWord of 0",
+  "execution": {
+    "type": "powershell",
+    "script": "disable_timer_coalescing.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [],
+  "premium": false,
+  "supports_status_detection": true,
+  "category": "Latency",
+  "subcategory": "Timer"
+}

@@ -1,0 +1,103 @@
+{
+  "id": "hardware_accelerated_gpu",
+  "name": "Hardware Accelerated GPU Scheduling",
+  "description": "Enables Hardware Accelerated GPU Scheduling to let the graphics card manage its own tasks, which can improve latency and performance on supported systems.",
+  "description_i18n": {
+    "en": "Enables Hardware Accelerated GPU Scheduling to let the graphics card manage its own tasks, which can improve latency and performance on supported systems.",
+    "de": "Aktiviert die hardwarebeschleunigte GPU-Zeitplanung, damit die Grafikkarte ihre Aufgaben selbst verwaltet und so Latenz sowie Leistung auf unterstützten Systemen verbessert werden können.",
+    "fr": "Active la planification accélérée par matériel de l'GPU pour laisser la carte graphique gérer ses propres tâches, ce qui peut améliorer la latence et les performances sur les systèmes pris en charge."
+  },
+  "script": "hardware_accelerated_gpu.ps1",
+  "requires_admin": true,
+  "reboot_required": true,
+  "risk_level": "medium",
+  "impact": 3,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "gpu",
+    "registry"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies the registry value HwSchMode under HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers to set it to 2 for enabling or 1 for disabling",
+  "execution": {
+    "type": "powershell",
+    "script": "hardware_accelerated_gpu.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [
+    {
+      "id": "gaming_performance",
+      "defaultChecked": true
+    }
+  ],
+  "premium": false,
+  "supports_status_detection": true,
+  "category": "Hardware",
+  "subcategory": "GPU"
+}

@@ -1,0 +1,102 @@
+{
+  "id": "remove_clipchamp",
+  "name": "Remove Clipchamp",
+  "description": "Removes Microsoft Clipchamp from your system if it is installed, freeing up storage and removing an unused app.",
+  "description_i18n": {
+    "en": "Removes Microsoft Clipchamp from your system if it is installed, freeing up storage and removing an unused app.",
+    "de": "Entfernt Microsoft Clipchamp von deinem System, falls installiert. Freit Speicherplatz und entfernt eine ungenutzte App.",
+    "fr": "Supprime Microsoft Clipchamp de ton système s'il est installé, libérant l'espace et retirant une application inutilisée."
+  },
+  "script": "remove_clipchamp.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "one_shot_action",
+  "tags": [
+    "windows",
+    "maintenance",
+    "privacy",
+    "debloat"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "App removal confirmation",
+      "message": "This action permanently deletes the Clipchamp application from your device. You will not be able to use it again without reinstalling it manually.",
+      "icon": "shield-alert",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Removes installed and provisioned Appx packages matching 'Clipchamp'. The script removes both user-installed instances and system-wide provisioning entries.",
+  "execution": {
+    "type": "powershell",
+    "script": "remove_clipchamp.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [
+    {
+      "id": "privacy_debloat",
+      "defaultChecked": true
+    }
+  ],
+  "premium": false,
+  "supports_status_detection": false,
+  "category": "Debloat",
+  "subcategory": "Apps"
+}

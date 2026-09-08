@@ -1,0 +1,101 @@
+{
+  "id": "clear_standby_list",
+  "name": "Clear Standby List",
+  "description": "Clears cached memory pages that Windows normally reuses, which can help troubleshoot stutters after long gaming sessions or heavy multitasking. Note: This does not permanently increase FPS and Windows will rebuild the cache automatically.",
+  "description_i18n": {
+    "en": "Clears cached memory pages that Windows normally reuses, which can help troubleshoot stutters after long gaming sessions or heavy multitasking. Note: This does not permanently increase FPS and Windows will rebuild the cache automatically.",
+    "de": "Leert zwischengespeicherte Speicherseiten, die Windows normalerweise wiederverwendet, was helfen kann, Stutter nach langen Gaming-Sessions oder starkem Multitasking zu beheben. Hinweis: Dies erhöht nicht dauerhaft den FPS und Windows baut den Cache automatisch neu auf.",
+    "fr": "Vide les pages mémoire mises en cache que Windows réutilise normalement, ce qui peut aider à diagnostiquer des saccades après de longues sessions de jeu ou un multitâche intensif. Note : Cela n'augmente pas durablement le FPS et Windows reconstruit automatiquement le cache."
+  },
+  "script": "clear_standby_list.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 3,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "one_shot_action",
+  "tags": [
+    "windows",
+    "gaming",
+    "cleanup",
+    "cache",
+    "maintenance",
+    "memory",
+    "troubleshooting",
+    "fortnite"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Cache rebuild delay",
+      "message": "Windows will automatically rebuild memory caches during normal use. Running this too often can cause temporary slowdowns as data is loaded again from disk",
+      "icon": "rotate-ccw",
+      "source": "config"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "This action requests the operating system to empty the standby page list via a direct memory management call, releasing cached pages back to available RAM without closing applications or changing permanent settings",
+  "execution": {
+    "type": "powershell",
+    "script": "clear_standby_list.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "premium": true,
+  "category": "Hardware",
+  "subcategory": "Memory",
+  "profiles": [],
+  "supports_status_detection": false
+}

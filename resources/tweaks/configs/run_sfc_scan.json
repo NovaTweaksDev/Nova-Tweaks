@@ -1,0 +1,89 @@
+{
+  "id": "run_sfc_scan",
+  "name": "Run SFC Scan",
+  "description": "Runs the Windows System File Checker to scan and repair protected system files that may be missing, damaged, or modified.",
+  "description_i18n": {
+    "en": "Runs the Windows System File Checker to scan and repair protected system files that may be missing, damaged, or modified.",
+    "de": "Führt die Windows-Systemdateiprüfung aus, um geschützte Systemdateien zu scannen und fehlende oder beschädigte Dateien wiederherzustellen.",
+    "fr": "Lance l’outil de vérification des fichiers système pour analyser et réparer les fichiers protégés manquants ou endommagés."
+  },
+  "script": "run_sfc_scan.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 4,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "fix",
+  "tags": [
+    "windows",
+    "maintenance",
+    "repair",
+    "troubleshooting"
+  ],
+  "warnings": [],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Executes the SFC /scannow command to verify system file integrity and replace corrupted files with cached copies from Windows installation media",
+  "supports_status_detection": false,
+  "execution": {
+    "type": "powershell",
+    "script": "run_sfc_scan.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [],
+  "premium": false,
+  "category": "General",
+  "subcategory": "Maintenance"
+}

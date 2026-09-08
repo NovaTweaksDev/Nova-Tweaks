@@ -1,0 +1,105 @@
+{
+  "id": "rebuild_search_index",
+  "name": "Rebuild Search Index",
+  "description": "Rebuilds the Windows search index to fix slow, incomplete, or broken results in Start Menu and File Explorer. This action clears cached data so Windows can regenerate it fresh.",
+  "description_i18n": {
+    "en": "Rebuilds the Windows search index to fix slow, incomplete, or broken results in Start Menu and File Explorer. This action clears cached data so Windows can regenerate it fresh.",
+    "de": "Erstellt den Windows-Suchindex neu, um langsame oder fehlerhafte Ergebnisse im Startmenü und Datei-Explorer zu beheben. Dabei wird der Cache geleert, damit Windows ihn frisch nachbaün kann.",
+    "fr": "Reconstruit l'index de recherche Windows pour corriger des résultats lents ou incorrects dans le menu Démarrer et l'Explorateur de fichiers. Cela vide les données en cache afin que Windows puisse les régénérer."
+  },
+  "script": "rebuild_search_index.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 4,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "fix",
+  "tags": [
+    "windows",
+    "maintenance",
+    "repair",
+    "services",
+    "power"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Explorer refresh",
+      "message": "File Explorer may close briefly while Windows rebuilds its search database in the background",
+      "icon": "rotate-ccw",
+      "source": "script"
+    },
+    {
+      "severity": "warning",
+      "title": "Local data cleanup",
+      "message": "Cached search results and temporary index files are removed. Windows will regenerate them, which may take a moment",
+      "icon": "file-warning",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "The tweak stops the WSearch service, deletes contents of %ProgramData%\\Microsoft\\Search\\Data\\Applications\\Windows, and restarts the service to trigger a fresh index build",
+  "supports_status_detection": false,
+  "execution": {
+    "type": "powershell",
+    "script": "rebuild_search_index.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [],
+  "premium": false,
+  "category": "General",
+  "subcategory": "Maintenance"
+}

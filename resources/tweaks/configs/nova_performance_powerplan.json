@@ -1,0 +1,168 @@
+{
+  "id": "nova_performance_powerplan",
+  "name": "Nova Tweaks Performance Power Plan",
+  "description": "Activates a custom power plan to prioritize processor performance and reduce energy-saving interruptions for demanding tasks.",
+  "description_i18n": {
+    "en": "Activates a custom power plan to prioritize processor performance and reduce energy-saving interruptions for demanding tasks.",
+    "de": "Aktiviert einen benutzerdefinierten Energieplan, der die Prozessorenleistung priorisiert und energie sparende Unterbrechungen für anspruchsvolle Aufgaben reduziert.",
+    "fr": "Active un profil d'alimentation personnalisé pour privilégier les performances du processeur et réduire les interruptions de conservation d'énergie."
+  },
+  "script": "nova_performance_powerplan.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "medium",
+  "impact": 4,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "power_plan",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "power",
+    "cpu"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Increased Power Usage",
+      "message": "This plan prioritizes maximum CPU speed over power saving. Your system may consume more electricity and generate higher heat under load compared to standard plans",
+      "icon": "triangle-alert",
+      "source": "config"
+    },
+    {
+      "severity": "warning",
+      "title": "Higher Temperatures",
+      "message": "By keeping processor cores active at high frequencies, the system may run hotter than usual during intensive workloads",
+      "icon": "triangle-alert",
+      "source": "config"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Creates a new power scheme based on the Ultimate Performance profile and configures processor settings including minimum/maximum performance states, energy efficiency preferences, core parking behavior, and boost thresholds",
+  "supports_status_detection": true,
+  "ui": {
+    "variant": "compact_rating",
+    "size": "square",
+    "show_profile_badge": false,
+    "show_target_system": false,
+    "show_tradeoffs": false,
+    "show_bulletpoints": false,
+    "max_metrics": 4
+  },
+  "profile": {
+    "label": "Performance",
+    "icon": "bolt"
+  },
+  "metrics": [
+    {
+      "icon": "bolt",
+      "label": "Responsiveness Improvement",
+      "value": 4,
+      "max": 5,
+      "direction": "positive"
+    },
+    {
+      "icon": "gamepad",
+      "label": "FPS Stability Improvement",
+      "value": 4,
+      "max": 5,
+      "direction": "positive"
+    },
+    {
+      "icon": "plug",
+      "label": "Power Consumption",
+      "value": 4,
+      "max": 5,
+      "direction": "negative"
+    },
+    {
+      "icon": "thermometer",
+      "label": "Temperature Increase",
+      "value": 3,
+      "max": 5,
+      "direction": "negative"
+    }
+  ],
+  "status_labels": {
+    "active": "Currently Applied",
+    "inactive": "Inactive"
+  },
+  "cta_labels": {
+    "default": "Apply",
+    "active": "Currently Applied"
+  },
+  "target_system": [
+    "desktop",
+    "laptop",
+    "gaming",
+    "high_performance"
+  ],
+  "compact_description": "Improves responsiveness and boosts consistency for gaming, multitasking, and heavier desktop workloads.",
+  "execution": {
+    "type": "powershell",
+    "script": "nova_performance_powerplan.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [
+    {
+      "id": "gaming_performance",
+      "defaultChecked": true
+    }
+  ],
+  "premium": false,
+  "category": "General",
+  "subcategory": "Power Plans"
+}

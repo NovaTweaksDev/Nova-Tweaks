@@ -1,0 +1,96 @@
+{
+  "id": "disable_clicklock",
+  "name": "Disable ClickLock",
+  "description": "Disables the Windows ClickLock feature to prevent accidental mouse clicks when holding down a button.",
+  "description_i18n": {
+    "en": "Disables the Windows ClickLock feature to prevent accidental mouse clicks when holding down a button.",
+    "de": "Deaktiviert die Windows-Funktion 'ClickLock', um versehentliche Mausklicks beim Halten einer Taste zu verhindern.",
+    "fr": "Désactive la fonctionnalité de verrouillage du clic de Windows pour éviter les clics accidentels en maintenant un bouton."
+  },
+  "script": "disable_clicklock.ps1",
+  "requires_admin": false,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 1,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "latency",
+    "input"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Native API Usage",
+      "message": "Uses direct Windows API calls (SystemParametersInfo) instead of standard PowerShell cmdlets for precise control over the setting",
+      "icon": "info",
+      "source": "inference"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "This tweak uses the SystemParametersInfo API to disable ClickLock, which is enabled by default on many systems It modifies system behavior directly via native calls rather than registry keys or services",
+  "execution": {
+    "type": "powershell",
+    "script": "disable_clicklock.ps1",
+    "requires_admin": false,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      }
+    }
+  },
+  "premium": false,
+  "category": "Latency",
+  "subcategory": "Input",
+  "profiles": [],
+  "supports_status_detection": true
+}

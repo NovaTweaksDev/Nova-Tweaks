@@ -1,0 +1,101 @@
+{
+  "id": "disable_flow_control",
+  "name": "Disable Flow Control",
+  "description": "Disables Flow Control on supported physical network adapters to reduce pause-frame based traffic throttling. This can improve latency consistency in online games, voice chat, and real-time workloads but may reduce stability or throughput on congested networks.",
+  "description_i18n": {
+    "en": "Disables Flow Control on supported physical network adapters to reduce pause-frame based traffic throttling. This can improve latency consistency in online games, voice chat, and real-time workloads but may reduce stability or throughput on congested networks.",
+    "de": "Deaktiviert die Flusskontrolle auf unterstützten physischen Netzwerkadaptern, um das Drosseln des Datenverkehrs durch Pause-Frames zu reduzieren. Dies kann die Latenzkonsistenz in Online-Spielen und Echtzeitarbeiten verbessern, kann aber bei stark ausgelasteten Netzwerken Stabilität oder Durchsatz verschlechtern.",
+    "fr": "Désactive le contrôle de flux sur les adaptateurs réseau physiques compatibles afin de réduire la limitation du trafic basée sur les trames de pause. Cela peut améliorer la stabilité de la latence dans les jeux en ligne et les charges temps réel, mais peut réduire la stabilité ou le débit sur les réseaux congestionnés."
+  },
+  "script": "disable_flow_control.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "medium",
+  "impact": 2,
+  "recommended": false,
+  "premium": false,
+  "last_updated": "2026-06-01",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "network",
+    "network latency",
+    "adapter",
+    "packet handling",
+    "security"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Network adapter",
+      "message": "Some network adapters may briefly reconnect or require an adapter restart for driver-level changes to fully apply. Results depend on the specific hardware, drivers, and switch/router configuration",
+      "icon": "rotate-ccw",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "The tweak uses Get-NetAdapterAdvancedProperty and Set-NetAdapterAdvancedProperty to detect Flow Control settings on physical network adapters It targets the registry keyword *FlowControl or display names matching 'Flow Control' Enabling the tweak sets this value to 0, while restoring it returns the setting to a common default of 3",
+  "profiles": [],
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "disable_flow_control.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "category": "Network",
+  "subcategory": "Adapter"
+}

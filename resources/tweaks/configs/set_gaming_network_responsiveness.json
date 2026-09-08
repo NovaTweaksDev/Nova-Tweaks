@@ -1,0 +1,129 @@
+{
+  "id": "set_gaming_network_responsiveness",
+  "name": "Set Gaming Network Responsiveness",
+  "description": "Sets Windows to prioritize foreground tasks over background processes for lower latency in games and voice chat. This does not increase internet speed or bandwidth.",
+  "description_i18n": {
+    "en": "Sets Windows to prioritize foreground tasks over background processes for lower latency in games and voice chat. This does not increase internet speed or bandwidth.",
+    "de": "Stellt Windows so ein, dass Vordergrundaufgaben Vorrang vor Hintergrundprozessen erhalten für geringere Latenz bei Spielen und Voice-Chat. Dies erhöht nicht die Internetgeschwindigkeit oder Bandbreite.",
+    "fr": "Configuré Windows pour prioriser les tâches au premier plan par rapport aux processus en arrière-plan afin de réduire la latence dans les jeux et le chat vocal. Cela n'augmente pas la vitesse d'internet ni la bande passante."
+  },
+  "script": "set_gaming_network_responsiveness.ps1",
+  "requires_admin": true,
+  "reboot_required": true,
+  "risk_level": "low",
+  "impact": 3,
+  "recommended": true,
+  "premium": false,
+  "last_updated": "2026-06-01",
+  "container_type": "one_shot_selection",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "network",
+    "network latency",
+    "maintenance",
+    "security",
+    "registry"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Reboot recommended",
+      "message": "A system restart is required so Windows fully applies the changed network responsiveness behavior",
+      "icon": "rotate-ccw",
+      "source": "script"
+    },
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies the registry value SystemResponsiveness under HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile to control scheduling priority for multimedia and background workloads",
+  "profiles": [],
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "set_gaming_network_responsiveness.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true,
+        "allowed_params": [
+          "Selection"
+        ]
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true,
+        "allowed_params": [
+          "Selection"
+        ]
+      }
+    }
+  },
+  "category": "Network",
+  "subcategory": "Network Latency",
+  "selections": [
+    {
+      "label": "Windows Default",
+      "value": "Windows Default"
+    },
+    {
+      "label": "Gaming / Low Latency",
+      "value": "Gaming / Low Latency"
+    },
+    {
+      "label": "Background Friendly",
+      "value": "Background Friendly"
+    }
+  ],
+  "recommended_selection": "Gaming / Low Latency"
+}

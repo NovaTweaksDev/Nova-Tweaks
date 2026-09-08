@@ -1,0 +1,114 @@
+{
+  "id": "disable_activity_history",
+  "name": "Disable Activity History",
+  "description": "Disables Windows Activity History and Timeline features to stop storing user activity data across apps. This improves privacy by preventing the system from collecting or syncing your usage details, though some diagnostic reports may be affected.",
+  "description_i18n": {
+    "en": "Disables Windows Activity History and Timeline features to stop storing user activity data across apps. This improves privacy by preventing the system from collecting or syncing your usage details, though some diagnostic reports may be affected.",
+    "de": "Deaktiviert die Funktionen für Aktivitätsverlauf und Zeitstrahl in Windows, um das Speichern von Benutzerdaten zu stoppen. Dies verbessert den Datenschutz, indem es verhindert, dass Ihr System Nutzungsdetails sammelt oder synchronisiert; einige Diagnoseberichte können jedoch betroffen sein.",
+    "fr": "Désactive les fonctionnalités d'historique et de chronologie des activités dans Windows pour arrêter le stockage des données d'activité utilisateur. Cela améliore la confidentialité en empêchant votre système de collecter ou de synchroniser vos détails d'utilisation, bien que certains rapports de diagnostic puissent êt"
+  },
+  "script": "disable_activity_history.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "privacy",
+    "debloat",
+    "hardening",
+    "power",
+    "power saving",
+    "registry",
+    "stability"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Diagnostic reports affected",
+      "message": "Disabling these settings may stop certain diagnostic data from being collected by the system. Some features relying on Activity History or Timeline might not function as expected if they depend on this registry policy",
+      "icon": "shield-alert",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Configures the registry path HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System to set EnableActivityFeed, PublishUserActivities, and UploadUserActivities values to zero This disables, uploading, or storing user activity history depending on Windows version",
+  "execution": {
+    "type": "powershell",
+    "script": "disable_activity_history.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "premium": false,
+  "category": "Debloat",
+  "subcategory": "Privacy",
+  "profiles": [
+    {
+      "id": "daily_safe",
+      "defaultChecked": true
+    },
+    {
+      "id": "laptop_battery",
+      "defaultChecked": true
+    },
+    {
+      "id": "privacy_debloat",
+      "defaultChecked": true
+    }
+  ],
+  "supports_status_detection": true
+}

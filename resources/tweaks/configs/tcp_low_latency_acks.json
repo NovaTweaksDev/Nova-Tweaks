@@ -1,0 +1,106 @@
+{
+  "id": "tcp_low_latency_acks",
+  "name": "TCP Low Latency ACKs",
+  "description": "Reduces TCP acknowledgment delays on active network adapters to improve responsiveness in online games and voice chat. Results depend on the game, server, adapter, and network path.",
+  "description_i18n": {
+    "en": "Reduces TCP acknowledgment delays on active network adapters to improve responsiveness in online games and voice chat. Results depend on the game, server, adapter, and network path.",
+    "de": "Verringert Verzögerungen bei TCP-Bestätigungen auf aktiven Netzwerkadaptern für bessere Reaktionsfähigkeit in Online-Spielen und Voice-Chat. Ergebnisse hängen vom Spiel, Server, Adapter und Netzwerkpfad ab.",
+    "fr": "Réduit les délais d'accusé de réception TCP sur les adaptateurs réseau actifs pour améliorer la réactivité dans les jeux en ligne et le chat vocal. Les résultats dépendent du jeu, du serveur, de l'adaptateur et du chemin réseau."
+  },
+  "script": "tcp_low_latency_acks.ps1",
+  "requires_admin": true,
+  "reboot_required": true,
+  "risk_level": "medium",
+  "impact": 4,
+  "recommended": false,
+  "premium": false,
+  "last_updated": "2026-05-31",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "network",
+    "tcp ip",
+    "adapter",
+    "ping",
+    "security"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Writes TcpAckFrequency to 1, TCPNoDelay to 1, and TcpDelAckTicks to 0 under HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces for each active physical network adapter",
+  "profiles": [
+    {
+      "id": "network_boost",
+      "defaultChecked": true
+    }
+  ],
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "tcp_low_latency_acks.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "category": "Network",
+  "subcategory": "TCP IP"
+}

@@ -1,0 +1,113 @@
+{
+  "id": "disable_delivery_optimization_p2p",
+  "name": "Disable Delivery Optimization P2P",
+  "description": "Disables peer-to-peer sharing for Windows Delivery Optimization to reduce unwanted background network activity from updates and downloads. This keeps bandwidth usage predictable during gaming or work, but may make large file transfers less efficient on networks that benefit from",
+  "description_i18n": {
+    "en": "Disables peer-to-peer sharing for Windows Delivery Optimization to reduce unwanted background network activity from updates and downloads. This keeps bandwidth usage predictable during gaming or work, but may make large file transfers less efficient on networks that benefit from",
+    "de": "Deaktiviert Peer-to-Peer-Freigaben für die Windows-Lieferoptimierung, um unerwünschte Hintergrundnetzwerkaktivität durch Updates und Downloads zu reduzieren. Dies hält den Bandbreitenverbrauch während des Spielens oder der Arbeit vorhersehbar, kann aber große Dateiübertragungen in Netzwerken mit lokalem Caching weniger",
+    "fr": "Désactive le partage pair-à-pair de Windows Delivery Optimization afin de réduire l'activité réseau en arrière-plan causée par les mises à jour et téléchargements. Cela maintient une utilisation du bande passante prévisible pendant le jeu ou le travail, mais peut rendre les transferts de fichiers volumineux moins effic"
+  },
+  "script": "disable_delivery_optimization_p2p.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 3,
+  "recommended": true,
+  "premium": false,
+  "last_updated": "2026-06-01",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "network",
+    "network latency",
+    "security",
+    "services",
+    "updates"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Download efficiency impact",
+      "message": "On some networks, disabling P2P may make update or store download speeds slower because Windows will fetch files directly from Microsoft servers instead of local peers. This effect is most noticeable when downloading large updates",
+      "icon": "network",
+      "source": "config"
+    },
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Configures the registry path HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization to set DODownloadMode to 0 This forces Windows Update and Microsoft Store downloads to use HTTP only, preventing peer-to-peer traffic between PCs",
+  "profiles": [
+    {
+      "id": "network_boost",
+      "defaultChecked": true
+    }
+  ],
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "disable_delivery_optimization_p2p.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "category": "Network",
+  "subcategory": "Network Latency"
+}

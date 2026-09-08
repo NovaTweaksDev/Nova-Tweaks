@@ -1,0 +1,98 @@
+{
+  "id": "disable_sticky_keys",
+  "name": "Disable Sticky Keys",
+  "description": "Disables Sticky Keys and its five-Shift shortcut to prevent accidental activation during normal use or gaming.",
+  "description_i18n": {
+    "en": "Disables Sticky Keys and its five-Shift shortcut to prevent accidental activation during normal use or gaming.",
+    "de": "Deaktiviert Sticky Keys und die Aktivierung durch fünfmaliges Drücken der Umschalttaste, um versehentliche Aktivierungen zu verhindern.",
+    "fr": "Désactive les touches rémanentes et leur raccourci par cinq pressions sur Maj afin d'éviter une activation accidentelle."
+  },
+  "script": "disable_sticky_keys.ps1",
+  "requires_admin": false,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "last_updated": "2026-08-26",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "input",
+    "accessibility"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Accessibility setting",
+      "message": "Sticky Keys and its keyboard shortcut remain unavailable until the tweak is restored.",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Uses the documented Windows SystemParametersInfo API to turn off Sticky Keys and the five-Shift activation shortcut while preserving unrelated accessibility flags. Restoring re-enables the shortcut without turning Sticky Keys on.",
+  "execution": {
+    "type": "powershell",
+    "script": "disable_sticky_keys.ps1",
+    "requires_admin": false,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      }
+    }
+  },
+  "profiles": [],
+  "premium": false,
+  "supports_status_detection": true,
+  "category": "Latency",
+  "subcategory": "Input"
+}

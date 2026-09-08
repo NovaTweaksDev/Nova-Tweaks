@@ -1,0 +1,90 @@
+{
+  "id": "run_dism_restorehealth",
+  "name": "Run DISM RestoreHealth",
+  "description": "Repairs the Windows component store using DISM to fix deeper system corruption that may cause updates or features to fail.",
+  "description_i18n": {
+    "en": "Repairs the Windows component store using DISM to fix deeper system corruption that may cause updates or features to fail.",
+    "de": "Repariert den Windows-Komponentenspeicher mit DISM, um tiefere Systembeschädigungen zu beheben, die Updates oder Funktionen beeinträchtigen können.",
+    "fr": "Répare le magasin de composants Windows avec DISM pour corriger des corruptions système plus profondes qui peuvent empêcher les mises à jour ou fonctionnalités."
+  },
+  "script": "run_dism_restorehealth.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 4,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "fix",
+  "tags": [
+    "windows",
+    "maintenance",
+    "repair",
+    "storage",
+    "troubleshooting"
+  ],
+  "warnings": [],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Executes the command 'DISM /Online /Cleanup-Image /RestoreHealth' to repair system files The script checks for and reports the exit code from the operation",
+  "supports_status_detection": false,
+  "execution": {
+    "type": "powershell",
+    "script": "run_dism_restorehealth.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [],
+  "premium": false,
+  "category": "General",
+  "subcategory": "Maintenance"
+}

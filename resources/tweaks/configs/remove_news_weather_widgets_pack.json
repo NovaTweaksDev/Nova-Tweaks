@@ -1,0 +1,102 @@
+{
+  "id": "remove_news_weather_widgets_pack",
+  "name": "Remove News / Weather / Widgets Pack",
+  "description": "Removes the Windows News, Weather, and Widgets apps to reduce background activity and interface clutter. This is useful if you prefer a cleaner taskbar without these built-in panels.",
+  "description_i18n": {
+    "en": "Removes the Windows News, Weather, and Widgets apps to reduce background activity and interface clutter. This is useful if you prefer a cleaner taskbar without these built-in panels.",
+    "de": "Entfernt die Apps für Nachrichten, Wetter und Widgets von Windows, um Hintergrundaktivität und UI-Clutter zu reduzieren. Dies ist nützlich, wenn du eine sauberere Taskleiste ohne diese integrierten Paneele bevorzugst.",
+    "fr": "Supprime les applications Actualités, Météo et Widgets de Windows pour réduire l'activité en arrière-plan et le désordre visuel. Utile si vous préférez une barre des tâches plus épurée sans ces panneaux intégrés."
+  },
+  "script": "remove_news_weather_widgets_pack.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "one_shot_action",
+  "tags": [
+    "windows",
+    "maintenance",
+    "privacy",
+    "debloat"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "App removal",
+      "message": "This action removes installed apps. Windows or other applications may take a moment to rebuild local caches if they were using these components.",
+      "icon": "rotate-ccw",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Removes installed and provisioned Bing News, Microsoft News, Bing Weather, and Client.WebExperience Appx packages for all users.",
+  "execution": {
+    "type": "powershell",
+    "script": "remove_news_weather_widgets_pack.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [
+    {
+      "id": "privacy_debloat",
+      "defaultChecked": true
+    }
+  ],
+  "premium": false,
+  "supports_status_detection": false,
+  "category": "Debloat",
+  "subcategory": "Apps"
+}

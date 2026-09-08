@@ -1,0 +1,155 @@
+{
+  "id": "set_timer_resolution",
+  "name": "Set Timer Resolution",
+  "description": "Adjusts the system timer resolution to improve input responsiveness and frame pacing in latency-sensitive applications.",
+  "description_i18n": {
+    "en": "Adjusts the system timer resolution to improve input responsiveness and frame pacing in latency-sensitive applications.",
+    "de": "Passt die System-Timerauflösung an, um Eingabeantwortzeit und Bildrhythmus bei latenzempfindlichen Anwendungen zu verbessern.",
+    "fr": "Ajuste la résolution du minuteur système pour améliorer la réactivité de l'entrée et le rythme des images dans les applications sensibles à la latence."
+  },
+  "script": "set_timer_resolution.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 4,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "timer_resolution",
+  "tags": [
+    "windows",
+    "latency",
+    "input",
+    "timer",
+    "maintenance",
+    "power"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Increased Power Usage",
+      "message": "Reducing the timer resolution increases CPU wake frequency under load, which may increase power draw and heat output on laptops or battery-powered devices",
+      "icon": "triangle-alert",
+      "source": "config"
+    },
+    {
+      "severity": "warning",
+      "title": "Local data cleanup",
+      "message": "Cache or temporary data may be removed. Windows or apps may take a moment to rebuild it",
+      "icon": "file-warning",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Uses native Windows APIs to set a finer timer interval, typically reducing the default value from 15ms down to approximately 0.5-1ms",
+  "recommended_selection": "0.5",
+  "supports_status_detection": true,
+  "ui": {
+    "variant": "compact_selector",
+    "size": "square",
+    "show_bulletpoints": true,
+    "max_metrics": 3
+  },
+  "profile": {
+    "label": "Latency",
+    "icon": "clock"
+  },
+  "metrics": [
+    {
+      "icon": "mouse-pointer",
+      "label": "Input Latency Improvement",
+      "value": 4,
+      "max": 5,
+      "direction": "positive"
+    },
+    {
+      "icon": "bolt",
+      "label": "Responsiveness Improvement",
+      "value": 4,
+      "max": 5,
+      "direction": "positive"
+    },
+    {
+      "icon": "plug",
+      "label": "Power Usage",
+      "value": 3,
+      "max": 5,
+      "direction": "negative"
+    }
+  ],
+  "status_labels": {
+    "active": "Currently Applied",
+    "inactive": "Disabled"
+  },
+  "cta_labels": {
+    "default": "Apply",
+    "active": "Currently Applied"
+  },
+  "compact_description": "Optimizes timer resolution for lower input latency and better responsiveness.",
+  "execution": {
+    "type": "powershell",
+    "script": "set_timer_resolution.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true,
+        "allowed_params": [
+          "Resolution"
+        ]
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true,
+        "allowed_params": [
+          "Resolution"
+        ]
+      }
+    }
+  },
+  "premium": true,
+  "category": "Latency",
+  "subcategory": "Timer Resolution",
+  "profiles": []
+}

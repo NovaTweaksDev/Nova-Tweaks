@@ -1,0 +1,106 @@
+{
+  "id": "enable_receive_side_scaling",
+  "name": "Enable Receive Side Scaling",
+  "description": "Enables Receive Side Scaling on supported physical network adapters to distribute incoming traffic processing across multiple CPU cores. This improves responsiveness and throughput for gaming, streaming, or large downloads without increasing raw internet speed.",
+  "description_i18n": {
+    "en": "Enables Receive Side Scaling on supported physical network adapters to distribute incoming traffic processing across multiple CPU cores. This improves responsiveness and throughput for gaming, streaming, or large downloads without increasing raw internet speed.",
+    "de": "Aktiviert Receive Side Scaling auf unterstützten physischen Netzwerkadaptern, um die Verarbeitung eingehender Datenströme über mehrere CPU-Kerne zu verteilen. Dies verbessert Reaktionsfähigkeit und Durchsatz für Gaming oder Downloads ohne den maximalen Internetgeschwindigkeitssatz zu erhöhen.",
+    "fr": "Active la mise à l'échelle du côté de réception sur les adaptateurs réseau physiques compatibles pour répartir le traitement des données entrantes entre plusieurs cœurs CPU. Cela améliore la réactivité et le débit lors du jeu ou des téléchargements sans augmenter la vitesse brute d'internet."
+  },
+  "script": "enable_receive_side_scaling.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 3,
+  "recommended": true,
+  "premium": false,
+  "last_updated": "2026-06-01",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "network",
+    "tcp ip",
+    "adapter",
+    "security",
+    "cpu"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Adapter",
+      "message": "Network adapters may briefly reconnect or require a driver-level refresh for changes to fully apply. This is normal behavior when modifying network stack settings on supported hardware",
+      "icon": "network",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Uses Get-NetAdapter, Get-NetAdapterRss, Enable-NetAdapterRss, and Disable-NetAdapterRss to detect and configure Receive Side Scaling on supported physical network adapters The script targets real hardware adapters and excludes common virtual, VPN, loopback, Bluetooth, Hyper-V, VMware, and VirtualBox adapters",
+  "profiles": [
+    {
+      "id": "network_boost",
+      "defaultChecked": true
+    }
+  ],
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "enable_receive_side_scaling.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "category": "Network",
+  "subcategory": "TCP IP"
+}

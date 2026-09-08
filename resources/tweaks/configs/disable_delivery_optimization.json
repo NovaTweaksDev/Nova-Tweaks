@@ -1,0 +1,110 @@
+{
+  "id": "disable_delivery_optimization",
+  "name": "Disable Delivery Optimization",
+  "description": "Disables Windows Delivery Optimization to stop background sharing and downloading of update data, which can reduce network activity.",
+  "description_i18n": {
+    "en": "Disables Windows Delivery Optimization to stop background sharing and downloading of update data, which can reduce network activity.",
+    "de": "Deaktiviert die Windows-Lieferoptimierung, um Hintergrundfreigabe und Download von Update-Daten zu stoppen sowie Netzwerkaktivität zu reduzieren.",
+    "fr": "Désactive l'Optimisation de livraison de Windows pour arrêter le partage et le téléchargement en arrière-plan des données de mise à jour."
+  },
+  "script": "disable_delivery_optimization.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "network",
+    "debloat",
+    "services",
+    "updates",
+    "windows update",
+    "power",
+    "power saving"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies the registry key HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization by setting or removing the DODownloadMode value",
+  "execution": {
+    "type": "powershell",
+    "script": "disable_delivery_optimization.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [
+    {
+      "id": "daily_safe",
+      "defaultChecked": true
+    },
+    {
+      "id": "laptop_battery",
+      "defaultChecked": true
+    }
+  ],
+  "premium": false,
+  "supports_status_detection": true,
+  "category": "Debloat",
+  "subcategory": "Services"
+}

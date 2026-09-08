@@ -1,0 +1,106 @@
+{
+  "id": "disable_hyper_v_hypervisor",
+  "name": "Disable Hyper-V Hypervisor",
+  "description": "Disables the Hyper-V hypervisor at startup to reduce virtualization overhead when you do not use Windows Subsystem for Linux or other virtual machines.",
+  "description_i18n": {
+    "en": "Disables the Hyper-V hypervisor at startup to reduce virtualization overhead when you do not use Windows Subsystem for Linux or other virtual machines.",
+    "de": "Deaktiviert den Hyperviseur von Hyper-V beim Start, um Virtualisierungs-Overhead zu reduzieren, wenn Sie keine virtüllen Maschinen oder WSL verwenden.",
+    "fr": "Désactive le hyperviseur Hyper-V au démarrage pour réduire la surcharge de virtualisation lorsque vous n'utilisez pas Windows Subsystem for Linux ou d'autres machines virtuelles."
+  },
+  "script": "disable_hyper_v_hypervisor.ps1",
+  "requires_admin": true,
+  "reboot_required": true,
+  "risk_level": "medium",
+  "impact": 4,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "network latency",
+    "boot",
+    "startup",
+    "hypervisor",
+    "virtualization"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Virtualization features disabled",
+      "message": "Disabling this feature prevents Windows Subsystem for Linux (WSL), Sandbox mode in Microsoft Defender, and other virtual machine technologies from functioning correctly until re-enabled",
+      "icon": "shield-alert",
+      "source": "config"
+    },
+    {
+      "severity": "danger",
+      "title": "Boot configuration change",
+      "message": "Windows startup behavior can change after this action",
+      "icon": "shield-alert",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies the boot configuration registry value 'hypervisorlaunchtype' to set it to Off, preventing the system from loading the hypervisor driver during startup",
+  "execution": {
+    "type": "powershell",
+    "script": "disable_hyper_v_hypervisor.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [],
+  "premium": true,
+  "supports_status_detection": true,
+  "category": "Boot",
+  "subcategory": "Hypervisor"
+}

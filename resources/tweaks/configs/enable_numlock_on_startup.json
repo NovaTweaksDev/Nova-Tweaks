@@ -1,0 +1,106 @@
+{
+  "id": "enable_numlock_on_startup",
+  "name": "Enable NumLock on Startup",
+  "description": "Enables NumLock automatically on startup and at the Windows sign-in screen, so your numeric keypad is ready to use immediately.",
+  "description_i18n": {
+    "en": "Enables NumLock automatically on startup and at the Windows sign-in screen, so your numeric keypad is ready to use immediately.",
+    "de": "Aktiviert den Ziffernblock automatisch beim Start und auf dem Anmeldebildschirm von Windows, damit die Tastatur sofort einsatzbereit ist.",
+    "fr": "Active automatiquement NumLock au démarrage et sur l'écran de connexion Windows afin que le pavé numérique soit disponible immédiatement."
+  },
+  "script": "enable_numlock_on_startup.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 1,
+  "recommended": true,
+  "premium": false,
+  "last_updated": "2026-05-13",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "latency",
+    "input",
+    "boot",
+    "startup",
+    "registry"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "BIOS Override Risk",
+      "message": "Some systems with Fast Startup or BIOS-level NumLock settings may override this tweak until you perform a full restart of the computer",
+      "icon": "shield-alert",
+      "source": "config"
+    },
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Updates the InitialKeyboardIndicators registry value for both the current user and the default logon profile to ensure consistent behavior",
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "enable_numlock_on_startup.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "category": "General",
+  "subcategory": "System",
+  "profiles": []
+}

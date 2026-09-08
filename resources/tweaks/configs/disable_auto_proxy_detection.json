@@ -1,0 +1,113 @@
+{
+  "id": "disable_auto_proxy_detection",
+  "name": "Disable Auto Proxy Detection",
+  "description": "Disables automatic proxy discovery for your user to stop background checks that can delay connections on networks without a manual proxy.",
+  "description_i18n": {
+    "en": "Disables automatic proxy discovery for your user to stop background checks that can delay connections on networks without a manual proxy.",
+    "de": "Deaktiviert die automatische Proxy-Erkennung für Ihren Benutzer, um Hintergrundprüfungen zu stoppen, die Verbindungen auf Netzwerken ohne manüllen Proxy verzögern können.",
+    "fr": "Désactive la découverte automatique du proxy pour votre utilisateur afin d'arrêter les vérifications en arrière-plan qui peuvent ralentir les connexions sur des réseaux sans proxy manuel."
+  },
+  "script": "disable_auto_proxy_detection.ps1",
+  "requires_admin": false,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "premium": false,
+  "last_updated": "2026-06-01",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "network",
+    "network latency",
+    "proxy",
+    "tcp ip",
+    "dns"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Managed network impact",
+      "message": "Do not use this on corporate, school, or managed networks that rely on automatic proxy discovery. Disabling it may prevent your system from finding the required proxy configuration",
+      "icon": "shield-alert",
+      "source": "config"
+    },
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies the AutoDetect DWORD value in HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings to disable automatic WPAD/proxy discovery for the current user",
+  "profiles": [
+    {
+      "id": "network_boost",
+      "defaultChecked": true
+    }
+  ],
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "disable_auto_proxy_detection.ps1",
+    "requires_admin": false,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      }
+    }
+  },
+  "category": "Network",
+  "subcategory": "Network Latency"
+}

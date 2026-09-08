@@ -1,0 +1,106 @@
+{
+  "id": "disable_network_throttling",
+  "name": "Disable Network Throttling",
+  "description": "Disables Windows multimedia network throttling to reduce artificial limitations during gaming and streaming. This may improve latency consistency on some systems but does not increase internet speed.",
+  "description_i18n": {
+    "en": "Disables Windows multimedia network throttling to reduce artificial limitations during gaming and streaming. This may improve latency consistency on some systems but does not increase internet speed.",
+    "de": "Deaktiviert das Windows-Multimedia-Netzwerk-Throttling, um künstliche Einschränkungen bei Gaming und Streaming zu reduzieren. Dies kann die Latenzkonsistenz auf manchen Systemen verbessern, erhöht aber nicht die Internetgeschwindigkeit.",
+    "fr": "Désactive le throttling réseau multimédia de Windows pour réduire les limitations artificielles pendant le jeu et le streaming. Cela peut améliorer la stabilité de la latence sur certains systèmes sans augmenter la vitesse d'internet."
+  },
+  "script": "disable_network_throttling.ps1",
+  "requires_admin": true,
+  "reboot_required": true,
+  "risk_level": "low",
+  "impact": 3,
+  "recommended": true,
+  "premium": false,
+  "last_updated": "2026-05-31",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "network",
+    "network latency",
+    "ping",
+    "security",
+    "registry"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Sets the NetworkThrottlingIndex registry value under HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile to 0xFFFFFFFF",
+  "profiles": [
+    {
+      "id": "network_boost",
+      "defaultChecked": true
+    }
+  ],
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "disable_network_throttling.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "category": "Network",
+  "subcategory": "Network Latency"
+}

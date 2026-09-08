@@ -1,0 +1,96 @@
+{
+  "id": "processor_energy_performance_preference",
+  "name": "CPU Energy Performance Preference",
+  "description": "Sets the processor energy performance preference to prioritize speed over power savings, allowing the CPU to run more aggressively under load.",
+  "description_i18n": {
+    "en": "Sets the processor energy performance preference to prioritize speed over power savings, allowing the CPU to run more aggressively under load.",
+    "de": "Stellt die Energieleistungspräferenz des Prozessors auf Geschwindigkeit statt Energiesparmodus ein und ermöglicht dem Prozessor eine aggressivere Leistung unter Last.",
+    "fr": "Configuré la préférence de performance énergétique du processeur pour privilégier la vitesse par rapport à l'économie d'énergie, permettant au CPU de fonctionner plus agressivement sous charge."
+  },
+  "script": "hardware/power/epp.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "medium",
+  "impact": 3,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "power",
+    "cpu"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Increased Power Usage",
+      "message": "This tweak prioritizes performance over power savings, which may increase battery drain and heat output on laptops",
+      "icon": "power",
+      "source": "config"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies the Windows power configuration registry values for AC and DC schemes using the SUB_PROCESSOR group Changes the PERFEPP setting to value 0 (performance) or 50 (balanced)",
+  "execution": {
+    "type": "powershell",
+    "script": "processor_energy_performance_preference.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [],
+  "premium": false,
+  "supports_status_detection": true,
+  "category": "Hardware",
+  "subcategory": "CPU"
+}

@@ -1,0 +1,106 @@
+{
+  "id": "disable_isatap",
+  "name": "Disable ISATAP",
+  "description": "Disables ISATAP, a legacy IPv6 transition technology that allows IPv6 traffic to be carried over IPv4 networks. This simplifies the Windows TCP/IP stack by removing unnecessary tunneling behavior on modern home and gaming systems.",
+  "description_i18n": {
+    "en": "Disables ISATAP, a legacy IPv6 transition technology that allows IPv6 traffic to be carried over IPv4 networks. This simplifies the Windows TCP/IP stack by removing unnecessary tunneling behavior on modern home and gaming systems.",
+    "de": "Deaktiviert ISATAP, eine ältere IPv6-Übergangstechnologie für den Transport von IPv6-Datenverkehr über IPv4-Netzwerke. Dies vereinfacht den Windows-TCP/IP-Stack und entfernt unnötiges Tunneling auf modernen Heim- und Gaming-Systemen.",
+    "fr": "Désactive ISATAP, une ancienne technologie de transition IPv6 permettant le transport du trafic IPv6 sur des réseaux IPv4. Cela simplifie la pile TCP/IP de Windows en éliminant les comportements de tunnelage inutiles."
+  },
+  "script": "disable_isatap.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "premium": false,
+  "last_updated": "2026-06-01",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "network",
+    "tcp ip",
+    "maintenance",
+    "security",
+    "fortnite"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Network Behavior Change",
+      "message": "Disabling this legacy feature does not increase internet speed, FPS, or raw bandwidth. It only removes a specific IPv6-over-IPv4 tunneling mechanism that most modern systems do not require",
+      "icon": "network",
+      "source": "config"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Uses netsh interface isatap commands to detect and configure the ISATAP state, setting it to disabled or restoring default behavior",
+  "profiles": [
+    {
+      "id": "network_boost",
+      "defaultChecked": true
+    }
+  ],
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "disable_isatap.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "category": "Network",
+  "subcategory": "TCP IP"
+}

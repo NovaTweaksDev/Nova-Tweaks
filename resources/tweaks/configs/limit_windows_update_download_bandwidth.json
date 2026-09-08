@@ -1,0 +1,122 @@
+{
+  "id": "limit_windows_update_download_bandwidth",
+  "name": "Limit Windows Update Download Bandwidth",
+  "description": "Limits the bandwidth Windows Update and Delivery Optimization can use for downloads to reduce network interruptions during gaming or streaming.",
+  "description_i18n": {
+    "en": "Limits the bandwidth Windows Update and Delivery Optimization can use for downloads to reduce network interruptions during gaming or streaming.",
+    "de": "Begrenzt die Bandbreite, die Windows Update und Delivery Optimization für Downloads verwenden dürfen, um Netzwerkunterbrechungen während des Gamings oder Streamings zu reduzieren.",
+    "fr": "Limite la bande passante que Windows Update et l'optimisation de livraison peuvent utiliser pour les téléchargements afin de réduire les interruptions réseau pendant le jeu ou le streaming."
+  },
+  "script": "limit_windows_update_download_bandwidth.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "last_updated": "2026-05-30",
+  "container_type": "one_shot_selection",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "network",
+    "ping",
+    "maintenance",
+    "security",
+    "updates"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Update speed impact",
+      "message": "Very low limits can make Windows updates download much slower. Enterprise, domain, or MDM policies may override these settings",
+      "icon": "shield-alert",
+      "source": "config"
+    },
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Uses Delivery Optimization percentage bandwidth policy values supported on Windows 10 version 1803 and later, and Windows 11."
+  },
+  "technical_details": "Configures Delivery Optimization policy values under HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization The selected preset writes DOPercentageMaxBackgroundBandwidth and DOPercentageMaxForegroundBandwidth as percentage-based bandwidth limits",
+  "selections": [
+    "Windows Managed Default",
+    "Light Limit 75 Percent",
+    "Balanced Limit 50 Percent",
+    "Gaming Balanced 25 Percent",
+    "Competitive Gaming 10 Percent"
+  ],
+  "recommended_selection": "Gaming Balanced 25 Percent",
+  "execution": {
+    "type": "powershell",
+    "script": "limit_windows_update_download_bandwidth.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true,
+        "allowed_params": [
+          "Selection"
+        ]
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true,
+        "allowed_params": [
+          "Selection"
+        ]
+      }
+    }
+  },
+  "profiles": [],
+  "premium": false,
+  "supports_status_detection": true,
+  "category": "General",
+  "subcategory": "Updates"
+}

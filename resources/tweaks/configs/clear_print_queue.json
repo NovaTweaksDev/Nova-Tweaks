@@ -1,0 +1,107 @@
+{
+  "id": "clear_print_queue",
+  "name": "Clear Print Queue",
+  "description": "Removes stuck print jobs from the Windows Print Spooler to fix unresponsive printers. This clears queued files but keeps your installed printer drivers and settings intact.",
+  "description_i18n": {
+    "en": "Removes stuck print jobs from the Windows Print Spooler to fix unresponsive printers. This clears queued files but keeps your installed printer drivers and settings intact.",
+    "de": "Entfernt hängende Druckaufträge aus dem Windows-Druckspooler, um nicht reagierende Drucker zu beheben. Dies löscht Warteschlangenfiles behält aber Ihre installierten Treiber und Einstellungen bei.",
+    "fr": "Supprime les travaux d'impression bloqués du spouleur Windows pour corriger des imprimantes non réactives. Cela efface les fichiers en file mais conserve vos pilotes et paramètres."
+  },
+  "script": "clear_print_queue.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 1,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "fix",
+  "tags": [
+    "windows",
+    "cleanup",
+    "maintenance",
+    "repair",
+    "services",
+    "power",
+    "troubleshooting"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Print Jobs Removed",
+      "message": "All pending print jobs in memory are deleted immediately. You will need to resend any documents that were queued for printing after this action runs",
+      "icon": "rotate-ccw",
+      "source": "script"
+    },
+    {
+      "severity": "info",
+      "title": "Printer Connectivity Impact",
+      "message": "The Print Spooler service restarts briefly during execution. Your printer may temporarily appear offline or stop printing until the service is fully restarted",
+      "icon": "shield-alert",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Stops the Print Spooler service, deletes files from C:\\Windows\\System32\\spool\\PRINTERS, and restarts the service",
+  "supports_status_detection": false,
+  "execution": {
+    "type": "powershell",
+    "script": "clear_print_queue.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "premium": false,
+  "category": "General",
+  "subcategory": "Maintenance",
+  "profiles": []
+}

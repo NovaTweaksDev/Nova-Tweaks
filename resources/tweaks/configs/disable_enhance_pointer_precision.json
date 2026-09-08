@@ -1,0 +1,103 @@
+{
+  "id": "disable_enhance_pointer_precision",
+  "name": "Disable Enhance Pointer Precision",
+  "description": "Disables mouse acceleration to make cursor movement more direct and consistent, which many users and gamers prefer for better control.",
+  "description_i18n": {
+    "en": "Disables mouse acceleration to make cursor movement more direct and consistent, which many users and gamers prefer for better control.",
+    "de": "Deaktiviert die Mausbeschleunigung für eine direktere und konsistentere Cursorbewegung, was viele Benutzer und Gamer für bessere Kontrolle bevorzugen.",
+    "fr": "Désactive l'accélération de la souris pour rendre le mouvement du curseur plus direct et cohérent, ce que beaucoup d'utilisateurs et joueurs préfèrent pour un meilleur contrôle."
+  },
+  "script": "disable_enhance_pointer_precision.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "input",
+    "registry"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies registry values MouseSpeed, MouseThreshold1, and MouseThreshold2 under HKCU:\\Control Panel\\Mouse to set speed to 0 and thresholds to 0",
+  "execution": {
+    "type": "powershell",
+    "script": "disable_enhance_pointer_precision.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [
+    {
+      "id": "gaming_performance",
+      "defaultChecked": true
+    }
+  ],
+  "premium": false,
+  "supports_status_detection": true,
+  "category": "Latency",
+  "subcategory": "Input"
+}

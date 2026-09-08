@@ -1,0 +1,123 @@
+{
+  "id": "remove_legacy_microsoft_apps_pack",
+  "name": "Remove Legacy Microsoft Apps Pack",
+  "description": "Removes selected older or unnecessary preinstalled Microsoft apps from Windows to reduce clutter and free up storage space.",
+  "description_i18n": {
+    "en": "Removes selected older or unnecessary preinstalled Microsoft apps from Windows to reduce clutter and free up storage space.",
+    "de": "Entfernt ausgewählte ältere oder unnötige vorinstallierte Microsoft-Apps aus Windows, um Ballast zu reduzieren und Speicherplatz freizugeben.",
+    "fr": "Supprime une sélection d'applications Microsoft préinstallées obsolètes ou inutiles de Windows pour réduire l'encombrement et libérer de l'espace."
+  },
+  "script": "remove_legacy_microsoft_apps_pack.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "one_shot_selection",
+  "tags": [
+    "windows",
+    "maintenance",
+    "privacy",
+    "debloat",
+    "registry"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "App removal is permanent",
+      "message": "Removed applications cannot be restored by this tool. Windows Store apps may need to be reinstalled manually if needed later",
+      "icon": "rotate-ccw",
+      "source": "script"
+    },
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Removes installed and provisioned Appx packages matching the selected filter (Maps, Mixed Reality, or specific utilities) The tweak updates a registry marker to track enabled state",
+  "selections": [
+    "Maps only",
+    "Mixed Reality only",
+    "3D apps only",
+    "All listed apps"
+  ],
+  "recommended_selection": "All listed apps",
+  "execution": {
+    "type": "powershell",
+    "script": "remove_legacy_microsoft_apps_pack.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true,
+        "allowed_params": [
+          "Selection"
+        ]
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true,
+        "allowed_params": [
+          "Selection"
+        ]
+      }
+    }
+  },
+  "profiles": [
+    {
+      "id": "privacy_debloat",
+      "defaultChecked": true
+    }
+  ],
+  "premium": false,
+  "supports_status_detection": false,
+  "category": "Debloat",
+  "subcategory": "Apps"
+}

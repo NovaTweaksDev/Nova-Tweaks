@@ -1,0 +1,102 @@
+{
+  "id": "remove_teams_personal",
+  "name": "Remove Teams (Personal)",
+  "description": "Removes the personal Microsoft Teams app from Windows if it is installed, reducing background activity and Start menu clutter for users who do not use Teams with a personal account.",
+  "description_i18n": {
+    "en": "Removes the personal Microsoft Teams app from Windows if it is installed, reducing background activity and Start menu clutter for users who do not use Teams with a personal account.",
+    "de": "Entfernt die persönliche Microsoft-Teams-App aus Windows und reduziert Hintergrundaktivität sowie Unordnung im Startmenü für Nutzer ohne privaten Teams-Account.",
+    "fr": "Supprime l'application Microsoft Teams personnelle de Windows afin de réduire l'activité en arrière-plan et l'encombrement du menu Démarrer si vous n'utilisez pas de compte personnel."
+  },
+  "script": "remove_teams_personal.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "one_shot_action",
+  "tags": [
+    "windows",
+    "maintenance",
+    "privacy",
+    "debloat"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Personal account apps removed",
+      "message": "This action removes Microsoft Teams applications associated with personal accounts. If you use a work or school account, those versions will remain unaffected.",
+      "icon": "shield-alert",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Removes installed and provisioned Appx packages matching the name pattern 'MicrosoftTeams'.",
+  "execution": {
+    "type": "powershell",
+    "script": "remove_teams_personal.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [
+    {
+      "id": "privacy_debloat",
+      "defaultChecked": true
+    }
+  ],
+  "premium": false,
+  "supports_status_detection": false,
+  "category": "Debloat",
+  "subcategory": "Apps"
+}

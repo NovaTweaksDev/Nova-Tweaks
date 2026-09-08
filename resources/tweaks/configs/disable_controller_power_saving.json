@@ -1,0 +1,105 @@
+{
+  "id": "disable_controller_power_saving",
+  "name": "Disable Controller Power Saving",
+  "description": "Disables power-saving features on supported game controllers to reduce disconnects and sleep interruptions during gameplay.",
+  "description_i18n": {
+    "en": "Disables power-saving features on supported game controllers to reduce disconnects and sleep interruptions during gameplay.",
+    "de": "Deaktiviert Energiesparfunktionen an unterstützten Gamepads, um Verbindungsabbrüche und Schlafunterbrechungen während des Spielens zu vermeiden.",
+    "fr": "Désactive les fonctions d'économie d'énergie sur les manettes de jeu prises en charge pour réduire les déconnexions et interruptions pendant le jeu."
+  },
+  "script": "disable_controller_power_saving.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "input",
+    "adapter",
+    "power",
+    "registry"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies the EnhancedPowerManagementEnabled registry value under HKLM\\SYSTEM\\CurrentControlSet\\Enum for detected controllers",
+  "execution": {
+    "type": "powershell",
+    "script": "disable_controller_power_saving.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [
+    {
+      "id": "gaming_performance",
+      "defaultChecked": true
+    }
+  ],
+  "premium": false,
+  "supports_status_detection": true,
+  "category": "Latency",
+  "subcategory": "Input"
+}

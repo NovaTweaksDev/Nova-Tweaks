@@ -1,0 +1,108 @@
+{
+  "id": "disable_app_launch_tracking",
+  "name": "Disable App Launch Tracking",
+  "description": "Disables Windows from tracking opened apps to enhance Start menu and search suggestions privacy without impacting regular app usage.",
+  "description_i18n": {
+    "en": "Disables Windows from tracking opened apps to enhance Start menu and search suggestions privacy without impacting regular app usage.",
+    "de": "Stoppt Windows davon, welche Anwendungen Sie öffnen, zu verfolgen. Dies verbessert die Privatsphäre der Vorschläge im Startmenü und bei der Suche ohne Beeinträchtigung des normalen App-Betriebs.",
+    "fr": "Arrête Windows de suivre les applications que vous ouvrez pour améliorer la confidentialité des suggestions du menu Démarrer et de la recherche, sans affecter l'utilisation normale des applications."
+  },
+  "script": "disable_app_launch_tracking.ps1",
+  "requires_admin": false,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "privacy",
+    "debloat",
+    "hardening",
+    "registry",
+    "stability"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies the registry value Start_TrackProgs under HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced to set it to 0 This disables telemetry regarding which programs are launched",
+  "execution": {
+    "type": "powershell",
+    "script": "disable_app_launch_tracking.ps1",
+    "requires_admin": false,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      }
+    }
+  },
+  "premium": false,
+  "category": "Debloat",
+  "subcategory": "Privacy",
+  "profiles": [
+    {
+      "id": "daily_safe",
+      "defaultChecked": true
+    },
+    {
+      "id": "privacy_debloat",
+      "defaultChecked": true
+    }
+  ],
+  "supports_status_detection": true
+}

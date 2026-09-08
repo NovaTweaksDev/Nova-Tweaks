@@ -1,0 +1,114 @@
+{
+  "id": "disable_advertising_id",
+  "name": "Disable Advertising ID",
+  "description": "Disables the Windows Advertising ID to stop apps from tracking your activity for personalized ads, enhancing privacy without affecting normal app usage.",
+  "description_i18n": {
+    "en": "Disables the Windows Advertising ID to stop apps from tracking your activity for personalized ads, enhancing privacy without affecting normal app usage.",
+    "de": "Deaktiviert die Windows-Werbungskennung, sodass Apps Ihre Aktivitäten nicht mehr für personalisierte Anzeigen verfolgen können. Dies erhöht den Datenschutz ohne normale App-Nutzung zu beeinträchtigen.",
+    "fr": "Désactive l'identifiant publicitaire de Windows pour empêcher les applications de suivre vos activités afin d'afficher des publicités personnalisées, améliorant la confidentialité sans affecter l'utilisation normale."
+  },
+  "script": "disable_advertising_id.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "privacy",
+    "debloat",
+    "hardening",
+    "power",
+    "power saving",
+    "registry",
+    "stability"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies the registry key HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\AdvertisingInfo and sets the DisabledByGroupPolicy value to 1",
+  "execution": {
+    "type": "powershell",
+    "script": "disable_advertising_id.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "premium": false,
+  "category": "Debloat",
+  "subcategory": "Privacy",
+  "profiles": [
+    {
+      "id": "daily_safe",
+      "defaultChecked": true
+    },
+    {
+      "id": "laptop_battery",
+      "defaultChecked": true
+    },
+    {
+      "id": "privacy_debloat",
+      "defaultChecked": true
+    }
+  ],
+  "supports_status_detection": true
+}

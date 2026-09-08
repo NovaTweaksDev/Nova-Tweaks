@@ -1,0 +1,106 @@
+{
+  "id": "disable_jumbo_packet",
+  "name": "Disable Jumbo Packet",
+  "description": "Disables Jumbo Packet support on physical network adapters to prevent MTU compatibility issues and packet fragmentation. This tweak is recommended for gaming setups unless your entire home network path explicitly supports jumbo frames.",
+  "description_i18n": {
+    "en": "Disables Jumbo Packet support on physical network adapters to prevent MTU compatibility issues and packet fragmentation. This tweak is recommended for gaming setups unless your entire home network path explicitly supports jumbo frames.",
+    "de": "Deaktiviert die Unterstützung für Jumbo-Pakete auf physischen Netzwerkadaptern, um Probleme mit der MTU-Kompatibilität und Paketfragmentierung zu vermeiden. Diese Anpassung wird für Gaming-Setups empfohlen, es sei denn, Ihr gesamtes Heimnetzwerk unterstützt explizit Jumbo-Frames.",
+    "fr": "Désactive le support des paquets jumeaux sur les adaptateurs réseau physiques pour éviter les problèmes de compatibilité MTU et la fragmentation. Cette modification est recommandée pour les configurations gaming sauf si votre réseau domestique entier prend en charge explicitement les frames jumbos."
+  },
+  "script": "disable_jumbo_packet.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "premium": false,
+  "last_updated": "2026-06-01",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "network",
+    "adapter",
+    "packet handling",
+    "security",
+    "hypervisor"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Network adapter",
+      "message": "Some network adapters may briefly reconnect or require a manual restart for driver-level changes to fully apply after disabling Jumbo Packet support",
+      "icon": "rotate-ccw",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Uses Get-NetAdapterAdvancedProperty and Set-NetAdapterAdvancedProperty to detect Jumbo Packet settings on physical network adapters matching keywords like *JumboPacket or display names containing 'Jumbo' The script sets the registry value to standard Ethernet frame size (1514) or falls back to disabled if 1514 is unsupported by the driver",
+  "profiles": [
+    {
+      "id": "network_boost",
+      "defaultChecked": true
+    }
+  ],
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "disable_jumbo_packet.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "category": "Network",
+  "subcategory": "Adapter"
+}

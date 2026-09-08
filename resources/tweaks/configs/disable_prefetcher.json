@@ -1,0 +1,97 @@
+{
+  "id": "disable_prefetcher",
+  "name": "Disable Prefetcher",
+  "description": "Disables the Windows Prefetcher service to reduce background preloading activity and potential compatibility issues.",
+  "description_i18n": {
+    "en": "Disables the Windows Prefetcher service to reduce background preloading activity and potential compatibility issues.",
+    "de": "Deaktiviert den Windows-Prefetcher-Dienst, um Hintergrund-Vorladetätigkeiten und potenzielle Kompatibilitätsprobleme zu reduzieren.",
+    "fr": "Désactive le service Préchargeur de Windows pour réduire l'activité d'enregistrement en arrière-plan et les problèmes de compatibilité potentiels."
+  },
+  "script": "disable_prefetcher.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "services",
+    "memory",
+    "registry"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies the registry value EnablePrefetcher in HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters to set it to 0 (disabled) or 3 (fully disabled)",
+  "execution": {
+    "type": "powershell",
+    "script": "disable_prefetcher.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [],
+  "premium": false,
+  "supports_status_detection": true,
+  "category": "Hardware",
+  "subcategory": "Memory"
+}

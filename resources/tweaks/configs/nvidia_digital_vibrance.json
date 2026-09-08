@@ -1,0 +1,117 @@
+{
+  "id": "nvidia_digital_vibrance",
+  "name": "NVIDIA Digital Vibrance",
+  "description": "Adjusts NVIDIA Digital Vibrance for the Windows primary display.",
+  "description_i18n": {
+    "en": "Adjusts NVIDIA Digital Vibrance for the Windows primary display.",
+    "de": "Passt NVIDIA Digital Vibrance für den primären Windows-Bildschirm an.",
+    "fr": "Ajuste la vibrance numérique NVIDIA pour l'écran principal de Windows."
+  },
+  "script": "nvidia_digital_vibrance.ps1",
+  "requires_admin": false,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "last_updated": "2026-07-25",
+  "container_type": "range_selection",
+  "range": {
+    "parameter": "Value",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "unit": "%",
+    "recommended_value": 62
+  },
+  "tags": [
+    "windows",
+    "gaming",
+    "gpu",
+    "nvidia",
+    "display"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Primary display only",
+      "message": "This setting changes Digital Vibrance only when the Windows primary display is driven by NVIDIA.",
+      "icon": "monitor",
+      "source": "config"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Requires an NVIDIA GPU driving the Windows primary display."
+  },
+  "technical_details": "Reads and sets NVIDIA Digital Vibrance through a bundled native NVAPI display helper. The UI value is normalized to 0 through 100 and the original value is captured before the first change.",
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "nvidia_digital_vibrance.ps1",
+    "requires_admin": false,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "allowed_params": [
+          "Value"
+        ]
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      }
+    }
+  },
+  "profiles": [
+    {
+      "id": "gaming_performance",
+      "defaultChecked": false,
+      "params": {
+        "Value": 62
+      }
+    }
+  ],
+  "premium": true,
+  "category": "Hardware",
+  "subcategory": "GPU"
+}

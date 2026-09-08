@@ -1,0 +1,105 @@
+{
+  "id": "disable_remote_registry",
+  "name": "Disable Remote Registry",
+  "description": "Disables the Remote Registry service to reduce background activity and improve security by preventing remote access attempts.",
+  "description_i18n": {
+    "en": "Disables the Remote Registry service to reduce background activity and improve security by preventing remote access attempts.",
+    "de": "Deaktiviert den Remote-Registry-Dienst, um Hintergrundaktivitäten zu reduzieren und die Sicherheit durch Verhinderung von Fernzugriffsversuchen zu verbessern.",
+    "fr": "Désactive le service de registre à distance pour réduire l'activité en arrière-plan et améliorer la sécurité en empêchant les tentatives d'accès distant."
+  },
+  "script": "disable_remote_registry.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "privacy",
+    "debloat",
+    "security",
+    "hardening",
+    "services",
+    "stability"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Service state change",
+      "message": "Related Windows services may stop or restart briefly while the action runs",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "The tweak changes the startup type of the RemoteRegistry Windows Service to Disabled and stops it if running This prevents remote registry connections from other computers on the network",
+  "execution": {
+    "type": "powershell",
+    "script": "disable_remote_registry.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [
+    {
+      "id": "daily_safe",
+      "defaultChecked": true
+    }
+  ],
+  "premium": false,
+  "supports_status_detection": true,
+  "category": "Debloat",
+  "subcategory": "Services"
+}

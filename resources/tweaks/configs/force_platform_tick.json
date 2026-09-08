@@ -1,0 +1,98 @@
+{
+  "id": "force_platform_tick",
+  "name": "Force Platform Tick",
+  "description": "Enables the platform clock tick in boot settings to adjust system timing behavior for latency tuning.",
+  "description_i18n": {
+    "en": "Enables the platform clock tick in boot settings to adjust system timing behavior for latency tuning.",
+    "de": "Aktiviert den Plattform-Taktgeber im Boot-Einstellungen, um das Systemzeitverhalten für Latenzanpassungen zu optimieren.",
+    "fr": "Active le compteur de chronologie du système dans les paramètres de démarrage pour ajuster le comportement temporel."
+  },
+  "script": "force_platform_tick.ps1",
+  "requires_admin": true,
+  "reboot_required": true,
+  "risk_level": "medium",
+  "impact": 4,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "latency",
+    "timer",
+    "boot",
+    "startup"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Boot configuration modified",
+      "message": "This tweak updates boot settings that affect system startup timing behavior",
+      "icon": "settings",
+      "source": "config"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies the Windows boot configuration by setting or removing the 'useplatformtick' value via bcdedit",
+  "execution": {
+    "type": "powershell",
+    "script": "force_platform_tick.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [],
+  "premium": true,
+  "supports_status_detection": true,
+  "category": "Latency",
+  "subcategory": "Timer"
+}

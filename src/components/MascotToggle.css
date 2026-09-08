@@ -1,0 +1,46 @@
+.mascotToggle {
+  --mascot-width: 116px;
+  --mascot-offset-x: -73px;
+  --mascot-offset-y: 50%;
+  --toggle-width: 40px;
+  --toggle-height: 22px;
+
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  width: var(--toggle-width);
+  height: var(--toggle-height);
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.mascotToggle__mascot {
+  position: absolute;
+  z-index: 0;
+  top: var(--mascot-offset-y);
+  left: var(--mascot-offset-x);
+  display: block;
+  width: var(--mascot-width);
+  max-width: none;
+  height: auto;
+  transform: translateY(-50%);
+  object-fit: contain;
+  pointer-events: none;
+  background: transparent;
+}
+
+.mascotToggle__toggle {
+  z-index: 1;
+}
+
+.mascotToggle__toggle:disabled {
+  cursor: wait;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mascotToggle__mascot {
+    display: none;
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "id": "disable_windows_search_indexing",
+  "name": "Disable Windows Search Indexing",
+  "description": "Disables the Windows Search indexing service to reduce background activity and disk usage, though search results may take longer to appear.",
+  "description_i18n": {
+    "en": "Disables the Windows Search indexing service to reduce background activity and disk usage, though search results may take longer to appear.",
+    "de": "Deaktiviert den Windows-Suchindexierungsdienst, um Hintergrundaktivität und Festplattennutzung zu reduzieren; Suchergebnisse können länger daürn.",
+    "fr": "Désactive le service d'indexation de recherche Windows pour réduire l'activité en arrière-plan et l'utilisation du disque ; les résultats peuvent prendre plus de temps."
+  },
+  "script": "disable_windows_search_indexing.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "storage",
+    "debloat",
+    "services"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Slower Search Results",
+      "message": "Windows will not index new or changed files automatically, so search results may take longer to appear after adding content",
+      "icon": "rotate-ccw",
+      "source": "inference"
+    },
+    {
+      "severity": "warning",
+      "title": "Service state change",
+      "message": "Related Windows services may stop or restart briefly while the action runs",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Disables the WSearch service startup type and stops it if running This prevents background indexing of files on your system",
+  "execution": {
+    "type": "powershell",
+    "script": "disable_windows_search_indexing.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [],
+  "premium": false,
+  "supports_status_detection": true,
+  "category": "Debloat",
+  "subcategory": "Services"
+}

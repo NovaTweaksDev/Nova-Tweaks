@@ -1,0 +1,110 @@
+{
+  "id": "reduce_background_input_hooks",
+  "name": "Reduce Background Input Hooks",
+  "description": "Disables Game DVR background recording to reduce input latency in games and applications. This stops Windows from capturing your gameplay for the Xbox app, which can improve responsiveness.",
+  "description_i18n": {
+    "en": "Disables Game DVR background recording to reduce input latency in games and applications. This stops Windows from capturing your gameplay for the Xbox app, which can improve responsiveness.",
+    "de": "Deaktiviert die Hintergrundaufnahme von Game DVR, um Eingabeverzögerungen in Spielen und Anwendungen zu reduzieren. Dies verhindert, dass Windows Ihre Gameplay-Aufnahmen für das Xbox-App erfasst, was die Reaktionsfähigkeit verbessern kann.",
+    "fr": "Désactive l'enregistrement en arrière-plan de Game DVR pour réduire la latence d'entrée dans les jeux et applications. Cela empêche Windows d'enregistrer votre gameplay pour l'app Xbox, ce qui peut améliorer la réactivité."
+  },
+  "script": "reduce_background_input_hooks.ps1",
+  "requires_admin": false,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "input",
+    "registry"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Xbox app recording disabled",
+      "message": "Disabling this feature prevents the Xbox Game Bar from capturing gameplay for clips or screenshots. You will need to use other methods if you want to record your screen",
+      "icon": "shield-alert",
+      "source": "script"
+    },
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies two registry values: AppCaptureEnabled and GameDVR_Enabled under HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\GameDVR and HKCU:\\System\\GameConfigStore",
+  "execution": {
+    "type": "powershell",
+    "script": "reduce_background_input_hooks.ps1",
+    "requires_admin": false,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      }
+    }
+  },
+  "profiles": [
+    {
+      "id": "gaming_performance",
+      "defaultChecked": true
+    }
+  ],
+  "premium": true,
+  "supports_status_detection": true,
+  "category": "Latency",
+  "subcategory": "Input"
+}

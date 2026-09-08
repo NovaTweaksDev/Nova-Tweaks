@@ -1,0 +1,110 @@
+{
+  "id": "disable_llmnr",
+  "name": "Disable LLMNR",
+  "description": "Disables Link-Local Multicast Name Resolution to reduce unnecessary background name queries on local networks.",
+  "description_i18n": {
+    "en": "Disables Link-Local Multicast Name Resolution to reduce unnecessary background name queries on local networks.",
+    "de": "Deaktiviert die lokale Mehrpunkt-Namensauflösung, um unnötige Hintergrundabfragen im Netzwerk zu reduzieren.",
+    "fr": "Désactive la résolution de noms multicast locale pour réduire les requêtes inutiles en arrière-plan sur le réseau local."
+  },
+  "script": "disable_llmnr.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "network",
+    "dns",
+    "ping",
+    "privacy",
+    "debloat",
+    "hardening",
+    "registry"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies the registry value EnableMulticast at HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient to set it to 0",
+  "execution": {
+    "type": "powershell",
+    "script": "disable_llmnr.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [
+    {
+      "id": "privacy_debloat",
+      "defaultChecked": true
+    },
+    {
+      "id": "network_boost",
+      "defaultChecked": true
+    }
+  ],
+  "premium": false,
+  "supports_status_detection": true,
+  "category": "Network",
+  "subcategory": "DNS"
+}

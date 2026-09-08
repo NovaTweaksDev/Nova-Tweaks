@@ -1,0 +1,96 @@
+{
+  "id": "windows_fast_startup",
+  "name": "Windows Fast Startup",
+  "description": "Enables Windows Fast Startup to make the system boot faster after shutdown by using a hybrid shutdown method. This can reduce startup time, but it may cause issues with drivers, updates, dual-boot setups, or hardware that needs a full shutdown.",
+  "description_i18n": {
+    "en": "Enables Windows Fast Startup to make the system boot faster after shutdown by using a hybrid shutdown method. This can reduce startup time, but it may cause issues with drivers, updates, dual-boot setups, or hardware that needs a full shutdown.",
+    "de": "Aktiviert den Windows-Schnellstart, damit das System nach dem Herunterfahren durch eine Hybrid-Startmethode schneller bootet. Das kann die Startzeit verkürzen, kann aber Probleme mit Treibern, Updates, Dual-Boot-Systemen oder Hardware verursachen, die ein vollständiges Herunterfahren benötigt.",
+    "fr": "Active le démarrage rapide de Windows afin d’accélérer le démarrage après l’arrêt grâce à une méthode d’arrêt hybride. Cela peut réduire le temps de démarrage, mais peut aussi causer des problèmes avec les pilotes, les mises à jour, les configurations dual-boot ou certains matériels nécessitant un arrêt complet."
+  },
+  "script": "windows_fast_startup.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 4,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "boot",
+    "startup",
+    "windows"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Advanced tweak",
+      "message": "This tweak targets advanced system behavior and should be changed with care.",
+      "icon": "triangle-alert",
+      "source": "inference"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Adjusts Windows power plan or processor power settings.",
+  "execution": {
+    "type": "powershell",
+    "script": "windows_fast_startup.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [],
+  "premium": false,
+  "supports_status_detection": true,
+  "category": "Boot",
+  "subcategory": "Startup"
+}

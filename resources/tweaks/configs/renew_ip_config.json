@@ -1,0 +1,97 @@
+{
+  "id": "renew_ip_config",
+  "name": "Renew IP Configuration",
+  "description": "Requests a fresh IP address from your network to fix connection issues or invalid settings.",
+  "description_i18n": {
+    "en": "Requests a fresh IP address from your network to fix connection issues or invalid settings.",
+    "de": "Fordert eine neue IP-Adresse vom Netzwerk an, um Verbindungsprobleme oder ungültige Einstellungen zu beheben.",
+    "fr": "Demande une nouvelle adresse IP au réseau pour résoudre les problèmes de connexion ou des paramètres invalides."
+  },
+  "script": "renew_ip_config.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 4,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "fix",
+  "tags": [
+    "windows",
+    "network",
+    "maintenance",
+    "repair"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Temporary connectivity loss",
+      "message": "Network connection may briefly drop while the IP address is renewed and applied to your adapter",
+      "icon": "network",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Executes the ipconfig /renew command to obtain a new lease from your DHCP server This action resets network configuration for active adapters without changing DNS or proxy settings",
+  "supports_status_detection": false,
+  "execution": {
+    "type": "powershell",
+    "script": "renew_ip_config.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [],
+  "premium": false,
+  "category": "General",
+  "subcategory": "Maintenance"
+}

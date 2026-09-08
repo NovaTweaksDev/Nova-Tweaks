@@ -1,0 +1,100 @@
+{
+  "id": "disable_automatic_optional_updates",
+  "name": "Disable Automatic Optional Updates",
+  "description": "Disables automatic installation of optional Windows feature updates to keep gaming and production systems stable. Security patches continue normally, but non-security features will not install until you choose them manually.",
+  "description_i18n": {
+    "en": "Disables automatic installation of optional Windows feature updates to keep gaming and production systems stable. Security patches continue normally, but non-security features will not install until you choose them manually.",
+    "de": "Verhindert die automatische Installation optionaler Windows-Funktionsupdates für mehr Stabilität bei Gaming- und Produktivsystemen. Sicherheitspatches werden weiterhin normal installiert; nicht-sicherheitsrelevante Features müssen manuell nachinstalliert werden.",
+    "fr": "Désactive l'installation automatique des mises à jour de fonctionnalités Windows optionnelles pour stabiliser les systèmes gaming et de production. Les correctifs de sécurité continuent normalement, mais les autres fonctions ne s'installeront que si vous le choisissez."
+  },
+  "script": "disable_automatic_optional_updates.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 1,
+  "recommended": true,
+  "premium": false,
+  "last_updated": "2026-05-30",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "security",
+    "updates",
+    "windows update",
+    "registry",
+    "stability"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Configures the registry key HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate by setting AllowOptionalContent and SetAllowOptionalContent to 0 This policy prevents automatic optional content installation while leaving security updates unaffected",
+  "profiles": [],
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "disable_automatic_optional_updates.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "category": "General",
+  "subcategory": "Updates"
+}

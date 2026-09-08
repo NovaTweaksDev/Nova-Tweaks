@@ -1,0 +1,117 @@
+{
+  "id": "set_mmcss_gaming_priority",
+  "name": "Enable MMCSS Gaming Priority",
+  "description": "Adjusts the Windows Multimedia Class Scheduler Service to prioritize game processes more aggressively, aiming for smoother input and consistent frame times during gaming sessions.",
+  "description_i18n": {
+    "en": "Adjusts the Windows Multimedia Class Scheduler Service to prioritize game processes more aggressively, aiming for smoother input and consistent frame times during gaming sessions.",
+    "de": "Stellt den Windows-Multimedia-Klassenscheduler so ein, dass Spielprozesse aggressiver priorisiert werden. Dies soll für flüssigere Eingaben und konsistentere Bildraten während Gaming-Sitzungen sorgen.",
+    "fr": "Ajuste le service de planification du classeur multimédia de Windows pour prioriser les processus de jeu plus agressivement, visant des entrées fluides et un temps d'image constant lors des sessions de jeu."
+  },
+  "script": "set_mmcss_gaming_priority.ps1",
+  "requires_admin": true,
+  "reboot_required": true,
+  "risk_level": "medium",
+  "impact": 2,
+  "recommended": true,
+  "premium": true,
+  "last_updated": "2026-05-22",
+  "container_type": "one_shot_selection",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "input",
+    "maintenance",
+    "security",
+    "cpu",
+    "registry"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "System-dependent results",
+      "message": "This tweak may improve responsiveness on some systems, while having little or no effect on others depending on hardware and workload",
+      "icon": "shield-alert",
+      "source": "config"
+    },
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies registry values under HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games Adjusts GPU Priority, CPU Priority, Scheduling Category and SFIO Priority to alter how Windows prioritizes game-related multimedia workloads",
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "set_mmcss_gaming_priority.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true,
+        "allowed_params": [
+          "Selection"
+        ]
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "category": "Latency",
+  "subcategory": "Input",
+  "selections": [
+    "Windows Default",
+    "Balanced Gaming",
+    "Aggressive Gaming"
+  ],
+  "recommended_selection": "Balanced Gaming",
+  "profiles": []
+}

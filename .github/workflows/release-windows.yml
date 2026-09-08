@@ -1,0 +1,72 @@
+name: Release Windows installer
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  windows-installer:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate tag version
+        shell: pwsh
+        run: |
+          $packageVersion = node -p "require('./package.json').version"
+          if ($env:GITHUB_REF_NAME -ne "v$packageVersion") {
+            throw "Tag $env:GITHUB_REF_NAME does not match package version $packageVersion."
+          }
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build signed installer
+        run: npm run dist:win
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          NOVA_ARTIFACT_PUBLIC_KEY: ${{ secrets.NOVA_ARTIFACT_PUBLIC_KEY }}
+          NOVA_TWEAK_PUBLIC_KEY: ${{ secrets.NOVA_TWEAK_PUBLIC_KEY }}
+          NOVA_UPDATE_PUBLIC_KEY: ${{ secrets.NOVA_UPDATE_PUBLIC_KEY }}
+          NOVA_REQUIRE_TWEAK_SIGNATURES: 'true'
+          NOVA_REQUIRE_UPDATE_SIGNATURES: 'true'
+
+      - name: Validate release files
+        id: artifacts
+        shell: pwsh
+        run: |
+          $installers = @(Get-ChildItem -LiteralPath dist-release -Filter 'NovaTweaks-Setup-*-x64.exe' -File)
+          if ($installers.Count -ne 1) {
+            throw "Expected exactly one Windows installer, found $($installers.Count)."
+          }
+          Get-Item -LiteralPath dist-release/checksums.txt -ErrorAction Stop | Out-Null
+          "installer=$($installers[0].FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INSTALLER_PATH: ${{ steps.artifacts.outputs.installer }}
+        run: |
+          gh release create $env:GITHUB_REF_NAME `
+            $env:INSTALLER_PATH `
+            --verify-tag `
+            --generate-notes `
+            --title "Nova Tweaks $env:GITHUB_REF_NAME"

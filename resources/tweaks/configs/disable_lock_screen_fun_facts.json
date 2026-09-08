@@ -1,0 +1,102 @@
+{
+  "id": "disable_lock_screen_fun_facts",
+  "name": "Disable Lock Screen Fun Facts",
+  "description": "Removes fun facts and tips from the lock screen to reduce distractions during sign-in.",
+  "description_i18n": {
+    "en": "Removes fun facts and tips from the lock screen to reduce distractions during sign-in.",
+    "de": "Entfernt Fun Facts und Tipps vom Sperrbildschirm, um Ablenkungen während der Anmeldung zu reduzieren.",
+    "fr": "Supprime les anecdotes et conseils de l'écran de verrouillage pour réduire les distractions lors de la connexion."
+  },
+  "script": "disable_lock_screen_fun_facts.ps1",
+  "requires_admin": false,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 1,
+  "recommended": false,
+  "premium": false,
+  "last_updated": "2026-05-13",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "registry"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "User Scope Limitation",
+      "message": "This tweak only affects the current user. Windows updates or organization policies may restore lock screen content behavior on some systems",
+      "icon": "shield-alert",
+      "source": "config"
+    },
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies the ContentDeliveryManager registry key under HKCU\\Software\\Microsoft\\Windows\\CurrentVersion to set RotatingLockScreenOverlayEnabled and SubscribedContent-338387Enabled values",
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "disable_lock_screen_fun_facts.ps1",
+    "requires_admin": false,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      }
+    }
+  },
+  "category": "General",
+  "subcategory": "System",
+  "profiles": []
+}

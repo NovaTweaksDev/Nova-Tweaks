@@ -1,0 +1,120 @@
+{
+  "id": "nvidia_output_color_range",
+  "name": "NVIDIA Output Color Range",
+  "description": "Sets the NVIDIA output range for the Windows primary display to Full (0-255) or Limited (16-235).",
+  "description_i18n": {
+    "en": "Sets the NVIDIA output range for the Windows primary display to Full (0-255) or Limited (16-235).",
+    "de": "Stellt den NVIDIA-Ausgabebereich des primären Windows-Bildschirms auf Voll (0-255) oder Begrenzt (16-235).",
+    "fr": "Définit la plage de sortie NVIDIA de l'écran principal Windows sur Complète (0-255) ou Limitée (16-235)."
+  },
+  "script": "nvidia_output_color_range.ps1",
+  "requires_admin": false,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 1,
+  "recommended": false,
+  "last_updated": "2026-07-25",
+  "container_type": "one_shot_selection",
+  "selections": [
+    "Full",
+    "Limited"
+  ],
+  "recommended_selection": "Full",
+  "tags": [
+    "windows",
+    "gpu",
+    "nvidia",
+    "display",
+    "color"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Primary display only",
+      "message": "This setting changes only the Windows primary display when that display is driven by NVIDIA.",
+      "icon": "monitor",
+      "source": "config"
+    },
+    {
+      "severity": "warning",
+      "title": "Match the display input range",
+      "message": "A Full/Limited mismatch can crush dark details or make the image look washed out.",
+      "icon": "triangle-alert",
+      "source": "config"
+    },
+    {
+      "severity": "info",
+      "title": "Automatic policy",
+      "message": "The driver automatic BestQuality policy can be detected but is not settable through the public NVAPI path on every driver. Restore it with Use default color settings in NVIDIA Control Panel.",
+      "icon": "info",
+      "source": "config"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Requires an NVIDIA GPU driving the Windows primary display and a driver that supports NVAPI display color control."
+  },
+  "technical_details": "Uses the public NvAPI_Disp_ColorControl interface. Full and Limited preserve the current color format, colorimetry, bit depth, and desktop color depth while selecting the NVIDIA user color policy. The current driver automatic BestQuality policy is detected as Auto but is not exposed as a settable selection because this driver rejects it through the public API. Original Full or Limited states are restorable; an original BestQuality/Auto state must be restored through NVIDIA Control Panel.",
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "nvidia_output_color_range.ps1",
+    "requires_admin": false,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "allowed_params": [
+          "Selection"
+        ]
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      }
+    }
+  },
+  "profiles": [],
+  "premium": true,
+  "category": "Hardware",
+  "subcategory": "GPU"
+}

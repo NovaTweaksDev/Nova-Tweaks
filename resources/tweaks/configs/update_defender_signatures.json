@@ -1,0 +1,95 @@
+{
+  "id": "update_defender_signatures",
+  "name": "Update Defender Signatures",
+  "description": "Updates Microsoft Defender security definitions so the system can detect newer malware, unwanted software, and security threats. This is useful before running a scan or when the device has not been updated recently.",
+  "description_i18n": {
+    "en": "Updates Microsoft Defender security definitions so the system can detect newer malware, unwanted software, and security threats. This is useful before running a scan or when the device has not been updated recently.",
+    "de": "Aktualisiert die Microsoft-Defender-Sicherheitsdefinitionen, damit das System neüre Malware, unerwünschte Software und Sicherheitsbedrohungen erkennen kann. Das ist sinnvoll vor einem Scan oder wenn das Gerät längere Zeit nicht aktualisiert wurde.",
+    "fr": "Met à jour les définitions de sécurité de Microsoft Defender afin que le système puisse détecter les logiciels malveillants récents, les applications indésirables et les menaces de sécurité. C’est utile avant une analyse ou si l’appareil n’a pas été mis à jour récemment."
+  },
+  "script": "update_defender_signatures.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 4,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "fix",
+  "tags": [
+    "maintenance",
+    "defender",
+    "security",
+    "repair",
+    "windows"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "message": "Administrator privileges required: This tweak requires an elevated administrator session to apply changes."
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Updates Microsoft Defender or security-related settings.",
+  "supports_status_detection": false,
+  "execution": {
+    "type": "powershell",
+    "script": "update_defender_signatures.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [],
+  "premium": false,
+  "category": "General",
+  "subcategory": "Maintenance"
+}

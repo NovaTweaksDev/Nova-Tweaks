@@ -1,0 +1,105 @@
+{
+  "id": "disable_teredo",
+  "name": "Disable Teredo",
+  "description": "Disables Teredo, a legacy IPv6 tunneling protocol that can interfere with modern network stacks. This change simplifies your connection for gaming and general use by removing unnecessary traffic routing through older transition mechanisms.",
+  "description_i18n": {
+    "en": "Disables Teredo, a legacy IPv6 tunneling protocol that can interfere with modern network stacks. This change simplifies your connection for gaming and general use by removing unnecessary traffic routing through older transition mechanisms.",
+    "de": "Deaktiviert Teredo, ein veraltetes Tunnelprotokoll für IPv6, das moderne Netzwerke stören kann. Diese Änderung vereinfacht Ihre Verbindung für Gaming und allgemeine Nutzung durch die Entfernung unnötiger Datenübertragungen über ältere Übergangsmechanismen.",
+    "fr": "Désactive Teredo, un protocole de tunneling IPv6 obsolète qui peut interférer avec les piles réseau modernes. Ce changement simplifie votre connexion pour le jeu et l'utilisation générale en éliminant la routage du trafic inutile via des mécanismes de transition plus anciens."
+  },
+  "script": "disable_teredo.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "premium": false,
+  "last_updated": "2026-06-01",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "network",
+    "tcp ip",
+    "security",
+    "fortnite"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Legacy Protocol Disabled",
+      "message": "Disabling this legacy tunneling mechanism may affect older Xbox networking features or specific environments that still depend on Teredo for IPv6 connectivity",
+      "icon": "shield-alert",
+      "source": "config"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Uses netsh interface teredo commands to detect and configure the Teredo client state, switching from enabled or default states to disabled",
+  "profiles": [
+    {
+      "id": "network_boost",
+      "defaultChecked": true
+    }
+  ],
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "disable_teredo.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "category": "Network",
+  "subcategory": "TCP IP"
+}

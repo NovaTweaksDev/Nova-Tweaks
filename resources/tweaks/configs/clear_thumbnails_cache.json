@@ -1,0 +1,111 @@
+{
+  "id": "clear_thumbnails_cache",
+  "name": "Clear Thumbnails Cache",
+  "description": "Clears the Windows thumbnail cache used by File Explorer to preview images, videos, documents, and folders. This can help fix missing or outdated previews; note that thumbnails may load more slowly for a short time while Windows rebuilds them.",
+  "description_i18n": {
+    "en": "Clears the Windows thumbnail cache used by File Explorer to preview images, videos, documents, and folders. This can help fix missing or outdated previews; note that thumbnails may load more slowly for a short time while Windows rebuilds them.",
+    "de": "Leert den Windows-Thumbnail-Cache für Vorschaün in der Datei-Explorer-Anwendung. Dies kann fehlende oder veraltete Vorschaubilder beheben, wobei die Ladezeit kurzzeitig zunehmen kann, bis neue Thumbnails erstellt werden.",
+    "fr": "Vide le cache des miniatures utilisé par l'Explorateur de fichiers pour afficher les aperçus d'images et de documents. Cela peut corriger des prévisualisations manquantes ou obsolètes ; notez que la charge peut augmenter temporairement pendant la reconstruction."
+  },
+  "script": "clear_thumbnails_cache.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "one_shot_action",
+  "tags": [
+    "windows",
+    "cleanup",
+    "cache",
+    "maintenance",
+    "power",
+    "troubleshooting"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Thumbnail loading delay",
+      "message": "File Explorer may refresh during the process. Thumbnails may load more slowly for a short time while Windows rebuilds them, especially in large media folders",
+      "icon": "rotate-ccw",
+      "source": "config"
+    },
+    {
+      "severity": "warning",
+      "title": "Local data cleanup",
+      "message": "Cache or temporary data may be removed. Windows or apps may take a moment to rebuild it",
+      "icon": "file-warning",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Removes thumbnail cache database files from the current user profile where accessible, specifically targeting thumbcache* files in %LOCALAPPDATA%\\Microsoft\\Windows\\Explorer Windows and File Explorer rebuild preview data automatically when folders are opened again",
+  "supports_status_detection": false,
+  "execution": {
+    "type": "powershell",
+    "script": "clear_thumbnails_cache.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "premium": false,
+  "category": "General",
+  "subcategory": "Cleanup",
+  "profiles": [
+    {
+      "id": "system_cleanup",
+      "defaultChecked": true
+    }
+  ]
+}

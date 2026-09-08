@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "verificationDate": "2026-08-23",
+  "components": [
+    {
+      "fileName": "LibreHardwareMonitor.exe",
+      "project": "LibreHardwareMonitor",
+      "version": "0.9.6",
+      "repositoryPath": "resources/monitoring/LibreHardwareMonitor/patched/LibreHardwareMonitor.exe",
+      "packagedPath": "resources/resources/monitoring/LibreHardwareMonitor/patched/LibreHardwareMonitor.exe",
+      "sha256": "43C1013E291CE0B386104ADE1080B87A7A20D013532E56205A49B7F9F4A8F46E",
+      "license": "MPL-2.0",
+      "licenseFiles": [
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/LibreHardwareMonitor/SOURCE.md"
+      ],
+      "copyright": "LibreHardwareMonitor contributors",
+      "officialProjectUrl": "https://github.com/LibreHardwareMonitor/LibreHardwareMonitor",
+      "officialReleaseUrl": "https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/releases/tag/v0.9.6",
+      "officialDownloadUrl": null,
+      "originStatus": "locally-built-from-included-source-snapshot",
+      "redistributionStatus": "documented",
+      "authenticode": {
+        "status": "NotSigned",
+        "subject": null
+      },
+      "applicationAssemblySha256": "25B4ECF296B3F9FCC9F8FFCD7F602075618683F6605F9D43A0E08C9056405C76",
+      "source": {
+        "repositoryPath": "resources/monitoring/LibreHardwareMonitor",
+        "packagedPath": "licenses/LibreHardwareMonitor/source",
+        "snapshotFormat": "nova-third-party-source-v2",
+        "sha256": "83D750E8642192735FA59511A3F02A75FB49B0D8FB519D6E227E1244C24A2BFF",
+        "fileCount": 415,
+        "exclusions": [
+          "bin",
+          "obj",
+          "patched",
+          ".github",
+          ".editorconfig",
+          ".gitignore",
+          "PawnIO_setup.exe"
+        ]
+      },
+      "build": {
+        "script": "scripts/build-lhm-runtime.ps1",
+        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-lhm-runtime.ps1",
+        "targetFramework": "net8.0-windows",
+        "runtimeIdentifier": "win-x64",
+        "configuration": "Release"
+      },
+      "verification": "The executable and application assembly were produced from the checked-in source snapshot. The complete filtered snapshot is shipped beside the licenses, and the build gate rejects a present or embedded PawnIO_setup.exe."
+    },
+    {
+      "fileName": "PresentMon.exe",
+      "project": "PresentMon",
+      "version": "2.5.1",
+      "repositoryPath": "resources/capture/PresentMon/PresentMon.exe",
+      "packagedPath": "resources/capture/PresentMon/PresentMon.exe",
+      "sha256": "9BEC3083069F58F911E6A512F4806DB51A27BD096103087BC1D05EF54C80A191",
+      "license": "MIT",
+      "licenseFiles": [
+        "licenses/PresentMon/LICENSE.txt",
+        "licenses/PresentMon/THIRD_PARTY.txt"
+      ],
+      "copyright": "Copyright (C) 2017-2024 Intel Corporation",
+      "officialProjectUrl": "https://github.com/GameTechDev/PresentMon",
+      "officialReleaseUrl": "https://github.com/GameTechDev/PresentMon/releases/tag/v2.5.1",
+      "officialDownloadUrl": "https://github.com/GameTechDev/PresentMon/releases/download/v2.5.1/PresentMon-2.5.1-x64.exe",
+      "officialAssetName": "PresentMon-2.5.1-x64.exe",
+      "originStatus": "verified-official-release-asset",
+      "redistributionStatus": "documented",
+      "authenticode": {
+        "status": "Valid",
+        "subject": "CN=Intel Corporation, O=Intel Corporation, S=California, C=US",
+        "thumbprint": "4B923D748E9EBE27252FDBA244342C1888A2D23E"
+      },
+      "verification": "Local SHA-256 matches the digest published in the official GitHub release metadata."
+    },
+    {
+      "fileName": "PresentMonLegacy.exe",
+      "project": "PresentMon",
+      "version": "1.10.0",
+      "repositoryPath": "resources/capture/PresentMon/PresentMonLegacy.exe",
+      "packagedPath": "resources/capture/PresentMon/PresentMonLegacy.exe",
+      "sha256": "E57A2F8EE1DE1EF1A5516D875F1B115E881943CD729FE9C5A2F88B1DC79A8A3B",
+      "license": "MIT",
+      "licenseFiles": [
+        "licenses/PresentMon/v1.10.0/LICENSE.txt",
+        "licenses/PresentMon/v1.10.0/THIRD_PARTY.txt"
+      ],
+      "copyright": "Copyright (C) 2017-2023 Intel Corporation",
+      "officialProjectUrl": "https://github.com/GameTechDev/PresentMon",
+      "officialReleaseUrl": "https://github.com/GameTechDev/PresentMon/releases/tag/v1.10.0",
+      "officialDownloadUrl": "https://github.com/GameTechDev/PresentMon/releases/download/v1.10.0/PresentMon-1.10.0-x64.exe",
+      "officialAssetName": "PresentMon-1.10.0-x64.exe",
+      "originStatus": "verified-official-release-asset",
+      "redistributionStatus": "documented",
+      "authenticode": {
+        "status": "NotSigned",
+        "subject": null
+      },
+      "verification": "The official release metadata has no digest; SHA-256 was calculated independently from the official release URL and matches the bundled file."
+    }
+  ],
+  "excludedComponents": [
+    {
+      "fileName": "PawnIO_setup.exe",
+      "project": "PawnIO Setup",
+      "version": "2.1.0.0",
+      "sha256": "A3A46226C5E2824F4CDD42BE0EECBABFC672C86F7889710F5AB1E6AD385B47A0",
+      "reason": "Not distributed because the official setup-wrapper repository and release do not provide authoritative redistribution terms for this separate installer binary.",
+      "repositoryPaths": [
+        "resources/monitoring/LibreHardwareMonitor/LibreHardwareMonitor/Resources/PawnIO_setup.exe"
+      ],
+      "packagedPaths": [
+        "resources/resources/monitoring/LibreHardwareMonitor/LibreHardwareMonitor/Resources/PawnIO_setup.exe"
+      ]
+    }
+  ]
+}

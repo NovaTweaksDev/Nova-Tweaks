@@ -1,0 +1,96 @@
+{
+  "id": "disable_fax_service",
+  "name": "Disable Fax Service",
+  "description": "Disables the Windows Fax service to stop unnecessary background activity and free system resources.",
+  "description_i18n": {
+    "en": "Disables the Windows Fax service to stop unnecessary background activity and free system resources.",
+    "de": "Deaktiviert den Windows-Faxdienst, um unnötige Hintergrundprozesse zu stoppen und Systemressourcen freizugeben.",
+    "fr": "Désactive le service Fax de Windows pour arrêter l'activité en arrière-plan inutile et libérer des ressources système."
+  },
+  "script": "disable_fax_service.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "debloat",
+    "services"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Service behavior changed",
+      "message": "Applications relying on legacy fax functionality will no longer be able to use the Fax service automatically",
+      "icon": "settings",
+      "source": "config"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "The tweak modifies the startup type of the 'Fax' service to Disabled via HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Fax",
+  "execution": {
+    "type": "powershell",
+    "script": "disable_fax_service.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [],
+  "premium": false,
+  "supports_status_detection": true,
+  "category": "Debloat",
+  "subcategory": "Services"
+}

@@ -1,0 +1,102 @@
+{
+  "id": "energy_efficient_ethernet",
+  "name": "Disable Energy Efficient Ethernet",
+  "description": "Disables Energy Efficient Ethernet to reduce latency spikes and keep network connection behavior more consistent.",
+  "description_i18n": {
+    "en": "Disables Energy Efficient Ethernet to reduce latency spikes and keep network connection behavior more consistent.",
+    "de": "Deaktiviert Energieeffizientes Ethernet, um Latenzspitzen zu reduzieren und das Netzwerkverhalten stabiler zu halten.",
+    "fr": "Désactive l'Ethernet Économe en Énergie pour réduire les pics de latence et maintenir un comportement réseau plus cohérent."
+  },
+  "script": "energy_efficient_ethernet.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "latency",
+    "network",
+    "adapter"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Network behavior changes",
+      "message": "Disabling this feature may alter how your network card manages power states, potentially affecting background traffic patterns on some hardware",
+      "icon": "network",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies the Energy Efficient Ethernet property on network adapters by setting its display value to On or Off This change is applied without restarting the adapter",
+  "execution": {
+    "type": "powershell",
+    "script": "energy_efficient_ethernet.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "premium": false,
+  "category": "Network",
+  "subcategory": "Adapter",
+  "profiles": [
+    {
+      "id": "network_boost",
+      "defaultChecked": true
+    }
+  ],
+  "supports_status_detection": true
+}

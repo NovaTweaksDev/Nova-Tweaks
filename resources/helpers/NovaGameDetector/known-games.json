@@ -1,0 +1,185 @@
+{
+  "games": [
+    {
+      "id": "fortnite",
+      "displayName": "Fortnite",
+      "processNames": [
+        "FortniteClient-Win64-Shipping.exe"
+      ],
+      "excludeProcesses": [
+        "FortniteLauncher.exe",
+        "FortniteClient-Win64-Shipping_BE.exe",
+        "FortniteClient-Win64-Shipping_EAC.exe",
+        "FortniteClient-Win64-Shipping_EAC_EOS.exe"
+      ],
+      "launchers": [
+        "EpicGamesLauncher.exe"
+      ],
+      "pathHints": [
+        "Epic Games\\Fortnite",
+        "FortniteGame\\Binaries\\Win64"
+      ],
+      "installDirMarkers": [
+        "Fortnite"
+      ]
+    },
+    {
+      "id": "valorant",
+      "displayName": "VALORANT",
+      "processNames": [
+        "VALORANT-Win64-Shipping.exe"
+      ],
+      "excludeProcesses": [
+        "RiotClientServices.exe",
+        "vgc.exe"
+      ],
+      "launchers": [
+        "RiotClientServices.exe"
+      ],
+      "pathHints": [
+        "Riot Games\\VALORANT"
+      ],
+      "installDirMarkers": [
+        "VALORANT"
+      ]
+    },
+    {
+      "id": "counter-strike-2",
+      "displayName": "Counter-Strike 2",
+      "processNames": [
+        "cs2.exe"
+      ],
+      "excludeProcesses": [
+        "steam.exe",
+        "steamwebhelper.exe"
+      ],
+      "launchers": [
+        "steam.exe"
+      ],
+      "pathHints": [
+        "steamapps\\common\\Counter-Strike Global Offensive",
+        "game\\bin\\win64"
+      ],
+      "installDirMarkers": [
+        "Counter-Strike Global Offensive"
+      ]
+    },
+    {
+      "id": "apex-legends",
+      "displayName": "Apex Legends",
+      "processNames": [
+        "r5apex.exe"
+      ],
+      "excludeProcesses": [
+        "EasyAntiCheat.exe",
+        "EAAntiCheat.GameServiceLauncher.exe"
+      ],
+      "launchers": [
+        "steam.exe",
+        "EADesktop.exe"
+      ],
+      "pathHints": [
+        "Apex",
+        "Apex Legends"
+      ],
+      "installDirMarkers": [
+        "Apex",
+        "Apex Legends"
+      ]
+    },
+    {
+      "id": "call-of-duty",
+      "displayName": "Call of Duty",
+      "processNames": [
+        "cod.exe",
+        "cod22-cod.exe",
+        "ModernWarfare.exe"
+      ],
+      "excludeProcesses": [
+        "Battle.net.exe",
+        "bootstrapper.exe"
+      ],
+      "launchers": [
+        "Battle.net.exe",
+        "steam.exe"
+      ],
+      "pathHints": [
+        "Call of Duty",
+        "Modern Warfare"
+      ],
+      "installDirMarkers": [
+        "Call of Duty"
+      ]
+    },
+    {
+      "id": "gta-v",
+      "displayName": "Grand Theft Auto V",
+      "processNames": [
+        "GTA5.exe",
+        "PlayGTAV.exe"
+      ],
+      "excludeProcesses": [
+        "RockstarService.exe",
+        "Launcher.exe"
+      ],
+      "launchers": [
+        "Rockstar Games Launcher.exe",
+        "steam.exe",
+        "EpicGamesLauncher.exe"
+      ],
+      "pathHints": [
+        "Grand Theft Auto V",
+        "GTAV"
+      ],
+      "installDirMarkers": [
+        "Grand Theft Auto V"
+      ]
+    },
+    {
+      "id": "rocket-league",
+      "displayName": "Rocket League",
+      "processNames": [
+        "RocketLeague.exe"
+      ],
+      "excludeProcesses": [
+        "EpicGamesLauncher.exe",
+        "steam.exe"
+      ],
+      "launchers": [
+        "EpicGamesLauncher.exe",
+        "steam.exe"
+      ],
+      "pathHints": [
+        "rocketleague",
+        "Binaries\\Win64"
+      ],
+      "installDirMarkers": [
+        "rocketleague",
+        "Rocket League"
+      ]
+    },
+    {
+      "id": "minecraft",
+      "displayName": "Minecraft",
+      "processNames": [
+        "javaw.exe",
+        "Minecraft.Windows.exe"
+      ],
+      "excludeProcesses": [
+        "MinecraftLauncher.exe"
+      ],
+      "launchers": [
+        "MinecraftLauncher.exe"
+      ],
+      "pathHints": [
+        ".minecraft",
+        "Minecraft",
+        "Microsoft.Minecraft"
+      ],
+      "installDirMarkers": [
+        ".minecraft",
+        "Minecraft"
+      ]
+    }
+  ]
+}

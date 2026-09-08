@@ -1,0 +1,108 @@
+{
+  "id": "set_threaded_dpc_processing",
+  "name": "Set Threaded DPC Processing",
+  "description": "Enables threaded Deferred Procedure Call (DPC) processing in the Windows kernel to potentially improve system responsiveness and frametime consistency on supported hardware.",
+  "description_i18n": {
+    "en": "Enables threaded Deferred Procedure Call (DPC) processing in the Windows kernel to potentially improve system responsiveness and frametime consistency on supported hardware.",
+    "de": "Aktiviert die threadbasierte Verarbeitung von verzögerten Prozeduraufrufen im Windows-Kernel, um auf unterstützter Hardware möglicherweise die Systemreaktionszeit und Frametime-Konsistenz zu verbessern.",
+    "fr": "Active le traitement des appels de procédure différés (DPC) en threads dans le noyau Windows pour potentiellement améliorer la réactivité et la cohérence du temps d'image sur les matériels pris en charge."
+  },
+  "script": "set_threaded_dpc_processing.ps1",
+  "requires_admin": true,
+  "reboot_required": true,
+  "risk_level": "high",
+  "impact": 1,
+  "recommended": false,
+  "premium": false,
+  "last_updated": "2026-05-22",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "latency",
+    "input",
+    "cpu",
+    "kernel",
+    "registry",
+    "scheduler"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "System-dependent results",
+      "message": "This tweak may improve, worsen, or have no noticeable effect on latency depending on your specific hardware and drivers",
+      "icon": "shield-alert",
+      "source": "config"
+    },
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies the ThreadDpcEnable registry value under HKLM\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl to set it to 1, enabling threaded DPC processing",
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "set_threaded_dpc_processing.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "category": "Latency",
+  "subcategory": "Input",
+  "profiles": []
+}

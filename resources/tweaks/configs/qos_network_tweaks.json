@@ -1,0 +1,111 @@
+{
+  "id": "qos_network_tweaks",
+  "name": "QoS Network Tweaks",
+  "description": "Removes aggressive bandwidth reservation settings in Windows to allow more flexible network traffic handling during gaming or streaming. This does not increase your internet speed but may help reduce background throttling on some systems.",
+  "description_i18n": {
+    "en": "Removes aggressive bandwidth reservation settings in Windows to allow more flexible network traffic handling during gaming or streaming. This does not increase your internet speed but may help reduce background throttling on some systems.",
+    "de": "Entfernt aggressive Bandbreitenreservierungseinstellungen in Windows, um den Netzwerkverkehr beim Gaming oder Streaming flexibler zu handhaben. Dies erhöht nicht die Internetgeschwindigkeit, kann aber das Hintergrund-Drosseln auf manchen Systemen reduzieren.",
+    "fr": "Supprime les paramètres de réservation de bande passante agressifs dans Windows pour permettre une gestion plus flexible du trafic réseau pendant le jeu ou le streaming. Cela n'augmente pas la vitesse d'internet mais peut réduire l'étranglement en arrière-plan sur certains systèmes."
+  },
+  "script": "qos_network_tweaks.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "gaming",
+    "network",
+    "packet handling",
+    "services",
+    "registry"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Reboot recommended",
+      "message": "Changes may not take full effect until the system is restarted. A reboot ensures all network services apply new settings correctly",
+      "icon": "rotate-ccw",
+      "source": "script"
+    },
+    {
+      "severity": "warning",
+      "title": "Registry change",
+      "message": "Persistent Windows settings may change until the tweak is restored",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies registry values at HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Psched and HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile Specifically sets NonBestEffortLimit to 0, NetworkThrottlingIndex to maximum value (FFFFFFFF), and SystemResponsiveness to 0",
+  "execution": {
+    "type": "powershell",
+    "script": "qos_network_tweaks.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "profiles": [
+    {
+      "id": "network_boost",
+      "defaultChecked": true
+    }
+  ],
+  "premium": true,
+  "supports_status_detection": true,
+  "category": "Network",
+  "subcategory": "Packet Handling"
+}

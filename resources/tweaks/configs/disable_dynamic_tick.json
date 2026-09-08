@@ -1,0 +1,98 @@
+{
+  "id": "disable_dynamic_tick",
+  "name": "Disable Dynamic Tick",
+  "description": "Disables Dynamic Tick to keep system timer behavior more consistent, which may help with latency and responsiveness on some systems.",
+  "description_i18n": {
+    "en": "Disables Dynamic Tick to keep system timer behavior more consistent, which may help with latency and responsiveness on some systems.",
+    "de": "Deaktiviert die dynamische Taktung für ein konsistenteres Systemverhalten und kann bei manchen Geräten Latenz oder Reaktionszeit verbessern.",
+    "fr": "Désactive le Dynamic Tick pour un comportement horlogiste plus cohérent, ce qui peut améliorer la latence et la réactivité sur certains systèmes."
+  },
+  "script": "disable_dynamic_tick.ps1",
+  "requires_admin": true,
+  "reboot_required": true,
+  "risk_level": "medium",
+  "impact": 3,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "latency",
+    "timer",
+    "boot",
+    "startup"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Boot configuration modified",
+      "message": "This tweak updates boot configuration values that affect startup behavior",
+      "icon": "shield-alert",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies the Windows boot configuration by setting or removing the disabledynamictick registry value",
+  "execution": {
+    "type": "powershell",
+    "script": "disable_dynamic_tick.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "premium": false,
+  "category": "Latency",
+  "subcategory": "Timer",
+  "profiles": [],
+  "supports_status_detection": true
+}

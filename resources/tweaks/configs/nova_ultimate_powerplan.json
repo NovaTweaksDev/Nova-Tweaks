@@ -1,0 +1,161 @@
+{
+  "id": "nova_ultimate_powerplan",
+  "name": "Nova Tweaks Ultimate Power Plan",
+  "description": "Enables a custom power plan that prioritizes maximum processor performance and disables energy-saving features for demanding workloads.",
+  "description_i18n": {
+    "en": "Enables a custom power plan that prioritizes maximum processor performance and disables energy-saving features for demanding workloads.",
+    "de": "Aktiviert einen benutzerdefinierten Energieplan, der maximale Prozessorleistung priorisiert und energiesparende Funktionen für anspruchsvolle Aufgaben deaktiviert.",
+    "fr": "Active un profil d'alimentation personnalisé qui privilégie les performances maximales du processeur et désactive les fonctionnalités d'économie d'énergie pour les tâches exigeantes."
+  },
+  "script": "nova_ultimate_powerplan.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 5,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "power_plan",
+  "tags": [
+    "windows",
+    "latency",
+    "power",
+    "cpu"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Power consumption increases",
+      "message": "This plan prioritizes performance over efficiency, which may increase power draw and heat output under load",
+      "icon": "info",
+      "source": "config"
+    },
+    {
+      "severity": "info",
+      "title": "Advanced system behavior",
+      "message": "This tweak modifies core processor scheduling settings. Changes are applied immediately without a restart requirement",
+      "icon": "settings",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Creates a new power scheme based on the High Performance profile and sets processor minimum and maximum states to 100 percent Disables Enhanced Power Plan, Processor Core Parking, and Cooling policies while hiding advanced attributes",
+  "supports_status_detection": true,
+  "ui": {
+    "variant": "compact_rating",
+    "size": "square",
+    "show_profile_badge": false,
+    "show_target_system": false,
+    "show_tradeoffs": false,
+    "show_bulletpoints": true,
+    "max_metrics": 4
+  },
+  "profile": {
+    "label": "Ultimate",
+    "icon": "flame"
+  },
+  "metrics": [
+    {
+      "icon": "bolt",
+      "label": "Responsiveness Improvement",
+      "value": 5,
+      "max": 5,
+      "direction": "positive"
+    },
+    {
+      "icon": "gamepad",
+      "label": "FPS Stability Improvement",
+      "value": 5,
+      "max": 5,
+      "direction": "positive"
+    },
+    {
+      "icon": "plug",
+      "label": "Power Consumption",
+      "value": 5,
+      "max": 5,
+      "direction": "negative"
+    },
+    {
+      "icon": "thermometer",
+      "label": "Temperature Increase",
+      "value": 4,
+      "max": 5,
+      "direction": "negative"
+    }
+  ],
+  "status_labels": {
+    "active": "Currently Applied",
+    "inactive": "Inactive"
+  },
+  "cta_labels": {
+    "default": "Apply",
+    "active": "Currently Applied"
+  },
+  "target_system": [
+    "desktop",
+    "gaming",
+    "high_performance",
+    "enthusiast"
+  ],
+  "compact_description": "Maximizes responsiveness and boost behavior for competitive gaming and heavy performance-focused use.",
+  "execution": {
+    "type": "powershell",
+    "script": "nova_ultimate_powerplan.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "premium": true,
+  "category": "General",
+  "subcategory": "Power Plans",
+  "profiles": []
+}

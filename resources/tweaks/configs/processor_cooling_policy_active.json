@@ -1,0 +1,96 @@
+{
+  "id": "processor_cooling_policy_active",
+  "name": "CPU Cooling Policy (Active)",
+  "description": "Sets the processor cooling policy to Active, prioritizing fan speed over CPU throttling for better thermal management.",
+  "description_i18n": {
+    "en": "Sets the processor cooling policy to Active, prioritizing fan speed over CPU throttling for better thermal management.",
+    "de": "Setzt die Prozessorkühlungsrichtlinie auf Aktiv und priorisiert Lüftergeschwindigkeit vor der Throttling des CPUs für eine bessere Wärmemanagement.",
+    "fr": "Définit la politique de refroidissement du processeur sur Actif, en privilégiant la vitesse du ventilateur par rapport au throttling CPU pour une meilleure gestion thermique."
+  },
+  "script": "processor_cooling_policy_active.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 3,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "normal_tweak",
+  "tags": [
+    "windows",
+    "power",
+    "cpu"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Power behavior change",
+      "message": "Power behavior may change, which can affect battery life, heat, or fan noise",
+      "icon": "power",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies the processor cooling policy via powercfg to set both AC and DC values to Active (1), ensuring fans ramp up before frequency reduction occurs",
+  "execution": {
+    "type": "powershell",
+    "script": "processor_cooling_policy_active.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "premium": false,
+  "category": "Hardware",
+  "subcategory": "CPU",
+  "profiles": [],
+  "supports_status_detection": true
+}

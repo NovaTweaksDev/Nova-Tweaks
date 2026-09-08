@@ -1,0 +1,242 @@
+{
+  "name": "nova-tweaks",
+  "productName": "Nova Tweaks",
+  "version": "1.0.0",
+  "description": "Windows optimization and control app for gamers and power users",
+  "author": "Nova Tweaks",
+  "main": "electron/main.js",
+  "scripts": {
+    "predev": "npm run ensure:presentmon",
+    "dev": "concurrently \"npm:dev:renderer\" \"npm:dev:electron\"",
+    "dev:debug": "cross-env NOVA_OPEN_DEVTOOLS=true npm run dev",
+    "dev:renderer": "vite --host 127.0.0.1 --port 5183 --strictPort",
+    "dev:electron": "wait-on tcp:5183 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5183 node electron/launcher.js",
+    "prestart": "npm run ensure:presentmon",
+    "start": "node electron/launcher.js",
+    "prebuild": "npm run ensure:presentmon && npm run build:admin-broker && node scripts/generate-desktop-signing-config.js && node scripts/generate-bundled-tweak-manifest.js",
+    "build": "vite build",
+    "build:release": "cross-env NOVA_DESKTOP_RELEASE_BUILD=true npm run build",
+    "clean:release-output": "node scripts/clean-release-output.js",
+    "dist:win": "npm run build:release && electron-builder --win nsis --x64 -c.win.forceCodeSigning=true && node scripts/write-release-checksum.js",
+    "dist:local": "cross-env NOVA_LOCAL_TEST_BUILD=true npm run build && cross-env NOVA_LOCAL_TEST_BUILD=true CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win nsis --x64 --publish never -c.win.signAndEditExecutable=false && node scripts/write-release-checksum.js",
+    "dist:win:dir": "npm run build:release && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win dir --x64 -c.win.signAndEditExecutable=false",
+    "dist:local:dir": "cross-env NOVA_LOCAL_TEST_BUILD=true npm run build && cross-env NOVA_LOCAL_TEST_BUILD=true CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win dir --x64 -c.win.signAndEditExecutable=false",
+    "dist:msix:test": "npm run build:release && node scripts/verify-msix-test-prerequisites.js && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --config electron-builder.msix-test.cjs --win dir --x64 --publish never && powershell -ExecutionPolicy Bypass -File scripts/package-msix-test.ps1",
+    "dist:msix:test:signed": "npm run build:release && node scripts/verify-msix-test-prerequisites.js && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --config electron-builder.msix-test.cjs --win dir --x64 --publish never && powershell -ExecutionPolicy Bypass -File scripts/package-msix-test.ps1 -LocalSigned",
+    "predist:win": "npm run clean:release-output && npm run vendor:presentmon",
+    "predist:local": "npm run clean:release-output",
+    "predist:win:dir": "npm run clean:release-output && npm run vendor:presentmon",
+    "predist:local:dir": "npm run clean:release-output",
+    "ensure:presentmon": "powershell -ExecutionPolicy Bypass -File scripts/vendor-presentmon.ps1",
+    "vendor:presentmon": "powershell -ExecutionPolicy Bypass -File scripts/vendor-presentmon.ps1 -Force",
+    "build:game-detector": "powershell -ExecutionPolicy Bypass -File scripts/build-game-detector.ps1",
+    "build:game-detector:x64": "powershell -ExecutionPolicy Bypass -File scripts/build-game-detector.ps1 -RuntimeIdentifiers win-x64",
+    "build:game-detector:arm64": "powershell -ExecutionPolicy Bypass -File scripts/build-game-detector.ps1 -RuntimeIdentifiers win-arm64",
+    "build:presentmon-helper": "powershell -ExecutionPolicy Bypass -File tools/nova-presentmon-helper/build.ps1 -Configuration Release -Platform x64",
+    "build:admin-broker": "powershell -ExecutionPolicy Bypass -File tools/nova-admin-broker/build.ps1 -Configuration Release -Platform x64",
+    "build:nvidia-display-helper": "powershell -ExecutionPolicy Bypass -File tools/nvidia-display-helper/build.ps1 -Configuration Release",
+    "preview": "vite preview",
+    "pretest": "node scripts/generate-desktop-signing-config.js && node scripts/generate-bundled-tweak-manifest.js",
+    "test": "node --test"
+  },
+  "build": {
+    "appId": "de.novatweaks",
+    "electronFuses": {
+      "runAsNode": false,
+      "enableCookieEncryption": true,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true,
+      "loadBrowserProcessSpecificV8Snapshot": false,
+      "grantFileProtocolExtraPrivileges": false
+    },
+    "artifactName": "NovaTweaks-Setup-${version}-${arch}.${ext}",
+    "afterPack": "scripts/after-pack.js",
+    "afterSign": "scripts/after-sign.js",
+    "directories": {
+      "output": "dist-release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*.js",
+      "!electron/**/*.test.js",
+      "!electron/launcher.js",
+      "!node_modules/**/*",
+      "package.json"
+    ],
+    "extraFiles": [
+      {
+        "from": "LICENSE",
+        "to": "LICENSE"
+      },
+      {
+        "from": "TRADEMARKS.MD",
+        "to": "TRADEMARKS.MD"
+      },
+      {
+        "from": "THIRD-PARTY-NOTICES.md",
+        "to": "THIRD-PARTY-NOTICES.md"
+      },
+      {
+        "from": "third-party-components.json",
+        "to": "third-party-components.json"
+      },
+      {
+        "from": "licenses",
+        "to": "licenses",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "resources/monitoring/LibreHardwareMonitor",
+        "to": "licenses/LibreHardwareMonitor/source",
+        "filter": [
+          "**/*",
+          "!**/bin/**",
+          "!**/obj/**",
+          "!patched/**",
+          "!.github/**",
+          "!.editorconfig",
+          "!.gitignore",
+          "!LibreHardwareMonitor/Resources/PawnIO_setup.exe"
+        ]
+      }
+    ],
+    "extraResources": [
+      {
+        "from": "resources/tweaks",
+        "to": "tweaks",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "tools/nvidia-profile-helper/bin",
+        "to": "tools/nvidia-profile-helper/bin",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "tools/nvidia-display-helper/bin",
+        "to": "tools/nvidia-display-helper/bin",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "resources/monitoring",
+        "to": "resources/monitoring",
+        "filter": [
+          "LibreHardwareMonitor/patched/**/*.config",
+          "LibreHardwareMonitor/patched/**/*.dll",
+          "LibreHardwareMonitor/patched/**/*.exe",
+          "LibreHardwareMonitor/patched/**/*.json",
+          "LibreHardwareMonitor/LICENSE",
+          "LibreHardwareMonitor/README.md",
+          "LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt"
+        ]
+      },
+      {
+        "from": "tools/nova-admin-broker/bin",
+        "to": "tools/nova-admin-broker",
+        "filter": [
+          "NovaAdminBrokerHost.exe"
+        ]
+      },
+      {
+        "from": "resources/capture/PresentMon",
+        "to": "capture/PresentMon",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "resources/tools/presentmon",
+        "to": "tools/presentmon",
+        "filter": [
+          "**/*.dll",
+          "LICENSE.txt",
+          "NOTICE.md",
+          "THIRD_PARTY.txt"
+        ]
+      },
+      {
+        "from": "resources/tools/nova-presentmon-helper",
+        "to": "tools/nova-presentmon-helper",
+        "filter": [
+          "NovaPresentMonHelper.exe",
+          "README.md"
+        ]
+      },
+      {
+        "from": "resources/helpers/NovaGameDetector/publish/win-x64",
+        "to": "helpers/NovaGameDetector/publish/win-x64",
+        "filter": [
+          "**/*.config",
+          "**/*.dll",
+          "**/*.exe",
+          "**/*.json"
+        ]
+      },
+      {
+        "from": "resources/pictures/logo/logo.ico",
+        "to": "resources/pictures/logo/logo.ico"
+      }
+    ],
+    "win": {
+      "executableName": "NovaTweaks",
+      "signExts": [
+        "!LibreHardwareMonitor.exe",
+        "!PresentMon.exe",
+        "!PresentMonLegacy.exe"
+      ],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/pictures/logo/logo.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Nova Tweaks"
+    }
+  },
+  "dependencies": {
+    "@radix-ui/react-alert-dialog": "^1.1.23",
+    "@radix-ui/react-context-menu": "^2.3.7",
+    "@radix-ui/react-dialog": "^1.1.23",
+    "@radix-ui/react-dropdown-menu": "^2.1.24",
+    "@radix-ui/react-popover": "^1.1.23",
+    "@radix-ui/react-select": "^2.3.7",
+    "i18next": "^24.2.3",
+    "lucide-react": "^1.11.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-i18next": "^15.4.0",
+    "recharts": "^2.15.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.4.1",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.2.4",
+    "cross-env": "^7.0.3",
+    "electron": "^44.0.0",
+    "electron-builder": "^26.15.3",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^3.4.17",
+    "vite": "^6.4.3",
+    "wait-on": "^8.0.3"
+  }
+}

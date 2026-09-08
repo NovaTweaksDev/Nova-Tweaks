@@ -1,0 +1,118 @@
+{
+  "id": "clear_crash_dumps",
+  "name": "Clear Crash Dumps",
+  "description": "Removes old crash dump files created after system crashes to free up disk space, but deleted diagnostic data cannot be used later for troubleshooting stability issues.",
+  "description_i18n": {
+    "en": "Removes old crash dump files created after system crashes to free up disk space, but deleted diagnostic data cannot be used later for troubleshooting stability issues.",
+    "de": "Entfernt alte Absturzabbilddateien nach Systemabstürzen, um Speicherplatz zu sparen. Gelöschte Diagnosedaten können später nicht zur Fehlerbehebung verwendet werden.",
+    "fr": "Supprime les anciens fichiers de vidage créés après des plantages système pour libérer de l'espace disque. Les données diagnostiques supprimées ne peuvent plus servir à dépanner."
+  },
+  "script": "clear_crash_dumps.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": true,
+  "last_updated": "2026-04-28",
+  "container_type": "one_shot_action",
+  "tags": [
+    "windows",
+    "cleanup",
+    "maintenance",
+    "storage",
+    "privacy",
+    "memory"
+  ],
+  "warnings": [
+    {
+      "severity": "warning",
+      "title": "Diagnostic Data Loss Warning",
+      "message": "Deleted crash dump files cannot be used later for troubleshooting blue screens, driver crashes, application failures, or stability issues. Do not run this cleanup if you are actively diagnosing recent system problems",
+      "icon": "shield-alert",
+      "source": "config"
+    },
+    {
+      "severity": "info",
+      "title": "Required",
+      "message": "This action accesses and deletes dump files located in protected Windows system directories",
+      "icon": "lock",
+      "source": "script"
+    },
+    {
+      "severity": "warning",
+      "title": "Deletes local data",
+      "message": "The script appears to delete cache, temporary files, or other local data. Confirm the paths are scoped as intended",
+      "icon": "file-warning",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Deletes MEMORY.DMP and Minidump files from the Windows system directory",
+  "supports_status_detection": false,
+  "execution": {
+    "type": "powershell",
+    "script": "clear_crash_dumps.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": false,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "premium": false,
+  "category": "General",
+  "subcategory": "Cleanup",
+  "profiles": [
+    {
+      "id": "system_cleanup",
+      "defaultChecked": true
+    }
+  ]
+}

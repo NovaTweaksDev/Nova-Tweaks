@@ -1,0 +1,154 @@
+{
+  "id": "nova_efficiency_powerplan",
+  "name": "Nova Tweaks Efficiency Power Plan",
+  "description": "Applies an efficiency-focused power profile to reduce heat and lower energy consumption during daily tasks.",
+  "description_i18n": {
+    "en": "Applies an efficiency-focused power profile to reduce heat and lower energy consumption during daily tasks.",
+    "de": "Wendet ein effizienzorientiertes Energieprofil an, um die Hitzeentwicklung zu verringern und den Stromverbrauch bei täglichen Aufgaben zu senken.",
+    "fr": "Applique un profil d'économie d'énergie axé sur l'efficacité pour réduire la chaleur et diminuer la consommation électrique lors des tâches quotidiennes."
+  },
+  "script": "nova_efficiency_powerplan.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 2,
+  "recommended": false,
+  "last_updated": "2026-04-28",
+  "container_type": "power_plan",
+  "tags": [
+    "windows",
+    "power",
+    "cpu"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Power behavior change",
+      "message": "Power behavior may change, which can affect battery life, heat, or fan noise",
+      "icon": "power",
+      "source": "script"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Designed for supported Windows desktop systems."
+  },
+  "technical_details": "Modifies processor power management settings including minimum and maximum processor states, energy performance preference, cooling policies, boost behavior, and CPU parking thresholds",
+  "supports_status_detection": true,
+  "ui": {
+    "variant": "compact_rating",
+    "size": "square",
+    "show_profile_badge": false,
+    "show_target_system": false,
+    "show_tradeoffs": false,
+    "show_bulletpoints": false,
+    "max_metrics": 4
+  },
+  "profile": {
+    "label": "Efficiency",
+    "icon": "leaf"
+  },
+  "metrics": [
+    {
+      "icon": "bolt",
+      "label": "Responsiveness Improvement",
+      "value": 3,
+      "max": 5,
+      "direction": "positive"
+    },
+    {
+      "icon": "gamepad",
+      "label": "FPS Stability Improvement",
+      "value": 2,
+      "max": 5,
+      "direction": "positive"
+    },
+    {
+      "icon": "plug",
+      "label": "Power Consumption",
+      "value": 1,
+      "max": 5,
+      "direction": "negative"
+    },
+    {
+      "icon": "thermometer",
+      "label": "Temperature Increase",
+      "value": 1,
+      "max": 5,
+      "direction": "negative"
+    }
+  ],
+  "status_labels": {
+    "active": "Currently Applied",
+    "inactive": "Inactive"
+  },
+  "cta_labels": {
+    "default": "Apply",
+    "active": "Currently Applied"
+  },
+  "target_system": [
+    "desktop",
+    "laptop",
+    "battery",
+    "general_use"
+  ],
+  "compact_description": "Keeps your system cooler and more efficient, reducing heat and power draw during daily workloads.",
+  "execution": {
+    "type": "powershell",
+    "script": "nova_efficiency_powerplan.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "premium": false,
+  "category": "General",
+  "subcategory": "Power Plans",
+  "profiles": []
+}
