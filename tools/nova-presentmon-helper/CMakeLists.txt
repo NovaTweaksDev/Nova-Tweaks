@@ -28,6 +28,9 @@ target_link_libraries(NovaPresentMonHelper PRIVATE
 )
 
 if(MSVC)
+  set_property(TARGET NovaPresentMonHelper PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+  )
   target_compile_options(NovaPresentMonHelper PRIVATE /W4 /EHsc /permissive-)
   target_link_options(NovaPresentMonHelper PRIVATE /DELAYLOAD:PresentMonAPI2Loader.dll)
 else()

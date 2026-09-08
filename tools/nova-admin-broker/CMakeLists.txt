@@ -10,6 +10,9 @@ target_compile_definitions(NovaAdminBrokerHost PRIVATE _UNICODE UNICODE NOMINMAX
 target_link_libraries(NovaAdminBrokerHost PRIVATE wintrust crypt32 advapi32)
 
 if(MSVC)
+  set_property(TARGET NovaAdminBrokerHost PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+  )
   target_compile_options(NovaAdminBrokerHost PRIVATE /W4 /EHsc /permissive-)
 else()
   target_compile_options(NovaAdminBrokerHost PRIVATE -Wall -Wextra -Wpedantic)

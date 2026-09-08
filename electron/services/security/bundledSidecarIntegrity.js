@@ -10,11 +10,11 @@ const SIDECAR_POLICIES = Object.freeze({
     requiredFiles: ['NovaGameDetector.exe', 'NovaGameDetector.dll', 'NovaGameDetector.runtimeconfig.json']
   },
   'nvidia-display-helper': {
-    expectedSha256: '56d2713334353d0970223ea033cf6df05b6026a6162d8ca224c862b12e1401bf',
+    expectedSha256: '50826a7175220916fe93541cdeb3fe6bd6900d83f70903f335c9c6d07094a8f9',
     requiredFiles: ['nvidia-display-helper.exe']
   },
   'nvidia-profile-helper': {
-    expectedSha256: '25be5dca57dd1642faab3d19791430c31b74db39897b0a547fff8f704916d257',
+    expectedSha256: '4b44f687cda993e066349a428f8f51d8a49bae835dbbc1f081af90c0b3f45f29',
     requiredFiles: ['nvidia-profile-helper.exe']
   },
   'presentmon-capture': {
@@ -22,7 +22,7 @@ const SIDECAR_POLICIES = Object.freeze({
     requiredFiles: ['PresentMon.exe', 'PresentMonLegacy.exe']
   },
   'presentmon-helper': {
-    expectedSha256: '3066bfa6d121113f9c70afb8ff3849ceaf5721a90a4aaf764367f13c46318f80',
+    expectedSha256: '86606183e468e0a3850a47be01b5c43a1f33ed377da17a857b476b3fbed158de',
     requiredFiles: ['NovaPresentMonHelper.exe']
   },
   'presentmon-tools': {

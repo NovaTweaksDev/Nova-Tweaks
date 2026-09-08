@@ -13,6 +13,9 @@ target_compile_definitions(nvidia-profile-helper PRIVATE _UNICODE UNICODE NOMINM
 target_link_libraries(nvidia-profile-helper PRIVATE user32)
 
 if(MSVC)
+  set_property(TARGET nvidia-profile-helper PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+  )
   target_compile_options(nvidia-profile-helper PRIVATE /W4 /EHsc)
 else()
   target_compile_options(nvidia-profile-helper PRIVATE -Wall -Wextra -Wpedantic)

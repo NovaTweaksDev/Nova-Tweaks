@@ -13,6 +13,9 @@ target_compile_definitions(nvidia-display-helper PRIVATE _UNICODE UNICODE NOMINM
 target_link_libraries(nvidia-display-helper PRIVATE user32)
 
 if(MSVC)
+  set_property(TARGET nvidia-display-helper PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+  )
   target_compile_options(nvidia-display-helper PRIVATE /W4 /EHsc)
 else()
   target_compile_options(nvidia-display-helper PRIVATE -Wall -Wextra -Wpedantic)
