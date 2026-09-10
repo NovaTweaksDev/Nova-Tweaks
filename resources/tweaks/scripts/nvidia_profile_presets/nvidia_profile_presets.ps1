@@ -10,7 +10,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $TweakName = 'NVIDIA Profile Presets'
-$ExpectedHelperSha256 = '92C9499657A1C27F8BDB00E71A29A023554851AE36F9C46A51FD4800AAF8D6AA'
+$ExpectedHelperSha256 = '2D84E5A3C4CEC67D7402E2FD1BBDC70D6BAA108561657EFC1C8D9B842071EE99'
 
 function Out-Result([string]$Status, [string]$Message = '', [hashtable]$Details = @{}) {
   $payload = @{

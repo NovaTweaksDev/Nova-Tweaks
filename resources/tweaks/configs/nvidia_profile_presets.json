@@ -13,7 +13,7 @@
   "risk_level": "medium",
   "impact": 4,
   "recommended": true,
-  "last_updated": "2026-04-28",
+  "last_updated": "2026-09-10",
   "container_type": "one_shot_selection",
   "tags": [
     "windows",
@@ -35,7 +35,7 @@
     ],
     "notes": "Vendor-specific compatibility: nvidia."
   },
-  "technical_details": "Executes the nvidia-profile-helper utility to apply, check status of, or restore default settings for the selected preset",
+  "technical_details": "Executes the nvidia-profile-helper utility against the global NVIDIA base profile. Competitive uses Fortnite-oriented public NVAPI settings, leaves the driver frame limiter and low-latency mode off for in-game control, and does not change DSR factors or the preferred OpenGL GPU because no reviewed portable mapping is available.",
   "supports_status_detection": false,
   "selections": [
     "Competitive",

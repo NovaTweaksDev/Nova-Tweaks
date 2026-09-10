@@ -14,7 +14,7 @@ const SIDECAR_POLICIES = Object.freeze({
     requiredFiles: ['nvidia-display-helper.exe']
   },
   'nvidia-profile-helper': {
-    expectedSha256: '4b44f687cda993e066349a428f8f51d8a49bae835dbbc1f081af90c0b3f45f29',
+    expectedSha256: 'a32a865475eaed40fe22f471806b699aa4d50ddf467e7486ff1eecca811ad8eb',
     requiredFiles: ['nvidia-profile-helper.exe']
   },
   'presentmon-capture': {

@@ -107,6 +107,7 @@ constexpr NvU32 NVAPI_ID_DRS_GET_BASE_PROFILE = 0xDA8466A0;
 constexpr NvU32 PREFERRED_PSTATE_ID = 0x1057EB71;
 constexpr NvU32 REFRESH_RATE_OVERRIDE_ID = 0x0064B541;
 constexpr NvU32 VSYNCMODE_ID = 0x00A879CF;
+constexpr NvU32 OGL_CPL_PREFER_DXPRESENT_ID = 0x20D690F8;
 constexpr NvU32 OGL_TRIPLE_BUFFER_ID = 0x20FDD1F9;
 constexpr NvU32 FRL_FPS_ID = 0x10835002;
 constexpr NvU32 APPIDLE_DYNAMIC_FRL_FPS_ID = 0x10835016;
@@ -128,9 +129,6 @@ constexpr NvU32 NV_QUALITY_UPSCALING_ID = 0x10444444;
 constexpr NvU32 AO_MODE_ID = 0x00667329;
 constexpr NvU32 AO_MODE_ACTIVE_ID = 0x00664339;
 constexpr NvU32 PRERENDERLIMIT_ID = 0x007BA09E;
-constexpr NvU32 VR_PRERENDERLIMIT_ID = 0x10111133;
-constexpr NvU32 GSYNC_PROFILE_OVERRIDE_ID = 0x10A879CF;
-constexpr NvU32 GSYNC_PROFILE_OVERRIDE_OGL_ID = 0x10A879AC;
 
 constexpr NvU32 PREFERRED_PSTATE_PREFER_MAX = 0x00000001;
 constexpr NvU32 PREFERRED_PSTATE_OPTIMAL_POWER = 0x00000005;
@@ -140,7 +138,6 @@ constexpr NvU32 VSYNCMODE_PASSIVE = 0x60925292;
 constexpr NvU32 VSYNCMODE_FORCEOFF = 0x08416747;
 constexpr NvU32 OGL_TRIPLE_BUFFER_DISABLED = 0x00000000;
 constexpr NvU32 FRL_FPS_DISABLED = 0x00000000;
-constexpr NvU32 FRL_FPS_DETECTION_FALLBACK = 0x000000ED;
 constexpr NvU32 PS_SHADERDISKCACHE_ON = 0x00000001;
 constexpr NvU32 PS_SHADERDISKCACHE_MAX_SIZE_DEFAULT = 0x00004000;
 constexpr NvU32 PS_SHADERDISKCACHE_MAX_SIZE_UNLIMITED = 0xFFFFFFFF;
@@ -154,7 +151,7 @@ constexpr NvU32 PS_TEXFILTER_DISABLE_TRILIN_SLOPE_ON = 0x00000001;
 constexpr NvU32 PS_TEXFILTER_NO_NEG_LODBIAS_OFF = 0x00000000;
 constexpr NvU32 PS_TEXFILTER_NO_NEG_LODBIAS_ON = 0x00000001;
 constexpr NvU32 OGL_THREAD_CONTROL_DEFAULT = 0x00000000;
-constexpr NvU32 OGL_THREAD_CONTROL_ENABLE = 0x00000001;
+constexpr NvU32 OGL_CPL_PREFER_DXPRESENT_AUTO = 0x00000002;
 constexpr NvU32 FXAA_ENABLE_OFF = 0x00000000;
 constexpr NvU32 AA_GAMMA_CORRECTION_ON = 0x00000002;
 constexpr NvU32 AA_MODE_SELECTOR_APP_CONTROL = 0x00000000;
@@ -165,9 +162,6 @@ constexpr NvU32 NV_QUALITY_UPSCALING_OFF = 0x00000000;
 constexpr NvU32 AO_MODE_OFF = 0x00000000;
 constexpr NvU32 AO_MODE_ACTIVE_DISABLED = 0x00000000;
 constexpr NvU32 PRERENDERLIMIT_APP_CONTROLLED = 0x00000000;
-constexpr NvU32 PRERENDERLIMIT_LOW_LATENCY_APPROX = 0x00000001;
-constexpr NvU32 VR_PRERENDERLIMIT_DEFAULT = 0x00000001;
-constexpr NvU32 GSYNC_PROFILE_OVERRIDE_FIXED_REFRESH = 0x00000004;
 
 constexpr int EXIT_SUCCESS_CODE = 0;
 constexpr int EXIT_INVALID_ARGS = 2;
@@ -180,7 +174,6 @@ enum class SettingAction {
   SetDword,
   SetWString,
   RestoreDefaultSetting,
-  SetPrimaryRefreshMinus3Dword,
 };
 
 struct SettingSpec {
@@ -191,23 +184,20 @@ struct SettingSpec {
   const wchar_t* wstringValue;
 };
 
-// Competitive preset with public/known-safe DRS keys only.
-static const std::array<SettingSpec, 27> kCompetitiveSettings = {{
+// Fortnite-oriented competitive preset with public/known-safe DRS keys only.
+static const std::array<SettingSpec, 22> kCompetitiveSettings = {{
     {PREFERRED_PSTATE_ID, "Power management mode", SettingAction::SetDword, PREFERRED_PSTATE_PREFER_MAX, nullptr},
-    {REFRESH_RATE_OVERRIDE_ID, "Preferred refresh rate", SettingAction::SetDword, REFRESH_RATE_OVERRIDE_APPLICATION_CONTROLLED, nullptr},
-    {GSYNC_PROFILE_OVERRIDE_ID, "Monitor Technology", SettingAction::SetDword, GSYNC_PROFILE_OVERRIDE_FIXED_REFRESH, nullptr},
-    {GSYNC_PROFILE_OVERRIDE_OGL_ID, "Monitor Technology OpenGL", SettingAction::SetDword, GSYNC_PROFILE_OVERRIDE_FIXED_REFRESH, nullptr},
-    {VSYNCMODE_ID, "Vertical Sync", SettingAction::SetDword, VSYNCMODE_PASSIVE, nullptr},
+    {REFRESH_RATE_OVERRIDE_ID, "Preferred refresh rate", SettingAction::SetDword, REFRESH_RATE_OVERRIDE_HIGHEST_AVAILABLE, nullptr},
+    {VSYNCMODE_ID, "Vertical Sync", SettingAction::SetDword, VSYNCMODE_FORCEOFF, nullptr},
     {OGL_TRIPLE_BUFFER_ID, "Triple buffering", SettingAction::SetDword, OGL_TRIPLE_BUFFER_DISABLED, nullptr},
-    {FRL_FPS_ID, "Frame Rate Limiter", SettingAction::SetPrimaryRefreshMinus3Dword, FRL_FPS_DETECTION_FALLBACK, nullptr},
-    {APPIDLE_DYNAMIC_FRL_FPS_ID, "Background Application Max Frame Rate", SettingAction::SetDword, FRL_FPS_DISABLED, nullptr},
+    {FRL_FPS_ID, "Frame Rate Limiter", SettingAction::SetDword, FRL_FPS_DISABLED, nullptr},
     {PS_SHADERDISKCACHE_ID, "Shader Cache", SettingAction::SetDword, PS_SHADERDISKCACHE_ON, nullptr},
     {PS_SHADERDISKCACHE_MAX_SIZE_ID, "Shader Cache Size", SettingAction::RestoreDefaultSetting, 0u, nullptr},
     {QUALITY_ENHANCEMENTS_ID, "Texture filtering - Quality", SettingAction::SetDword, QUALITY_ENHANCEMENTS_HIGHPERFORMANCE, nullptr},
     {PS_TEXFILTER_ANISO_OPTS2_ID, "Texture filtering - Anisotropic sample optimization", SettingAction::SetDword, PS_TEXFILTER_ANISO_OPTS2_ON, nullptr},
     {PS_TEXFILTER_DISABLE_TRILIN_SLOPE_ID, "Texture filtering - Trilinear optimization", SettingAction::SetDword, PS_TEXFILTER_DISABLE_TRILIN_SLOPE_ON, nullptr},
     {PS_TEXFILTER_NO_NEG_LODBIAS_ID, "Texture filtering - Negative LOD bias", SettingAction::SetDword, PS_TEXFILTER_NO_NEG_LODBIAS_OFF, nullptr},
-    {OGL_THREAD_CONTROL_ID, "Threaded optimization", SettingAction::SetDword, OGL_THREAD_CONTROL_ENABLE, nullptr},
+    {OGL_THREAD_CONTROL_ID, "Threaded optimization", SettingAction::SetDword, OGL_THREAD_CONTROL_DEFAULT, nullptr},
     {FXAA_ENABLE_ID, "Antialiasing - FXAA", SettingAction::SetDword, FXAA_ENABLE_OFF, nullptr},
     {AA_GAMMA_CORRECTION_ID, "Antialiasing - Gamma correction", SettingAction::SetDword, AA_GAMMA_CORRECTION_ON, nullptr},
     {AA_MODE_SELECTOR_ID, "Antialiasing - Mode", SettingAction::SetDword, AA_MODE_SELECTOR_APP_CONTROL, nullptr},
@@ -216,11 +206,8 @@ static const std::array<SettingSpec, 27> kCompetitiveSettings = {{
     {MAXWELL_B_SAMPLE_INTERLEAVE_ID, "MFAA", SettingAction::SetDword, MAXWELL_B_SAMPLE_INTERLEAVE_OFF, nullptr},
     {CUDA_EXCLUDED_GPUS_ID, "CUDA - GPUs", SettingAction::SetWString, 0u, L"none"},
     {NV_QUALITY_UPSCALING_ID, "Image Scaling", SettingAction::SetDword, NV_QUALITY_UPSCALING_OFF, nullptr},
-    {AO_MODE_ID, "Ambient Occlusion", SettingAction::SetDword, AO_MODE_OFF, nullptr},
-    {AO_MODE_ACTIVE_ID, "Ambient Occlusion active flag", SettingAction::SetDword, AO_MODE_ACTIVE_DISABLED, nullptr},
-    // Low Latency Mode Ultra approximation: PRERENDERLIMIT=1.
-    {PRERENDERLIMIT_ID, "Low Latency Mode approximation", SettingAction::SetDword, PRERENDERLIMIT_LOW_LATENCY_APPROX, nullptr},
-    {VR_PRERENDERLIMIT_ID, "Virtual Reality pre-rendered frames", SettingAction::SetDword, VR_PRERENDERLIMIT_DEFAULT, nullptr},
+    {PRERENDERLIMIT_ID, "Low Latency Mode", SettingAction::SetDword, PRERENDERLIMIT_APP_CONTROLLED, nullptr},
+    {OGL_CPL_PREFER_DXPRESENT_ID, "Vulkan/OpenGL present method", SettingAction::SetDword, OGL_CPL_PREFER_DXPRESENT_AUTO, nullptr},
 }};
 
 static const std::array<SettingSpec, 23> kBalancedSettings = {{
@@ -276,7 +263,8 @@ static const std::array<SettingSpec, 23> kQualitySettings = {{
 }};
 
 // Excluded because this helper has no reviewed, stable public DRS-key mapping for them:
-// - OpenGL rendering GPU = primary GPU
+// - DSR factors = off
+// - OpenGL rendering GPU = installed NVIDIA GPU (the public setting only exposes autoselect)
 // - Multi-display/mixed-GPU acceleration
 // - SILK Smoothness
 // - WhisperMode
@@ -563,21 +551,6 @@ bool TryGetActiveRefreshRateHz(NvU32& refreshRateHz) {
   return false;
 }
 
-NvU32 ResolvePrimaryRefreshMinus3FrameLimit(std::vector<std::string>& warnings) {
-  NvU32 refreshRateHz = 0u;
-  if (!TryGetActiveRefreshRateHz(refreshRateHz)) {
-    warnings.emplace_back("Could not detect active display refresh rate; using 237 FPS frame limit fallback.");
-    return FRL_FPS_DETECTION_FALLBACK;
-  }
-
-  if (refreshRateHz <= 3u) {
-    warnings.emplace_back("Detected display refresh rate is too low for a minus-3 FPS limit; using 237 FPS fallback.");
-    return FRL_FPS_DETECTION_FALLBACK;
-  }
-
-  return refreshRateHz - 3u;
-}
-
 template <std::size_t N>
 int ApplyPreset(const NvApi& api, std::string_view presetName, const std::array<SettingSpec, N>& settings) {
   DrsSessionGuard session(api);
@@ -589,7 +562,6 @@ int ApplyPreset(const NvApi& api, std::string_view presetName, const std::array<
 
   std::vector<std::string> warnings;
   warnings.reserve(settings.size());
-  std::vector<std::string> infoMessages;
 
   for (const SettingSpec& spec : settings) {
     NvAPI_Status status = NVAPI_OK;
@@ -603,12 +575,6 @@ int ApplyPreset(const NvApi& api, std::string_view presetName, const std::array<
       case SettingAction::RestoreDefaultSetting:
         status = api.DrsRestoreProfileDefaultSetting(session.Session(), session.BaseProfile(), spec.id);
         break;
-      case SettingAction::SetPrimaryRefreshMinus3Dword: {
-        const NvU32 frameLimit = ResolvePrimaryRefreshMinus3FrameLimit(warnings);
-        status = SetDwordSetting(api, session.Session(), session.BaseProfile(), spec.id, frameLimit);
-        infoMessages.emplace_back("Frame Rate Limiter set to " + std::to_string(frameLimit) + " FPS.");
-        break;
-      }
     }
 
     if (status == NVAPI_SETTING_NOT_FOUND) {
@@ -628,9 +594,6 @@ int ApplyPreset(const NvApi& api, std::string_view presetName, const std::array<
   }
 
   std::cout << "OK: Applied preset " << presetName << "\n";
-  for (const std::string& infoMessage : infoMessages) {
-    std::cout << "INFO: " << infoMessage << "\n";
-  }
   for (const std::string& warning : warnings) {
     std::cout << "WARN: " << warning << "\n";
   }
@@ -649,7 +612,7 @@ int DetectRefreshRate() {
   }
 
   std::cout << "OK: Active display refresh rate " << refreshRateHz << " Hz\n";
-  std::cout << "INFO: Competitive frame limit would be " << (refreshRateHz - 3u) << " FPS\n";
+  std::cout << "INFO: Competitive preset leaves the frame rate limit disabled.\n";
   return EXIT_SUCCESS_CODE;
 }
 
