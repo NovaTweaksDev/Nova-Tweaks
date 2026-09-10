@@ -149,7 +149,14 @@ function createAdminBrokerManager(options = {}) {
     const useNativeHost = Boolean(app?.isPackaged && require('fs').existsSync(nativeHostPath));
     const launchPath = useNativeHost ? nativeHostPath : executablePath;
     const launchArgs = useNativeHost
-      ? ['--pipe', pipeName, '--parent-pid', String(process.pid), '--worker', executablePath, '--session', brokerSessionId, ...(app?.isPackaged ? [] : ['--app-path', appPath])]
+      ? [
+          '--pipe', pipeName,
+          '--parent-pid', String(process.pid),
+          '--worker', executablePath,
+          '--session', brokerSessionId,
+          ...(desktopBuildConfig.NOVA_LOCAL_TEST_BUILD === true ? ['--allow-unsigned-local-test'] : []),
+          ...(app?.isPackaged ? [] : ['--app-path', appPath])
+        ]
       : workerArgs;
 
     if (app?.isPackaged && !useNativeHost) {
@@ -174,6 +181,7 @@ function createAdminBrokerManager(options = {}) {
     const command = [
       `$arguments = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${Buffer.from(JSON.stringify(launchArgs), 'utf8').toString('base64')}')) | ConvertFrom-Json`,
       `$process = Start-Process -FilePath '${escapePowerShellSingleQuoted(launchPath)}' -ArgumentList $arguments -WorkingDirectory '${escapePowerShellSingleQuoted(path.dirname(launchPath))}' -Verb RunAs -WindowStyle Hidden -PassThru`,
+      'if ($process.WaitForExit(1500)) { Write-Error "Administrator broker host exited with code $($process.ExitCode)."; exit $process.ExitCode }',
       '$process.Id'
     ].join('; ');
 

@@ -15,7 +15,7 @@ if (process.argv.includes('--nova-admin-broker-worker')) {
     if (message?.type === 'shutdown') process.exit(0);
   }, () => process.exit(2)));
 } else {
-  test('native broker host rejects a foreign or differently signed parent', async (t) => {
+  async function createHostFixture(t) {
     const hostPath = path.resolve(__dirname, '..', '..', '..', 'tools', 'nova-admin-broker', 'bin', 'NovaAdminBrokerHost.exe');
     const pipeName = `\\\\.\\pipe\\nova-admin-host-test-${process.pid}-${crypto.randomUUID()}`;
     const sessionId = crypto.randomUUID();
@@ -31,16 +31,65 @@ if (process.argv.includes('--nova-admin-broker-worker')) {
       server.once('error', reject);
       server.listen(pipeName, resolve);
     });
+    return {
+      hostPath,
+      pipeName,
+      sessionId,
+      setChild(value) { child = value; },
+      getClient() { return client; }
+    };
+  }
 
-    child = spawn(hostPath, [
-      '--pipe', pipeName,
+  test('native broker host rejects a foreign or differently signed parent', async (t) => {
+    const fixture = await createHostFixture(t);
+
+    const child = spawn(fixture.hostPath, [
+      '--pipe', fixture.pipeName,
       '--parent-pid', String(process.pid),
       '--worker', process.execPath,
       '--app-path', __filename,
-      '--session', sessionId
+      '--session', fixture.sessionId
     ], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    fixture.setChild(child);
     const exitCode = await new Promise((resolve) => child.once('exit', resolve));
     assert.equal(exitCode, 13);
-    assert.equal(client, null);
+    assert.equal(fixture.getClient(), null);
+  });
+
+  test('native broker host permits the unsigned local-test worker only with the explicit flag', async (t) => {
+    const fixture = await createHostFixture(t);
+    const hello = new Promise((resolve, reject) => {
+      const deadline = setTimeout(() => reject(new Error('Timed out waiting for local-test broker handshake.')), 5000);
+      const receiveHello = () => {
+        const client = fixture.getClient();
+        if (!client) {
+          setTimeout(receiveHello, 10);
+          return;
+        }
+        client.on('data', createLineDecoder((message) => {
+          if (message?.type !== 'hello') return;
+          clearTimeout(deadline);
+          resolve(message);
+        }, reject));
+      };
+      receiveHello();
+    });
+    const child = spawn(fixture.hostPath, [
+      '--pipe', fixture.pipeName,
+      '--parent-pid', String(process.pid),
+      '--worker', process.execPath,
+      '--app-path', __filename,
+      '--session', fixture.sessionId,
+      '--allow-unsigned-local-test'
+    ], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    fixture.setChild(child);
+
+    const message = await hello;
+    assert.equal(message.protocolVersion, PROTOCOL_VERSION);
+    assert.equal(message.sessionId, fixture.sessionId);
+    const exited = new Promise((resolve) => child.once('exit', resolve));
+    fixture.getClient().write(encodeMessage({ type: 'shutdown', protocolVersion: PROTOCOL_VERSION }));
+    const exitCode = await exited;
+    assert.equal(exitCode, 0);
   });
 }

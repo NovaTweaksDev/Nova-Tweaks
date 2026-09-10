@@ -191,18 +191,20 @@ std::vector<unsigned char> signerCertificateHash(const std::wstring& filePath) {
   return hash;
 }
 
-bool isTrustedParent(const DWORD parentPid, const std::wstring& parentPath) {
+bool isTrustedParent(const DWORD parentPid, const std::wstring& parentPath, const bool allowUnsignedLocalTest) {
   const std::wstring parentPackage = packageFullName(parentPid);
   if (!parentPackage.empty()) {
     const std::wstring hostPackage = currentPackageFullName();
     return !hostPackage.empty() && _wcsicmp(parentPackage.c_str(), hostPackage.c_str()) == 0;
   }
-  if (!hasTrustedSignature(parentPath)) return false;
   std::vector<wchar_t> hostPathBuffer(32768);
   const DWORD hostPathLength = GetModuleFileNameW(nullptr, hostPathBuffer.data(), static_cast<DWORD>(hostPathBuffer.size()));
   if (hostPathLength == 0 || hostPathLength >= hostPathBuffer.size()) return false;
   const std::wstring hostPath(hostPathBuffer.data(), hostPathLength);
-  if (!hasTrustedSignature(hostPath)) return false;
+  const bool hostIsSigned = hasTrustedSignature(hostPath);
+  if (allowUnsignedLocalTest && !hostIsSigned) return true;
+  if (!hasTrustedSignature(parentPath)) return false;
+  if (!hostIsSigned) return false;
   const auto parentSigner = signerCertificateHash(parentPath);
   const auto hostSigner = signerCertificateHash(hostPath);
   return !parentSigner.empty() && parentSigner == hostSigner;
@@ -222,6 +224,8 @@ int wmain(int argc, wchar_t* argv[]) {
   const std::wstring appPath = argumentValue(arguments, L"--app-path");
   const std::wstring session = argumentValue(arguments, L"--session");
   const std::wstring parentText = argumentValue(arguments, L"--parent-pid");
+  const bool allowUnsignedLocalTest = std::find(
+      arguments.begin(), arguments.end(), L"--allow-unsigned-local-test") != arguments.end();
   if (pipeName.empty() || workerPath.empty() || session.empty() || parentText.empty()) return fail(L"Missing broker arguments", 10);
 
   wchar_t* end = nullptr;
@@ -229,7 +233,9 @@ int wmain(int argc, wchar_t* argv[]) {
   if (!end || *end != L'\0' || parentPid == 0) return fail(L"Invalid parent process id", 11);
   const std::wstring parentPath = processImagePath(parentPid);
   if (parentPath.empty() || canonicalPath(parentPath) != canonicalPath(workerPath)) return fail(L"Broker parent identity mismatch", 12);
-  if (!isTrustedParent(parentPid, parentPath)) return fail(L"Broker parent signature or package identity is invalid", 13);
+  if (!isTrustedParent(parentPid, parentPath, allowUnsignedLocalTest)) {
+    return fail(L"Broker parent signature or package identity is invalid", 13);
+  }
   const std::wstring originSid = processUserSid(parentPid);
   if (originSid.empty()) return fail(L"Unable to identify the originating user", 19);
 
