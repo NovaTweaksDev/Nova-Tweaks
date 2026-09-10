@@ -11,8 +11,12 @@ const { quoteWindowsArgument } = require('./adminBrokerManager');
 if (process.argv.includes('--nova-admin-broker-worker')) {
   const sessionIndex = process.argv.indexOf('--broker-session');
   const sessionId = String(process.argv[sessionIndex + 1] || '');
-  process.stdout.write(encodeMessage({ type: 'hello', protocolVersion: PROTOCOL_VERSION, sessionId, pid: process.pid }));
-  process.stdin.on('data', createLineDecoder((message) => {
+  const pipeIndex = process.argv.indexOf('--broker-pipe');
+  const pipeName = String(process.argv[pipeIndex + 1] || '');
+  const transport = pipeName ? net.connect(pipeName) : null;
+  const sendHello = () => transport.write(encodeMessage({ type: 'hello', protocolVersion: PROTOCOL_VERSION, sessionId, pid: process.pid }));
+  if (transport) transport.once('connect', sendHello);
+  transport?.on('data', createLineDecoder((message) => {
     if (message?.type === 'shutdown') process.exit(0);
   }, () => process.exit(2)));
 } else {
@@ -22,7 +26,11 @@ if (process.argv.includes('--nova-admin-broker-worker')) {
     const sessionId = crypto.randomUUID();
     let child = null;
     let client = null;
-    const server = net.createServer((socket) => { client = socket; });
+    const connectionListeners = new Set();
+    const server = net.createServer((socket) => {
+      client = socket;
+      for (const listener of connectionListeners) listener(socket);
+    });
     t.after(() => {
       client?.destroy();
       server.close();
@@ -37,7 +45,8 @@ if (process.argv.includes('--nova-admin-broker-worker')) {
       pipeName,
       sessionId,
       setChild(value) { child = value; },
-      getClient() { return client; }
+      getClient() { return client; },
+      onConnection(listener) { connectionListeners.add(listener); }
     };
   }
 
@@ -61,19 +70,13 @@ if (process.argv.includes('--nova-admin-broker-worker')) {
     const fixture = await createHostFixture(t);
     const hello = new Promise((resolve, reject) => {
       const deadline = setTimeout(() => reject(new Error('Timed out waiting for local-test broker handshake.')), 5000);
-      const receiveHello = () => {
-        const client = fixture.getClient();
-        if (!client) {
-          setTimeout(receiveHello, 10);
-          return;
-        }
+      fixture.onConnection((client) => {
         client.on('data', createLineDecoder((message) => {
           if (message?.type !== 'hello') return;
           clearTimeout(deadline);
           resolve(message);
         }, reject));
-      };
-      receiveHello();
+      });
     });
     const child = spawn(fixture.hostPath, [
       '--pipe', fixture.pipeName,
@@ -118,19 +121,13 @@ if (process.argv.includes('--nova-admin-broker-worker')) {
     });
     const hello = new Promise((resolve, reject) => {
       const deadline = setTimeout(() => reject(new Error('Timed out waiting for PowerShell broker handshake.')), 5000);
-      const receiveHello = () => {
-        const client = fixture.getClient();
-        if (!client) {
-          setTimeout(receiveHello, 10);
-          return;
-        }
+      fixture.onConnection((client) => {
         client.on('data', createLineDecoder((message) => {
           if (message?.type !== 'hello') return;
           clearTimeout(deadline);
           resolve(message);
         }, reject));
-      };
-      receiveHello();
+      });
     });
 
     await launched;

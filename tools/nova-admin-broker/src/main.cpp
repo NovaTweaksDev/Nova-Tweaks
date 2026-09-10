@@ -253,38 +253,25 @@ int wmain(int argc, wchar_t* argv[]) {
     CloseHandle(pipe);
     return fail(L"Broker pipe server identity mismatch", 16);
   }
-
-  if (!SetHandleInformation(pipe, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT)) {
-    CloseHandle(pipe);
-    return fail(L"Unable to share the authenticated broker pipe", 17);
-  }
+  CloseHandle(pipe);
 
   std::wstring commandLine = quoteArgument(workerPath);
   if (!appPath.empty()) commandLine += L" " + quoteArgument(appPath);
-  commandLine += L" --nova-admin-broker-worker --broker-stdio --broker-session " + quoteArgument(session);
+  commandLine += L" --nova-admin-broker-worker --broker-pipe " + quoteArgument(pipeName);
+  commandLine += L" --broker-session " + quoteArgument(session);
   commandLine += L" --broker-origin-sid " + quoteArgument(originSid);
   std::vector<wchar_t> mutableCommand(commandLine.begin(), commandLine.end());
   mutableCommand.push_back(L'\0');
 
   STARTUPINFOW startup{};
   startup.cb = sizeof(startup);
-  startup.dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+  startup.dwFlags = STARTF_USESHOWWINDOW;
   startup.wShowWindow = SW_HIDE;
-  startup.hStdInput = pipe;
-  startup.hStdOutput = pipe;
-  SECURITY_ATTRIBUTES inheritable{};
-  inheritable.nLength = sizeof(inheritable);
-  inheritable.bInheritHandle = TRUE;
-  HANDLE nullError = CreateFileW(L"NUL", GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, &inheritable, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-  startup.hStdError = nullError == INVALID_HANDLE_VALUE ? pipe : nullError;
   PROCESS_INFORMATION process{};
   const BOOL created = CreateProcessW(
-      workerPath.c_str(), mutableCommand.data(), nullptr, nullptr, TRUE,
+      workerPath.c_str(), mutableCommand.data(), nullptr, nullptr, FALSE,
       CREATE_NO_WINDOW | CREATE_SUSPENDED, nullptr, nullptr, &startup, &process);
-  SetHandleInformation(pipe, HANDLE_FLAG_INHERIT, 0);
-  if (nullError != INVALID_HANDLE_VALUE) CloseHandle(nullError);
   if (!created) {
-    CloseHandle(pipe);
     return fail(L"Unable to start administrator worker", 18);
   }
 
@@ -297,15 +284,13 @@ int wmain(int argc, wchar_t* argv[]) {
     if (job) CloseHandle(job);
     CloseHandle(process.hThread);
     CloseHandle(process.hProcess);
-    CloseHandle(pipe);
-      return fail(L"Unable to contain administrator worker", 20);
+    return fail(L"Unable to contain administrator worker", 20);
   }
   if (ResumeThread(process.hThread) == static_cast<DWORD>(-1)) {
     TerminateProcess(process.hProcess, 21);
     CloseHandle(job);
     CloseHandle(process.hThread);
     CloseHandle(process.hProcess);
-    CloseHandle(pipe);
     return fail(L"Unable to resume administrator worker", 21);
   }
 
@@ -315,6 +300,5 @@ int wmain(int argc, wchar_t* argv[]) {
   CloseHandle(process.hThread);
   CloseHandle(process.hProcess);
   CloseHandle(job);
-  CloseHandle(pipe);
   return static_cast<int>(exitCode);
 }

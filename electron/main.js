@@ -1936,6 +1936,11 @@ function registerIpcHandlers() {
       const state = await adminBrokerManager.ensureReady({ reason: String(payload?.reason || 'manual') });
       return { ok: true, state };
     } catch (error) {
+      adminBrokerLogger.error('Administrator access request failed.', {
+        code: error?.code || 'ADMIN_BROKER_ERROR',
+        message: error?.message || String(error),
+        details: error?.details || {}
+      });
       return { ok: false, ...toIpcError(error) };
     }
   };

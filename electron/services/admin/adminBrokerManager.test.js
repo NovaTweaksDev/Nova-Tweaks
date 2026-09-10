@@ -47,6 +47,35 @@ test('shares one broker launch across simultaneous first requests', async (t) =>
   assert.equal(fixture.manager.getState().status, 'ready');
 });
 
+test('ignores the native host probe before authenticating the worker connection', async (t) => {
+  let workerSocket = null;
+  const manager = createAdminBrokerManager({
+    app: { isPackaged: false, getAppPath: () => process.cwd() },
+    platform: 'win32',
+    isAdminProvider: () => false,
+    launchBroker: async ({ pipeName, brokerSessionId }) => {
+      const probe = net.connect(pipeName);
+      await new Promise((resolve, reject) => {
+        probe.once('connect', resolve);
+        probe.once('error', reject);
+      });
+      probe.destroy();
+      workerSocket = net.connect(pipeName);
+      await new Promise((resolve, reject) => {
+        workerSocket.once('connect', resolve);
+        workerSocket.once('error', reject);
+      });
+      workerSocket.write(encodeMessage({ type: 'hello', protocolVersion: PROTOCOL_VERSION, sessionId: brokerSessionId }));
+    }
+  });
+  t.after(() => {
+    workerSocket?.destroy();
+    manager.shutdown();
+  });
+  const state = await manager.ensureReady();
+  assert.equal(state.ready, true);
+});
+
 test('does not prompt for a background request', async () => {
   const fixture = createFixture();
   await assert.rejects(

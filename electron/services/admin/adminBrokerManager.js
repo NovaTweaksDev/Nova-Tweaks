@@ -265,18 +265,33 @@ function createAdminBrokerManager(options = {}) {
           candidate.destroy();
           return;
         }
-        socket = candidate;
+        let authenticated = false;
         candidate.setNoDelay?.(true);
         const decoder = createLineDecoder(
-          (message) => handleMessage(message, finishResolve, finishReject),
-          finishReject
+          (message) => {
+            if (!authenticated) {
+              if (!['hello', 'startup-error'].includes(message?.type) || (socket && !socket.destroyed)) {
+                candidate.destroy();
+                return;
+              }
+              socket = candidate;
+              authenticated = true;
+            }
+            handleMessage(message, finishResolve, finishReject);
+          },
+          (error) => {
+            if (authenticated) finishReject(error);
+            else candidate.destroy();
+          }
         );
         candidate.on('data', decoder);
         candidate.on('error', (error) => {
+          if (!authenticated) return;
           if (!settled) finishReject(error);
           else closeTransport();
         });
         candidate.on('close', () => {
+          if (!authenticated) return;
           if (!settled) finishReject(new AdminBrokerError('Administrator broker disconnected during startup.', 'ADMIN_BROKER_DISCONNECTED'));
           else if (!shuttingDown) closeTransport();
         });
