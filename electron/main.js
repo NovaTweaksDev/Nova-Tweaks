@@ -4082,7 +4082,7 @@ function registerIpcHandlers() {
     } catch (error) {
       advancedSensorMonitoringEnabled = false;
       metricsSubscriberIds.delete(event.sender.id);
-      await monitoringManager.shutdown();
+      await monitoringManager.shutdown({ ensureProcessStopped: true });
       const ipcError = toIpcError(error);
       metricsLogger.error('Failed to enable advanced sensor monitoring.', ipcError);
       return {

@@ -18,7 +18,7 @@ const LHM_HEADLESS_ARGUMENT = '--nova-headless';
 const PAWNIO_REGISTRY_KEY = 'HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\PawnIO';
 const MIN_PAWNIO_MAJOR_VERSION = 2;
 const DEFAULT_INTERVAL_MS = 2000;
-const STARTUP_TIMEOUT_MS = 15000;
+const STARTUP_TIMEOUT_MS = 60000;
 const STARTUP_RETRY_DELAY_MS = 500;
 const RESTART_THRESHOLD = 3;
 const LHM_AUTH_USERNAME = 'nova';
@@ -605,6 +605,12 @@ function createMonitoringManager(options = {}) {
     return false;
   }
 
+  async function cleanUpFailedStart() {
+    const stopped = await killLhmProcesses(logger, { allowElevation: true, privilegedExecutor });
+    managedLhmRunning = !stopped;
+    return stopped;
+  }
+
   async function ensureLhmReady() {
     if (!executablePath) {
       executablePath = resolveLhmExecutablePath(app, logger);
@@ -631,6 +637,7 @@ function createMonitoringManager(options = {}) {
       managedLhmRunning = true;
       const ready = await waitForEndpoint();
       if (!ready) {
+        await cleanUpFailedStart();
         throw new Error('LHM endpoint did not become ready after cold start.');
       }
       return;
@@ -642,6 +649,7 @@ function createMonitoringManager(options = {}) {
       managedLhmRunning = true;
       const ready = await waitForEndpoint();
       if (!ready) {
+        await cleanUpFailedStart();
         throw new Error('LHM started but endpoint did not become ready.');
       }
       return;
@@ -649,13 +657,17 @@ function createMonitoringManager(options = {}) {
 
     if (!(await probeEndpoint())) {
       logger?.warn?.('LHM process is running but endpoint is unreachable. Restarting LHM.');
-      await killLhmProcesses(logger, { allowElevation: true, privilegedExecutor });
+      const stopped = await killLhmProcesses(logger, { allowElevation: true, privilegedExecutor });
+      if (!stopped) {
+        throw new Error('The unresponsive LibreHardwareMonitor process could not be stopped.');
+      }
       managedLhmRunning = false;
       await startManagedLhmProcess();
       managedLhmRunning = true;
 
       const ready = await waitForEndpoint();
       if (!ready) {
+        await cleanUpFailedStart();
         throw new Error('LHM endpoint is unreachable after restart.');
       }
     }
