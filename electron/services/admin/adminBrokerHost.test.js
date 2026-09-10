@@ -3,9 +3,10 @@ const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const net = require('node:net');
 const path = require('node:path');
-const { spawn } = require('node:child_process');
+const { execFile, spawn } = require('node:child_process');
 
 const { PROTOCOL_VERSION, createLineDecoder, encodeMessage } = require('./adminBrokerProtocol');
+const { quoteWindowsArgument } = require('./adminBrokerManager');
 
 if (process.argv.includes('--nova-admin-broker-worker')) {
   const sessionIndex = process.argv.indexOf('--broker-session');
@@ -91,5 +92,50 @@ if (process.argv.includes('--nova-admin-broker-worker')) {
     fixture.getClient().write(encodeMessage({ type: 'shutdown', protocolVersion: PROTOCOL_VERSION }));
     const exitCode = await exited;
     assert.equal(exitCode, 0);
+  });
+
+  test('PowerShell launcher preserves the installed worker path with spaces', async (t) => {
+    const fixture = await createHostFixture(t);
+    const launchArguments = [
+      '--pipe', fixture.pipeName,
+      '--parent-pid', String(process.pid),
+      '--worker', process.execPath,
+      '--app-path', __filename,
+      '--session', fixture.sessionId,
+      '--allow-unsigned-local-test'
+    ].map(quoteWindowsArgument).join(' ');
+    const encodedArguments = Buffer.from(launchArguments, 'utf8').toString('base64');
+    const command = [
+      `$arguments = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encodedArguments}'))`,
+      `$process = Start-Process -FilePath '${fixture.hostPath.replace(/'/g, "''")}' -ArgumentList $arguments -WindowStyle Hidden -PassThru`,
+      '$process.Id'
+    ].join('; ');
+    const launched = new Promise((resolve, reject) => {
+      execFile('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', command], {
+        windowsHide: true,
+        timeout: 5000
+      }, (error, stdout) => error ? reject(error) : resolve(stdout));
+    });
+    const hello = new Promise((resolve, reject) => {
+      const deadline = setTimeout(() => reject(new Error('Timed out waiting for PowerShell broker handshake.')), 5000);
+      const receiveHello = () => {
+        const client = fixture.getClient();
+        if (!client) {
+          setTimeout(receiveHello, 10);
+          return;
+        }
+        client.on('data', createLineDecoder((message) => {
+          if (message?.type !== 'hello') return;
+          clearTimeout(deadline);
+          resolve(message);
+        }, reject));
+      };
+      receiveHello();
+    });
+
+    await launched;
+    const message = await hello;
+    assert.equal(message.sessionId, fixture.sessionId);
+    fixture.getClient().write(encodeMessage({ type: 'shutdown', protocolVersion: PROTOCOL_VERSION }));
   });
 }

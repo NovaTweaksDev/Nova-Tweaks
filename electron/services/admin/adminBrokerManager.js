@@ -28,6 +28,27 @@ function escapePowerShellSingleQuoted(value) {
   return String(value || '').replace(/'/g, "''");
 }
 
+function quoteWindowsArgument(value) {
+  const input = String(value ?? '');
+  if (input.length > 0 && !/[\s"]/u.test(input)) return input;
+  let result = '"';
+  let backslashes = 0;
+  for (const character of input) {
+    if (character === '\\') {
+      backslashes += 1;
+      continue;
+    }
+    if (character === '"') {
+      result += '\\'.repeat((backslashes * 2) + 1) + '"';
+      backslashes = 0;
+      continue;
+    }
+    result += '\\'.repeat(backslashes) + character;
+    backslashes = 0;
+  }
+  return result + '\\'.repeat(backslashes * 2) + '"';
+}
+
 function createAdminBrokerManager(options = {}) {
   const app = options.app;
   const logger = options.logger;
@@ -178,8 +199,12 @@ function createAdminBrokerManager(options = {}) {
       });
     }
 
+    const encodedLaunchArguments = Buffer.from(
+      launchArgs.map(quoteWindowsArgument).join(' '),
+      'utf8'
+    ).toString('base64');
     const command = [
-      `$arguments = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${Buffer.from(JSON.stringify(launchArgs), 'utf8').toString('base64')}')) | ConvertFrom-Json`,
+      `$arguments = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encodedLaunchArguments}'))`,
       `$process = Start-Process -FilePath '${escapePowerShellSingleQuoted(launchPath)}' -ArgumentList $arguments -WorkingDirectory '${escapePowerShellSingleQuoted(path.dirname(launchPath))}' -Verb RunAs -WindowStyle Hidden -PassThru`,
       'if ($process.WaitForExit(1500)) { Write-Error "Administrator broker host exited with code $($process.ExitCode)."; exit $process.ExitCode }',
       '$process.Id'
@@ -323,4 +348,4 @@ function createAdminBrokerManager(options = {}) {
   return { ensureReady, execute, getState, shutdown };
 }
 
-module.exports = { AdminBrokerError, createAdminBrokerManager };
+module.exports = { AdminBrokerError, createAdminBrokerManager, quoteWindowsArgument };

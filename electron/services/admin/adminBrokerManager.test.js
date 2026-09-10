@@ -3,7 +3,14 @@ const assert = require('node:assert/strict');
 const net = require('node:net');
 
 const { createLineDecoder, encodeMessage, PROTOCOL_VERSION } = require('./adminBrokerProtocol');
-const { AdminBrokerError, createAdminBrokerManager } = require('./adminBrokerManager');
+const { AdminBrokerError, createAdminBrokerManager, quoteWindowsArgument } = require('./adminBrokerManager');
+
+test('quotes Windows process arguments without splitting installed paths', () => {
+  assert.equal(quoteWindowsArgument('plain'), 'plain');
+  assert.equal(quoteWindowsArgument('C:\\Program Files\\Nova Tweaks\\NovaTweaks.exe'), '"C:\\Program Files\\Nova Tweaks\\NovaTweaks.exe"');
+  assert.equal(quoteWindowsArgument(''), '""');
+  assert.equal(quoteWindowsArgument('ends with space\\'), '"ends with space\\\\"');
+});
 
 function createFixture() {
   let launches = 0;
