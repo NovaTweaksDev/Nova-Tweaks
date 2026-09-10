@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const INTEGRITY_FORMAT = 'nova-lhm-runtime-v2';
-const EXPECTED_CRITICAL_RUNTIME_SHA256 = 'a5096c7f82ca4de37af350cfed16b0a408f3c1e3c00a435d9081cc17bc0e9be3';
+const EXPECTED_CRITICAL_RUNTIME_SHA256 = '6bcf7760ff882f6670f041db70ae06d96b2cebdffd1aa990a84b249e0adfa5df';
 const PATCHED_DIRECTORY = 'patched';
 const MUTABLE_CONFIG = path.join(PATCHED_DIRECTORY, 'LibreHardwareMonitor.config');
 const CRITICAL_EXTENSIONS = new Set(['.config', '.dll', '.exe', '.json']);

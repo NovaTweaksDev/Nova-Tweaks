@@ -6,8 +6,8 @@ const test = require('node:test');
 const { prepareMsixLhmRuntime } = require('./monitoringRuntime');
 const { computeCriticalRuntimeSha256 } = require('./monitoringIntegrity');
 
-test('bundled LibreHardwareMonitor targets the supported .NET 8 desktop runtime', () => {
-  const runtimeConfigPath = path.join(
+test('bundled LibreHardwareMonitor uses the Windows-provided .NET Framework runtime', () => {
+  const runtimeDirectory = path.join(
     __dirname,
     '..',
     '..',
@@ -15,19 +15,15 @@ test('bundled LibreHardwareMonitor targets the supported .NET 8 desktop runtime'
     'resources',
     'monitoring',
     'LibreHardwareMonitor',
-    'patched',
-    'LibreHardwareMonitor.runtimeconfig.json'
+    'patched'
   );
-  const runtimeConfig = JSON.parse(fs.readFileSync(runtimeConfigPath, 'utf8'));
-  const frameworks = runtimeConfig?.runtimeOptions?.frameworks || [];
+  const applicationConfig = fs.readFileSync(
+    path.join(runtimeDirectory, 'LibreHardwareMonitor.exe.config'),
+    'utf8'
+  );
 
-  assert.deepEqual(
-    frameworks.map((entry) => ({ name: entry.name, major: String(entry.version || '').split('.')[0] })),
-    [
-      { name: 'Microsoft.NETCore.App', major: '8' },
-      { name: 'Microsoft.WindowsDesktop.App', major: '8' }
-    ]
-  );
+  assert.equal(fs.existsSync(path.join(runtimeDirectory, 'LibreHardwareMonitor.runtimeconfig.json')), false);
+  assert.match(applicationConfig, /sku="\.NETFramework,Version=v4\.7\.2"/);
 });
 
 test('bundled LibreHardwareMonitor does not expose sensor data to arbitrary browser origins', () => {

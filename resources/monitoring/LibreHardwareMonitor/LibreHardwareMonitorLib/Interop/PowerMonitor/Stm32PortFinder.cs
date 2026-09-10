@@ -75,8 +75,8 @@ public static class Stm32PortFinder
                 }
 
                 //Check if hardware ID contains VID and PID
-                if (!hwId.Contains($"VID_{vid}", StringComparison.OrdinalIgnoreCase) ||
-                    !hwId.Contains($"PID_{pid}", StringComparison.OrdinalIgnoreCase))
+                if (hwId.IndexOf($"VID_{vid}", StringComparison.OrdinalIgnoreCase) < 0 ||
+                    hwId.IndexOf($"PID_{pid}", StringComparison.OrdinalIgnoreCase) < 0)
                 {
                     continue;
                 }

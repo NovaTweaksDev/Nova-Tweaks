@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "verificationDate": "2026-08-23",
+  "verificationDate": "2026-09-10",
   "components": [
     {
       "fileName": "LibreHardwareMonitor.exe",
@@ -8,7 +8,7 @@
       "version": "0.9.6",
       "repositoryPath": "resources/monitoring/LibreHardwareMonitor/patched/LibreHardwareMonitor.exe",
       "packagedPath": "resources/resources/monitoring/LibreHardwareMonitor/patched/LibreHardwareMonitor.exe",
-      "sha256": "43C1013E291CE0B386104ADE1080B87A7A20D013532E56205A49B7F9F4A8F46E",
+      "sha256": "90688D9D3E82428B5627235B06C015CD1C5C3CA59F16D1ED3F37417FBFCD73FA",
       "license": "MPL-2.0",
       "licenseFiles": [
         "licenses/LibreHardwareMonitor/LICENSE.txt",
@@ -25,12 +25,12 @@
         "status": "NotSigned",
         "subject": null
       },
-      "applicationAssemblySha256": "25B4ECF296B3F9FCC9F8FFCD7F602075618683F6605F9D43A0E08C9056405C76",
+      "applicationAssemblySha256": "90688D9D3E82428B5627235B06C015CD1C5C3CA59F16D1ED3F37417FBFCD73FA",
       "source": {
         "repositoryPath": "resources/monitoring/LibreHardwareMonitor",
         "packagedPath": "licenses/LibreHardwareMonitor/source",
         "snapshotFormat": "nova-third-party-source-v2",
-        "sha256": "83D750E8642192735FA59511A3F02A75FB49B0D8FB519D6E227E1244C24A2BFF",
+        "sha256": "1745DC844B7356B203176DC569AF6B07A1D8D2FA4EA5D42C7C3CEE5454CBE257",
         "fileCount": 415,
         "exclusions": [
           "bin",
@@ -45,11 +45,11 @@
       "build": {
         "script": "scripts/build-lhm-runtime.ps1",
         "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-lhm-runtime.ps1",
-        "targetFramework": "net8.0-windows",
+        "targetFramework": "net472",
         "runtimeIdentifier": "win-x64",
         "configuration": "Release"
       },
-      "verification": "The executable and application assembly were produced from the checked-in source snapshot. The complete filtered snapshot is shipped beside the licenses, and the build gate rejects a present or embedded PawnIO_setup.exe."
+      "verification": "The .NET Framework executable was produced from the checked-in source snapshot. The complete filtered snapshot is shipped beside the licenses, and the build gate rejects a present or embedded PawnIO_setup.exe."
     },
     {
       "fileName": "PresentMon.exe",

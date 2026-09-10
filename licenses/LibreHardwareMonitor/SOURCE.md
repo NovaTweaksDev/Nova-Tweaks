@@ -19,7 +19,7 @@ nor offered at runtime.
 Source snapshot SHA-256 (Nova deterministic directory format
 `nova-third-party-source-v2`):
 
-`83D750E8642192735FA59511A3F02A75FB49B0D8FB519D6E227E1244C24A2BFF`
+`1745DC844B7356B203176DC569AF6B07A1D8D2FA4EA5D42C7C3CEE5454CBE257`
 
 The checked-in runtime can be rebuilt on Windows with the .NET 8 SDK. The build
 restores its NuGet package graph automatically:
@@ -28,8 +28,9 @@ restores its NuGet package graph automatically:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-lhm-runtime.ps1
 ```
 
-The script builds the `net8.0-windows`/`win-x64` Release target, copies the
-runtime files into the reviewed `patched` directory, and fails if
+The script builds the `net472`/`win-x64` Release target so the sidecar uses the
+.NET Framework supplied with supported Windows versions. It copies the runtime
+files into the reviewed `patched` directory and fails if
 `PawnIO_setup.exe` is present or embedded in the rebuilt application assembly.
 
 Upstream project: https://github.com/LibreHardwareMonitor/LibreHardwareMonitor

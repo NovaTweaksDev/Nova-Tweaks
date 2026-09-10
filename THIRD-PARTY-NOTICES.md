@@ -26,9 +26,8 @@ availability and SHA-256 hashes are recorded in
 - **Full license text:** [`licenses/LibreHardwareMonitor/LICENSE.txt`](licenses/LibreHardwareMonitor/LICENSE.txt)
 - **Official upstream third-party notices:** [`licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt`](licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt)
 - **Corresponding source and build instructions:** [`licenses/LibreHardwareMonitor/SOURCE.md`](licenses/LibreHardwareMonitor/SOURCE.md)
-- **Executable SHA-256:** `43C1013E291CE0B386104ADE1080B87A7A20D013532E56205A49B7F9F4A8F46E`
-- **Application assembly SHA-256:** `25B4ECF296B3F9FCC9F8FFCD7F602075618683F6605F9D43A0E08C9056405C76`
-- **Source snapshot SHA-256:** `83D750E8642192735FA59511A3F02A75FB49B0D8FB519D6E227E1244C24A2BFF`
+- **Executable/application assembly SHA-256:** `90688D9D3E82428B5627235B06C015CD1C5C3CA59F16D1ED3F37417FBFCD73FA`
+- **Source snapshot SHA-256:** `1745DC844B7356B203176DC569AF6B07A1D8D2FA4EA5D42C7C3CEE5454CBE257`
 
 The bundled executable is a Nova-maintained local build, not the executable
 from the official upstream v0.9.6 release archive. Every package includes the

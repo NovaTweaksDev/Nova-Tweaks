@@ -411,10 +411,11 @@ internal class LpcIO
                 {
                     case 0x92:
                         // MSI AM5/LGA1851 800 Series Motherboard Compatibility (Nuvoton NCT6687DR)
-                        if (motherboard.Manufacturer == Manufacturer.MSI && (motherboard.SMBios.Board.ProductName.ToString().Contains("B840", StringComparison.OrdinalIgnoreCase) ||
-                            motherboard.SMBios.Board.ProductName.ToString().Contains("B850", StringComparison.OrdinalIgnoreCase) ||
-                            motherboard.SMBios.Board.ProductName.ToString().Contains("X870", StringComparison.OrdinalIgnoreCase) ||
-                            motherboard.SMBios.Board.ProductName.ToString().Contains("Z890", StringComparison.OrdinalIgnoreCase)))
+                        string productName = motherboard.SMBios.Board.ProductName.ToString();
+                        if (motherboard.Manufacturer == Manufacturer.MSI && (productName.IndexOf("B840", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            productName.IndexOf("B850", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            productName.IndexOf("X870", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            productName.IndexOf("Z890", StringComparison.OrdinalIgnoreCase) >= 0))
                         {
                             chip = Chip.NCT6687DR;
                         }

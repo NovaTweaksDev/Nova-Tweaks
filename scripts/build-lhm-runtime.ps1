@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $sourceRoot = Join-Path $projectRoot 'resources\monitoring\LibreHardwareMonitor'
 $projectPath = Join-Path $sourceRoot 'LibreHardwareMonitor\LibreHardwareMonitor.csproj'
-$buildOutput = Join-Path $sourceRoot 'bin\Release\net8.0-windows\win-x64'
+$buildOutput = Join-Path $sourceRoot 'bin\Release\net472\win-x64\publish'
 $runtimeOutput = Join-Path $sourceRoot 'patched'
 $excludedInstaller = Join-Path $sourceRoot 'LibreHardwareMonitor\Resources\PawnIO_setup.exe'
 
@@ -11,13 +11,13 @@ if (Test-Path -LiteralPath $excludedInstaller) {
   throw 'PawnIO_setup.exe must not be present in the distributable source tree.'
 }
 
-& dotnet build $projectPath `
+& dotnet publish $projectPath `
   --configuration Release `
-  --framework net8.0-windows `
+  --framework net472 `
   --runtime win-x64 `
   -p:Platform=x64
 if ($LASTEXITCODE -ne 0) {
-  throw "LibreHardwareMonitor build failed with exit code $LASTEXITCODE."
+  throw "LibreHardwareMonitor publish failed with exit code $LASTEXITCODE."
 }
 
 $runtimeExtensions = @('.config', '.dll', '.exe', '.json')
@@ -29,11 +29,14 @@ if (-not ($builtFiles.Name -contains 'LibreHardwareMonitor.exe')) {
 }
 
 New-Item -ItemType Directory -Path $runtimeOutput -Force | Out-Null
+Get-ChildItem -LiteralPath $runtimeOutput -File | Where-Object {
+  $runtimeExtensions -contains $_.Extension.ToLowerInvariant() -and $_.Name -ne 'LibreHardwareMonitor.config'
+} | Remove-Item -Force
 foreach ($file in $builtFiles) {
   Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $runtimeOutput $file.Name) -Force
 }
 
-$assemblyPath = Join-Path $runtimeOutput 'LibreHardwareMonitor.dll'
+$assemblyPath = Join-Path $runtimeOutput 'LibreHardwareMonitor.exe'
 $assemblyBytes = [IO.File]::ReadAllBytes($assemblyPath)
 $assemblyText = [Text.Encoding]::Unicode.GetString($assemblyBytes)
 if ($assemblyText.Contains('PawnIO_setup.exe')) {
