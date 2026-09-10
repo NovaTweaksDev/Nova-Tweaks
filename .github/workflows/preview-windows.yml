@@ -1,0 +1,76 @@
+name: Publish unsigned Windows preview
+
+on:
+  push:
+    tags:
+      - 'preview-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  windows-preview:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate preview tag version
+        shell: pwsh
+        run: |
+          $packageVersion = node -p "require('./package.json').version"
+          if ($env:GITHUB_REF_NAME -ne "preview-v$packageVersion") {
+            throw "Tag $env:GITHUB_REF_NAME does not match package version $packageVersion."
+          }
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build unsigned preview installer
+        run: npm run dist:local
+
+      - name: Validate preview files
+        id: artifacts
+        shell: pwsh
+        run: |
+          $installers = @(Get-ChildItem -LiteralPath dist-release -Filter 'NovaTweaks-Setup-*-x64.exe' -File)
+          if ($installers.Count -ne 1) {
+            throw "Expected exactly one Windows installer, found $($installers.Count)."
+          }
+          Get-Item -LiteralPath dist-release/checksums.txt -ErrorAction Stop | Out-Null
+          "installer=$($installers[0].FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Publish unsigned preview release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INSTALLER_PATH: ${{ steps.artifacts.outputs.installer }}
+        run: |
+          @'
+          This is an unsigned preview build for evaluation and compatibility testing.
+
+          Windows may show an unknown-publisher warning. Code signing through SignPath
+          is being prepared and is not yet active. Review the included checksum before
+          installation and create a system backup or VM snapshot before applying tweaks.
+
+          Code signing policy: https://github.com/NovaTweaksDev/Nova-Tweaks#code-signing-policy
+          '@ | Set-Content -LiteralPath release-notes.md
+
+          gh release create $env:GITHUB_REF_NAME `
+            $env:INSTALLER_PATH `
+            dist-release/checksums.txt `
+            --verify-tag `
+            --prerelease `
+            --title "Nova Tweaks 1.0.0 — Unsigned Preview" `
+            --notes-file release-notes.md

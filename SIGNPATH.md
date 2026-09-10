@@ -16,13 +16,26 @@ Status: application preparation; no SignPath approval or integration is claimed.
   without elevation and requests administrator access for operations that need it.
 - Signing roles and privacy information: [README](README.md#code-signing-policy).
 
-Verify the repository and download links after repository recreation. Do not
-submit a private or empty repository as the public project/download location.
+The repository is public. Verify the download link after publishing the first
+preview release.
+
+## Validation record
+
+- Automated tests: 232 passed, 0 failed, 1 optional signing test skipped because
+  its local test keys were not configured.
+- GitHub Actions source validation: dependency installation, tests, and renderer
+  build passed for commit `1412013`.
+- Windows smoke test: installation and normal application launch of the corrected
+  installer succeeded in an Oracle VirtualBox Windows guest with two virtual CPUs.
+  Startup was slower under the constrained VM conditions. Hardware-specific
+  features and the complete system-tweak flow were not covered by this smoke test.
+- A missing Visual C++ runtime dependency found during the first VM test was
+  removed from all Nova-owned C++ helpers before the successful repeat test.
 
 ## Outstanding before claiming signing readiness
 
-- Publish the reviewed source and an accurately labeled Windows installer.
-  The existing `dist:local` command produces an unsigned **local test build**;
+- Publish the corrected, reviewed source and an accurately labeled Windows
+  installer. The preview workflow produces an unsigned **local test build**;
   it must not be represented as a signed production release.
 - Obtain SignPath approval and the actual organization, project, signing-policy,
   and artifact-configuration identifiers. The current release workflow uses
@@ -39,8 +52,8 @@ submit a private or empty repository as the public project/download location.
   the intended public keys; SignPath does not replace those keys.
 - Confirm maintainer MFA for GitHub and SignPath, configure manual signing
   approval, and publish the signing-policy link on the website/download page.
-- Test installation, launch without elevation, an explicit elevated operation,
-  backup/restore, and uninstallation on a separate Windows test system.
+- Test an explicit elevated operation, backup/restore, and uninstallation on a
+  separate Windows test system.
 
 Creating a fresh repository does not establish the reputation required by
 SignPath Foundation and does not guarantee acceptance. The Foundation also
