@@ -16,15 +16,17 @@ Status: application preparation; no SignPath approval or integration is claimed.
   without elevation and requests administrator access for operations that need it.
 - Signing roles and privacy information: [README](README.md#code-signing-policy).
 
-The repository is public. Verify the download link after publishing the first
-preview release.
+The repository and the
+[unsigned 1.0.0 preview](https://github.com/NovaTweaksDev/Nova-Tweaks/releases/tag/preview-v1.0.0)
+are public.
 
 ## Validation record
 
 - Automated tests: 232 passed, 0 failed, 1 optional signing test skipped because
   its local test keys were not configured.
 - GitHub Actions source validation: dependency installation, tests, and renderer
-  build passed for commit `1412013`.
+  build passed for commit `1d4d0df`. The preview workflow built and published
+  the installer from the tagged commit.
 - Windows smoke test: installation and normal application launch of the corrected
   installer succeeded in an Oracle VirtualBox Windows guest with two virtual CPUs.
   Startup was slower under the constrained VM conditions. Hardware-specific
@@ -34,9 +36,6 @@ preview release.
 
 ## Outstanding before claiming signing readiness
 
-- Publish the corrected, reviewed source and an accurately labeled Windows
-  installer. The preview workflow produces an unsigned **local test build**;
-  it must not be represented as a signed production release.
 - Obtain SignPath approval and the actual organization, project, signing-policy,
   and artifact-configuration identifiers. The current release workflow uses
   `CSC_LINK` and `CSC_KEY_PASSWORD`; it does not submit artifacts to SignPath.
