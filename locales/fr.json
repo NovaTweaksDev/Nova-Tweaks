@@ -816,9 +816,16 @@
     },
     "updateNotes": {
       "open": "Notes de mise à jour",
-      "title": "Notes de mise à jour",
+      "title": "Version et publications GitHub",
       "version": "Version {{version}}",
-      "loadFailed": "Impossible de charger les notes de mise à jour."
+      "loadFailed": "Impossible de charger les notes de mise à jour.",
+      "installedVersion": "Version installée : {{version}}",
+      "releaseExplanation": "À l’ouverture, la dernière publication GitHub est recherchée, préversions comprises. Les versions de test locales peuvent différer du téléchargement publié même avec le même numéro de version.",
+      "githubRelease": "Dernière publication sur GitHub : {{tag}}",
+      "noRelease": "Aucune version n’a encore été publiée sur GitHub.",
+      "unavailable": "La publication GitHub n’a pas pu être vérifiée. La version disponible est inconnue.",
+      "previewRelease": "Cette publication GitHub est une préversion.",
+      "githubLink": "Ouvrir la publication sur GitHub"
     }
   },
   "tweaks": {

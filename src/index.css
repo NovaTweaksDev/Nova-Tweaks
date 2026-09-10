@@ -8716,6 +8716,11 @@ select.ui-input {
   min-width: 0;
 }
 
+.app-shell.is-tweaks-section {
+  /* Clip horizontal overflow without creating a scroll container for sticky details. */
+  overflow-x: clip;
+}
+
 @media (min-width: 1024px) {
   .tweaks-side-panel {
     top: calc(var(--app-titlebar-height) + 1rem);

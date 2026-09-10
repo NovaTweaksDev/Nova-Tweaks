@@ -521,9 +521,16 @@
     "localWelcome": "Everything is ready on this device.",
     "updateNotes": {
       "open": "Update Notes",
-      "title": "Update Notes",
+      "title": "Version and GitHub releases",
       "version": "Version {{version}}",
-      "loadFailed": "Update notes could not be loaded."
+      "loadFailed": "Update notes could not be loaded.",
+      "installedVersion": "Installed version: {{version}}",
+      "releaseExplanation": "Opening this dialog checks the most recently published GitHub release, including prereleases. Local test builds may differ from the published download even with the same version number.",
+      "githubRelease": "Most recently published on GitHub: {{tag}}",
+      "noRelease": "No release has been published on GitHub yet.",
+      "unavailable": "The GitHub release could not be checked. The available version is unknown.",
+      "previewRelease": "This GitHub release is a prerelease.",
+      "githubLink": "Open release on GitHub"
     },
     "metrics": "Live Metrics",
     "metricsSubtitle": "Real-time telemetry stream with smooth updates",

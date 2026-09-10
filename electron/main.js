@@ -5,6 +5,7 @@ const { execFileSync } = require('child_process');
 const { pathToFileURL } = require('url');
 const { app, BrowserWindow, Menu, Tray, Notification, dialog, ipcMain, shell, webContents, nativeImage, screen, protocol, net } = require('electron');
 const { createLogger } = require('./logger');
+const { getReleaseInfo } = require('./services/releaseInfo');
 const { createScriptRunner, ScriptRunnerError } = require('./services/script-runner');
 const { createMonitoringManager } = require('./services/monitoring/monitoringManager');
 const { createExtendedNetworkTestService } = require('./services/monitoring/extendedNetworkTestService');
@@ -2476,23 +2477,10 @@ function registerIpcHandlers() {
     return { ok: true, update: latestUpdateCheck };
   });
 
-  ipcMain.handle('api:update:notes', async () => {
-    return {
-      ok: true,
-      notes: {
-        title: PRODUCT_NAME,
-        version: app.getVersion(),
-        updatedAt: '',
-        body: 'Tweaks und Skripte sind Bestandteil dieser App-Version. Neue Versionen werden bewusst nicht automatisch im Hintergrund abgefragt.',
-        items: [
-          'Keine Anmeldung und keine Premium-Sperren',
-          'Lokaler Tweak-Katalog mit gebündelten JSON- und PowerShell-Dateien',
-          'Manuelle Updates über die GitHub-Releases-Seite'
-        ],
-        downloadUrl: RELEASES_URL
-      }
-    };
-  });
+  ipcMain.handle('api:update:notes', async () => ({
+    ok: true,
+    notes: await getReleaseInfo(app.getVersion(), (url, options) => net.fetch(url, options))
+  }));
 
   ipcMain.handle('process-automation:get-state', async () => ({
     ok: Boolean(processWatcherService),

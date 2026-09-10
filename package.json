@@ -1,7 +1,7 @@
 {
   "name": "nova-tweaks",
   "productName": "Nova Tweaks",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Windows optimization and control app for gamers and power users",
   "author": "Nova Tweaks",
   "main": "electron/main.js",

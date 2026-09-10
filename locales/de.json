@@ -521,9 +521,16 @@
     "localWelcome": "Auf diesem Gerät ist alles bereit.",
     "updateNotes": {
       "open": "Update Notes",
-      "title": "Update Notes",
+      "title": "Version und GitHub-Releases",
       "version": "Version {{version}}",
-      "loadFailed": "Update Notes konnten nicht geladen werden."
+      "loadFailed": "Update Notes konnten nicht geladen werden.",
+      "installedVersion": "Installierte Version: {{version}}",
+      "releaseExplanation": "Beim Öffnen wird der zuletzt veröffentlichte GitHub-Release einschließlich Vorabversionen abgefragt. Lokale Testbuilds können trotz gleicher Versionsnummer vom veröffentlichten Download abweichen.",
+      "githubRelease": "Zuletzt auf GitHub veröffentlicht: {{tag}}",
+      "noRelease": "Auf GitHub ist noch kein Release veröffentlicht.",
+      "unavailable": "Der GitHub-Release konnte nicht geprüft werden. Die verfügbare Version ist unbekannt.",
+      "previewRelease": "Dieser GitHub-Release ist eine Vorabversion.",
+      "githubLink": "Release auf GitHub öffnen"
     },
     "metrics": "Live-Metriken",
     "metricsSubtitle": "Echtzeit-Telemetrie mit sanften Updates",

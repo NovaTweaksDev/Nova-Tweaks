@@ -22,15 +22,18 @@ are public.
 
 ## Validation record
 
-- Automated tests: 232 passed, 0 failed, 1 optional signing test skipped because
+- Automated tests for 1.0.1: 238 passed, 0 failed, 1 optional signing test skipped because
   its local test keys were not configured.
 - GitHub Actions source validation: dependency installation, tests, and renderer
   build passed for commit `1d4d0df`. The preview workflow built and published
   the installer from the tagged commit.
 - Windows smoke test: installation and normal application launch of the corrected
   installer succeeded in an Oracle VirtualBox Windows guest with two virtual CPUs.
-  Startup was slower under the constrained VM conditions. Hardware-specific
-  features and the complete system-tweak flow were not covered by this smoke test.
+  Follow-up tests confirmed administrator access, applying and reverting an admin
+  tweak, Advanced Sensors, disabling/re-enabling sensors, and app restart with
+  the preference retained. These were local 1.0.0 test builds containing the
+  fixes prepared for 1.0.1. Hardware-specific features and the full tweak catalog
+  were not exhaustively tested. The GitHub-downloaded 1.0.1 test is pending.
 - A missing Visual C++ runtime dependency found during the first VM test was
   removed from all Nova-owned C++ helpers before the successful repeat test.
 
@@ -51,8 +54,30 @@ are public.
   the intended public keys; SignPath does not replace those keys.
 - Confirm maintainer MFA for GitHub and SignPath, configure manual signing
   approval, and publish the signing-policy link on the website/download page.
-- Test an explicit elevated operation, backup/restore, and uninstallation on a
-  separate Windows test system.
+- Test the GitHub-downloaded 1.0.1 installer and backup/restore on a separate
+  Windows test system; record uninstallation of that exact build.
+
+## Submission text (draft, not submitted)
+
+We request SignPath Foundation code signing for Nova Tweaks, a GPL-3.0-only
+Windows desktop utility. Public source, documentation, and unsigned preview
+installers are available at https://github.com/NovaTweaksDev/Nova-Tweaks.
+The application starts without elevation and uses a restricted administrator
+broker for requested system changes. Hardware monitoring is optional.
+
+Our intended signing scope is the Nova-owned application, native helpers, and
+installer. Bundled upstream components retain their own licenses and signatures;
+we exclude LibreHardwareMonitor and PresentMon executables from Nova signing.
+Corresponding modified LHM source and dependency notices ship with the package.
+
+The preview is built through GitHub Actions. SignPath integration is not yet
+configured. Some Nova helper binaries are currently checked in and must be built
+from source in the trusted signing pipeline before signed releases. We would
+like guidance on the approved artifact configuration and onboarding requirements.
+
+Before submission, the maintainer must confirm their contact email, signing
+roles, GitHub MFA, and the evidence of project reputation. Do not represent
+these as verified or claim approval before SignPath confirms it.
 
 Creating a fresh repository does not establish the reputation required by
 SignPath Foundation and does not guarantee acceptance. The Foundation also

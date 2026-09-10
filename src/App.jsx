@@ -13,7 +13,7 @@ import CommandPalette from './components/CommandPalette';
 import { DotsMenuIcon } from './components/AppIcons';
 import { SUPPORT_URL } from './supportConfig';
 import { Button, ListSkeleton, LoadingIndicator, ModalShell, PageSection, Skeleton } from './components/ui';
-import { CheckCircle2, CircleX, LayoutGrid, Loader2, Minus, PackageCheck, RefreshCw, RotateCcw, Search, ShieldCheck, SlidersHorizontal, Square, X } from 'lucide-react';
+import { CheckCircle2, CircleX, LayoutGrid, Loader2, Minus, RefreshCw, RotateCcw, Search, ShieldCheck, SlidersHorizontal, Square, X } from 'lucide-react';
 import { getOrderedSubcategories, normalizeTweakTaxonomy } from './constants/tweakTaxonomy';
 import { normalizeTweakProfiles } from './constants/tweakProfiles';
 import {
@@ -493,6 +493,9 @@ function normalizeUpdateNotesPayload(payload) {
     downloadUrl: typeof source.downloadUrl === 'string' ? source.downloadUrl.trim() : typeof source.download_url === 'string' ? source.download_url.trim() : '',
     sha256: typeof source.sha256 === 'string' ? source.sha256.trim() : typeof source.checksumSha256 === 'string' ? source.checksumSha256.trim() : '',
     minimumSupportedVersion: typeof source.minimumSupportedVersion === 'string' ? source.minimumSupportedVersion.trim() : typeof source.minimum_supported_version === 'string' ? source.minimum_supported_version.trim() : '',
+    releaseStatus: source.releaseStatus || 'unavailable',
+    releaseTag: typeof source.releaseTag === 'string' ? source.releaseTag : '',
+    prerelease: source.prerelease === true,
     body: body.trim(),
     items: rawItems.map((item) => (typeof item === 'string' ? item.trim() : String(item?.text || item?.label || '').trim())).filter(Boolean)
   };
@@ -5104,8 +5107,8 @@ function App() {
       </div>
       <ModalShell
         open={updateNotesModalOpen}
-        title={updateNotes?.title || t('dashboard.updateNotes.title', { defaultValue: 'Update Notes' })}
-        description={updateNotes?.version ? t('dashboard.updateNotes.version', { defaultValue: 'Version {{version}}', version: updateNotes.version }) : ''}
+        title={t('dashboard.updateNotes.title')}
+        description={updateNotes?.version ? t('dashboard.updateNotes.installedVersion', { version: updateNotes.version }) : ''}
         onClose={() => setUpdateNotesModalOpen(false)}
         closeLabel={t('common.close')}
         size="lg"
@@ -5117,62 +5120,21 @@ function App() {
             <Skeleton className="h-4 w-4/5" />
           </div>
         ) : (
-          <div className="update-notes-modal">
-            <div className="relative overflow-hidden rounded-2xl border border-blue-400/20 bg-gradient-to-br from-blue-500/15 via-[var(--surface-elevated)] to-violet-500/10 p-4">
-              <div className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-blue-500/15 blur-3xl" />
-              <div className="relative flex items-start gap-3">
-                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-blue-400/25 bg-blue-500/15 text-blue-300 shadow-[0_8px_28px_rgba(59,130,246,0.14)]">
-                  <ShieldCheck className="h-5 w-5" aria-hidden="true" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[var(--text-primary)]">{i18n.t('interfaceText.local_by_design_145b1')}</p>
-                  <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">{i18n.t('interfaceText.tweaks_and_scripts_ship_with_this_app_version_no_account_or_nova__ad1e3')}</p>
-                </div>
-              </div>
-              <div className="relative mt-4 flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-black/15 px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)]">
-                  <PackageCheck className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" /> {i18n.t('interfaceText.bundled_integrity_dc010')}
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-black/15 px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)]">
-                  <ShieldCheck className="h-3.5 w-3.5 text-blue-400" aria-hidden="true" /> {i18n.t('interfaceText.no_login_7918f')}
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-black/15 px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)]">
-                  <RefreshCw className="h-3.5 w-3.5 text-violet-300" aria-hidden="true" /> {i18n.t('interfaceText.manual_releases_0e497')}
-                </span>
-              </div>
-            </div>
-            {updateNotes?.updatedAt ? <p className="mt-4 text-xs font-medium text-[var(--text-muted)]">{updateNotes.updatedAt}</p> : null}
-            {updateNotes?.body ? <p className="mt-3 whitespace-pre-line text-sm leading-6 text-[var(--text-secondary)]">{updateNotes.body}</p> : null}
-            {updateNotes?.downloadUrl || updateNotes?.sha256 || updateNotes?.minimumSupportedVersion ? (
-              <div className="mt-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-elevated)] p-3 text-sm text-[var(--text-secondary)]">
-                {updateNotes.downloadUrl ? (
-                  <button
-                    type="button"
-                    className="ui-btn ui-btn-primary ui-btn-sm"
-                    onClick={() => window.desktopApi?.openExternalUrl?.({ url: updateNotes.downloadUrl })}
-                  >
-                    {t('dashboard.updateNotes.download', { defaultValue: 'Open download' })}
-                  </button>
-                ) : null}
-                {updateNotes.sha256 ? <p className="mt-3 break-all font-mono text-xs">SHA256: {updateNotes.sha256}</p> : null}
-                {updateNotes.minimumSupportedVersion ? (
-                  <p className="mt-2 text-xs">
-                    {t('dashboard.updateNotes.minimumSupportedVersion', {
-                      defaultValue: 'Minimum supported version: {{version}}',
-                      version: updateNotes.minimumSupportedVersion
-                    })}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-            {updateNotes?.items?.length ? (
-              <ul className="mt-3 space-y-2">
-                {updateNotes.items.map((item, index) => (
-                  <li key={`${item}-${index}`} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--text-primary)]">
-                    {item}
-                  </li>
-                ))}
-              </ul>
+          <div className="update-notes-modal space-y-4">
+            <p className="text-sm leading-6 text-[var(--text-secondary)]">
+              {t('dashboard.updateNotes.releaseExplanation')}
+            </p>
+            <p className="text-sm text-[var(--text-primary)]" role="status">
+              {updateNotes?.releaseStatus === 'available'
+                ? t('dashboard.updateNotes.githubRelease', { tag: updateNotes.releaseTag })
+                : t(updateNotes?.releaseStatus === 'empty' ? 'dashboard.updateNotes.noRelease' : 'dashboard.updateNotes.unavailable')}
+            </p>
+            {updateNotes?.prerelease ? <p className="text-sm text-[var(--text-secondary)]">{t('dashboard.updateNotes.previewRelease')}</p> : null}
+            {updateNotes?.downloadUrl ? (
+              <button type="button" className="ui-btn ui-btn-primary ui-btn-sm"
+                onClick={() => window.desktopApi?.openExternalUrl?.({ url: updateNotes.downloadUrl })}>
+                {t('dashboard.updateNotes.githubLink')}
+              </button>
             ) : null}
           </div>
         )}

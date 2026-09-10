@@ -57,8 +57,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           INSTALLER_PATH: ${{ steps.artifacts.outputs.installer }}
         run: |
+          $packageVersion = node -p "require('./package.json').version"
           @'
           This is an unsigned preview build for evaluation and compatibility testing.
+
+          Changes in 1.0.1:
+          - Fix administrator approval and elevated worker communication.
+          - Remove the separate .NET 8 Desktop Runtime requirement for hardware monitoring.
+          - Keep tweak details visible while scrolling the tweak list.
+          - Localize release information and show the actual published GitHub release.
+          - Update the Competitive NVIDIA profile preset.
+
+          Local Windows VM testing confirmed administrator tweaks and Advanced Sensors,
+          including disabling, re-enabling, and restarting the app. Testing the installer
+          downloaded from this release is still pending. Hardware-specific behavior is
+          not fully covered by a virtual machine test.
 
           Windows may show an unknown-publisher warning. Code signing through SignPath
           is being prepared and is not yet active. Review the included checksum before
@@ -72,5 +85,5 @@ jobs:
             dist-release/checksums.txt `
             --verify-tag `
             --prerelease `
-            --title "Nova Tweaks 1.0.0 — Unsigned Preview" `
+            --title "Nova Tweaks $packageVersion — Unsigned Preview" `
             --notes-file release-notes.md
