@@ -1,8 +1,8 @@
 # SignPath application preparation
 
-Status: application preparation; no SignPath approval or integration is claimed.
+Status: application submitted; no SignPath approval or integration is claimed.
 
-## Application draft
+## Application record
 
 - Project: Nova Tweaks
 - Maintainer: Elia / [NovaTweaksDev](https://github.com/NovaTweaksDev)
@@ -17,7 +17,7 @@ Status: application preparation; no SignPath approval or integration is claimed.
 - Signing roles and privacy information: [README](README.md#code-signing-policy).
 
 The repository and the
-[unsigned 1.0.0 preview](https://github.com/NovaTweaksDev/Nova-Tweaks/releases/tag/preview-v1.0.0)
+[unsigned 1.0.1 preview](https://github.com/NovaTweaksDev/Nova-Tweaks/releases/tag/preview-v1.0.1)
 are public.
 
 ## Validation record
@@ -25,15 +25,19 @@ are public.
 - Automated tests for 1.0.1: 238 passed, 0 failed, 1 optional signing test skipped because
   its local test keys were not configured.
 - GitHub Actions source validation: dependency installation, tests, and renderer
-  build passed for commit `1d4d0df`. The preview workflow built and published
-  the installer from the tagged commit.
+  build passed for commit `d77f4e9`. The preview workflow built and published
+  the installer from the tagged commit. The successful validation and preview
+  runs are [34501363861](https://github.com/NovaTweaksDev/Nova-Tweaks/actions/runs/34501363861)
+  and [34501369307](https://github.com/NovaTweaksDev/Nova-Tweaks/actions/runs/34501369307).
 - Windows smoke test: installation and normal application launch of the corrected
   installer succeeded in an Oracle VirtualBox Windows guest with two virtual CPUs.
   Follow-up tests confirmed administrator access, applying and reverting an admin
   tweak, Advanced Sensors, disabling/re-enabling sensors, and app restart with
   the preference retained. These were local 1.0.0 test builds containing the
   fixes prepared for 1.0.1. Hardware-specific features and the full tweak catalog
-  were not exhaustively tested. The GitHub-downloaded 1.0.1 test is pending.
+  were not exhaustively tested. The installer downloaded from the public
+  GitHub 1.0.1 release was subsequently installed and started successfully, and
+  administrator access was activated successfully while the build was unsigned.
 - A missing Visual C++ runtime dependency found during the first VM test was
   removed from all Nova-owned C++ helpers before the successful repeat test.
 
@@ -54,10 +58,10 @@ are public.
   the intended public keys; SignPath does not replace those keys.
 - Confirm maintainer MFA for GitHub and SignPath, configure manual signing
   approval, and publish the signing-policy link on the website/download page.
-- Test the GitHub-downloaded 1.0.1 installer and backup/restore on a separate
-  Windows test system; record uninstallation of that exact build.
+- Test backup/restore on a separate Windows test system and record uninstallation
+  of the exact GitHub-downloaded 1.0.1 build.
 
-## Submission text (draft, not submitted)
+## Submission context
 
 We request SignPath Foundation code signing for Nova Tweaks, a GPL-3.0-only
 Windows desktop utility. Public source, documentation, and unsigned preview
