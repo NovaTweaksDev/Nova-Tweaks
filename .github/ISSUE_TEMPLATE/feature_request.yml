@@ -1,0 +1,54 @@
+name: Feature request
+description: Propose a focused change based on a concrete use case
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem first. Windows-sensitive changes need clear behavior, safety limits, and a practical way to verify them.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to do, and what is missing today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Describe the smallest useful change and where it would fit in Nova Tweaks.
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefit
+    attributes:
+      label: Expected benefit
+      description: Explain the practical user or contributor outcome without performance guarantees.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Note existing Windows tools, current Nova Tweaks behavior, or simpler approaches you considered.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add technical references, screenshots, compatibility limits, or implementation notes.
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and feature requests for this proposal.
+          required: true

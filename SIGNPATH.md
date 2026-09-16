@@ -1,93 +1,63 @@
-# SignPath application preparation
+# Code signing status and SignPath preparation
 
-Status: application submitted; no SignPath approval or integration is claimed.
+## Current status
 
-## Application record
+Nova Tweaks does not currently use a SignPath Foundation certificate.
 
-- Project: Nova Tweaks
-- Maintainer: Elia / [NovaTweaksDev](https://github.com/NovaTweaksDev)
+A Foundation application submitted in September 2026 was not approved at that stage because the young project had not yet established sufficient externally verifiable public reputation and visibility. The response did not identify a technical or licensing defect. The project may reapply after building a broader public track record.
+
+Current preview releases remain unsigned unless a different documented signing method is configured. Windows can therefore display an `Unknown publisher` warning.
+
+No SignPath organization, project, signing policy, or artifact configuration is active for Nova Tweaks. The repository must not be described as SignPath-approved or SignPath-signed.
+
+## Public project record
+
 - Repository: https://github.com/NovaTweaksDev/Nova-Tweaks
-- Download page: https://github.com/NovaTweaksDev/Nova-Tweaks/releases
+- Releases: https://github.com/NovaTweaksDev/Nova-Tweaks/releases
 - Website: https://nova-tweaks.com
-- License: GPL-3.0-only; separately bundled components retain their own licenses.
-- Description: Nova Tweaks is an open-source Windows desktop utility built with
-  Electron and React. It provides Windows configuration tweaks, hardware
-  monitoring, game-related controls, and backup/restore functionality. It starts
-  without elevation and requests administrator access for operations that need it.
-- Signing roles and privacy information: [README](README.md#code-signing-policy).
+- License: GPL-3.0-only, with separately bundled components under their respective licenses
+- Latest recorded preview: [1.0.1 unsigned preview](https://github.com/NovaTweaksDev/Nova-Tweaks/releases/tag/preview-v1.0.1)
 
-The repository and the
-[unsigned 1.0.1 preview](https://github.com/NovaTweaksDev/Nova-Tweaks/releases/tag/preview-v1.0.1)
-are public.
+Nova Tweaks is a Windows desktop utility built with Electron and React. It provides documented Windows configuration changes, local hardware monitoring, game-session tools, application and startup management, automation, and backup and restore functions. It starts without elevation and requests administrator access only for supported operations that require it.
 
-## Validation record
+## Validation record for preview 1.0.1
 
-- Automated tests for 1.0.1: 238 passed, 0 failed, 1 optional signing test skipped because
-  its local test keys were not configured.
-- GitHub Actions source validation: dependency installation, tests, and renderer
-  build passed for commit `d77f4e9`. The preview workflow built and published
-  the installer from the tagged commit. The successful validation and preview
-  runs are [34501363861](https://github.com/NovaTweaksDev/Nova-Tweaks/actions/runs/34501363861)
-  and [34501369307](https://github.com/NovaTweaksDev/Nova-Tweaks/actions/runs/34501369307).
-- Windows smoke test: installation and normal application launch of the corrected
-  installer succeeded in an Oracle VirtualBox Windows guest with two virtual CPUs.
-  Follow-up tests confirmed administrator access, applying and reverting an admin
-  tweak, Advanced Sensors, disabling/re-enabling sensors, and app restart with
-  the preference retained. These were local 1.0.0 test builds containing the
-  fixes prepared for 1.0.1. Hardware-specific features and the full tweak catalog
-  were not exhaustively tested. The installer downloaded from the public
-  GitHub 1.0.1 release was subsequently installed and started successfully, and
-  administrator access was activated successfully while the build was unsigned.
-- A missing Visual C++ runtime dependency found during the first VM test was
-  removed from all Nova-owned C++ helpers before the successful repeat test.
+- The recorded automated test run completed with 238 passing tests, no failures, and one optional signing test skipped because local test keys were not configured.
+- GitHub Actions dependency installation, tests, and renderer build passed for commit `d77f4e9`.
+- The preview workflow built and published the installer from the tagged commit.
+- The recorded source validation and preview workflow runs are [34501363861](https://github.com/NovaTweaksDev/Nova-Tweaks/actions/runs/34501363861) and [34501369307](https://github.com/NovaTweaksDev/Nova-Tweaks/actions/runs/34501369307).
+- Local Windows virtual-machine testing covered installation, normal launch, administrator access, applying and reverting an administrator tweak, Advanced Sensors, disabling and re-enabling sensors, restart behavior, and retained sensor preference.
+- The installer downloaded from the public 1.0.1 release was subsequently installed and launched, and administrator access was activated while the build was unsigned.
+- Hardware-specific behavior and the complete tweak catalog were not exhaustively tested by the virtual-machine checks.
 
-## Outstanding before claiming signing readiness
+A missing Visual C++ runtime dependency found during initial virtual-machine testing was removed from Nova-owned C++ helpers before the successful repeat test.
 
-- Obtain SignPath approval and the actual organization, project, signing-policy,
-  and artifact-configuration identifiers. The current release workflow uses
-  `CSC_LINK` and `CSC_KEY_PASSWORD`; it does not submit artifacts to SignPath.
-- Build Nova-owned helpers from source in the trusted CI pipeline. The current
-  application build compiles the admin broker but packages checked-in builds of
-  the game detector, NVIDIA helpers, and PresentMon helper. Their existing digest
-  checks must stay effective when introducing CI builds and signing.
-- Configure signing to cover only the approved Nova-owned artifacts, preserve
-  third-party signatures, and enforce the required product name/version metadata.
-  Verify the native helper metadata as part of that integration.
-- Preserve the distinction between Windows Authenticode signing and the app's
-  Ed25519 artifact/tweak/update trust configuration. Production packaging requires
-  the intended public keys; SignPath does not replace those keys.
-- Confirm maintainer MFA for GitHub and SignPath, configure manual signing
-  approval, and publish the signing-policy link on the website/download page.
-- Test backup/restore on a separate Windows test system and record uninstallation
-  of the exact GitHub-downloaded 1.0.1 build.
+## Existing technical preparation
 
-## Submission context
+- GitHub Actions validates source changes with `npm ci`, `npm test`, and `npm run build` on Windows.
+- Preview tags build unsigned installers and publish the installer with `checksums.txt`.
+- Release packaging distinguishes Windows Authenticode signing from the application's Ed25519 artifact, tweak, and update trust configuration.
+- Third-party executables keep their upstream signature state and are excluded from Nova-owned executable signing configuration.
+- LibreHardwareMonitor and PresentMon license, notice, origin, source, version, and digest records are maintained separately from Nova-owned code.
+- Packaged tweak definitions, sidecars, and helper configuration have integrity and compliance checks in the test suite.
 
-We request SignPath Foundation code signing for Nova Tweaks, a GPL-3.0-only
-Windows desktop utility. Public source, documentation, and unsigned preview
-installers are available at https://github.com/NovaTweaksDev/Nova-Tweaks.
-The application starts without elevation and uses a restricted administrator
-broker for requested system changes. Hardware monitoring is optional.
+These controls support review and future signing work. They do not represent SignPath approval.
 
-Our intended signing scope is the Nova-owned application, native helpers, and
-installer. Bundled upstream components retain their own licenses and signatures;
-we exclude LibreHardwareMonitor and PresentMon executables from Nova signing.
-Corresponding modified LHM source and dependency notices ship with the package.
+## Work required before a future signing integration
 
-The preview is built through GitHub Actions. SignPath integration is not yet
-configured. Some Nova helper binaries are currently checked in and must be built
-from source in the trusted signing pipeline before signed releases. We would
-like guidance on the approved artifact configuration and onboarding requirements.
+- Establish a broader, externally verifiable public project history before reapplying to the SignPath Foundation.
+- Obtain the actual approved organization, project, signing-policy, and artifact-configuration identifiers before changing CI.
+- Build all Nova-owned helpers from source in the trusted signing pipeline. The current application build compiles the administrator broker but packages checked-in builds of some other helpers.
+- Keep existing digest checks effective when moving helper builds into CI.
+- Limit signing to approved Nova-owned artifacts, preserve third-party signatures, and verify product name and version metadata.
+- Keep Authenticode signing separate from the Ed25519 keys used for artifact, tweak, and update trust.
+- Configure maintainer multi-factor authentication and manual signing approval as required by the signing service.
+- Re-test backup, restore, installation, elevation, upgrade, and uninstallation using the exact signed artifacts produced by the future pipeline.
 
-Before submission, the maintainer must confirm their contact email, signing
-roles, GitHub MFA, and the evidence of project reputation. Do not represent
-these as verified or claim approval before SignPath confirms it.
+No SignPath integration should be added to the release workflows until approval and the required identifiers are available.
 
-Creating a fresh repository does not establish the reputation required by
-SignPath Foundation and does not guarantee acceptance. The Foundation also
-requires an existing release, documented behavior, eligible open-source
-components, and verifiable builds.
+## Official references
 
-Official references: [Application](https://signpath.org/apply.html),
-[conditions](https://signpath.org/terms.html),
-[project configuration](https://docs.signpath.io/projects).
+- [SignPath Foundation application](https://signpath.org/apply.html)
+- [SignPath Foundation conditions](https://signpath.org/terms.html)
+- [SignPath project configuration](https://docs.signpath.io/projects)

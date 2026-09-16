@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Support guidance
+    url: https://github.com/NovaTweaksDev/Nova-Tweaks/blob/main/SUPPORT.md
+    about: Choose the correct place for questions, downloads, and troubleshooting.
+  - name: Security reports
+    url: https://github.com/NovaTweaksDev/Nova-Tweaks/blob/main/SECURITY.md
+    about: Report suspected vulnerabilities privately, not in a public issue.
+  - name: Nova Tweaks website
+    url: https://nova-tweaks.com
+    about: Read the official project and privacy information.
