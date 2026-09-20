@@ -81,11 +81,11 @@ const LANGUAGE_OPTIONS = [
 ];
 
 const ACCENT_OPTIONS = [
-  { value: '#EC4899', label: 'Nova Pink' },
-  { value: '#3B82F6', label: 'Azure' },
-  { value: '#6366F1', label: 'Violet' },
-  { value: '#FFB24B', label: 'Amber' },
-  { value: '#F43F5E', label: 'Rose' }
+  { value: '#9D4EDD', label: 'Nova Violet' },
+  { value: '#E93D82', label: 'Nova Rose' },
+  { value: '#FF6F61', label: 'Nova Coral' },
+  { value: '#FFB000', label: 'Nova Amber' },
+  { value: '#10B981', label: 'Nova Mint' }
 ];
 
 const DEFAULT_BACKUP_SCHEDULE = {
@@ -294,7 +294,18 @@ function SettingsPanel({
 
   async function copyValue(value, label) {
     try {
-      await navigator.clipboard.writeText(value);
+      let copied = false;
+      if (window.desktopApi?.writeClipboardText) {
+        const result = await window.desktopApi.writeClipboardText({ text: value });
+        copied = Boolean(result?.ok);
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+        copied = true;
+      }
+
+      if (!copied) {
+        throw new Error('Clipboard write failed.');
+      }
       onNotify?.(t('settingsPanel.messages.copied', { label: label || t('settingsPanel.messages.value') }), "success");
     } catch (_error) {
       onNotify?.(t('settingsPanel.messages.clipboardUnavailable'), "error");
@@ -346,7 +357,7 @@ function SettingsPanel({
             <SettingsRow icon={Palette} title={t('settingsPanel.preferences.accentTitle')} description={t('settingsPanel.preferences.accentDescription')}>
               <div className="flex flex-wrap justify-end gap-2">
                 {ACCENT_OPTIONS.map((option) => {
-                  const active = getNested(settings, 'preferences', 'accentColor', '#EC4899') === option.value;
+                  const active = getNested(settings, 'preferences', 'accentColor', '#9D4EDD') === option.value;
                   return (
                     <button
                       key={option.value}

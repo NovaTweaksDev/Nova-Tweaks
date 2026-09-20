@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Archive,
   CalendarClock,
+  Check,
   CheckCircle2,
   ChevronDown,
   Clock3,
@@ -236,7 +237,9 @@ function StatusBadge({ status }) {
 
   return (
     <span className={joinClasses('inline-flex max-w-full items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-medium capitalize', toneClass)}>
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+      {normalized === 'successful'
+        ? <Check className="h-3 w-3 shrink-0" strokeWidth={2.4} aria-hidden="true" />
+        : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
       <span className="truncate">{normalized}</span>
     </span>
   );
@@ -1073,7 +1076,7 @@ function BackupRestorePanel({
 
         <main className="grid min-w-0 items-stretch gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
           <div className="relative min-h-[560px] min-w-0 xl:min-h-0">
-          <section className="absolute inset-0 flex min-w-0 flex-col overflow-hidden rounded-3xl border border-[color:color-mix(in_srgb,var(--accent)_16%,var(--border)_84%)] bg-[color:color-mix(in_srgb,var(--surface)_94%,var(--surface-strong)_6%)] shadow-[0_24px_62px_rgba(0,0,0,0.18)]">
+          <section className="absolute inset-0 flex min-w-0 flex-col overflow-hidden rounded-3xl border border-[var(--border)] bg-[color:color-mix(in_srgb,var(--surface)_94%,var(--surface-strong)_6%)] shadow-[0_24px_62px_rgba(0,0,0,0.18)]">
             <div className="flex flex-col gap-3 border-b border-[color:color-mix(in_srgb,var(--border)_76%,transparent)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-base font-semibold tracking-normal text-[var(--text-primary)]">{i18n.t('backup.history.title')}</h2>
@@ -1132,11 +1135,11 @@ function BackupRestorePanel({
                     return (
                       <div
                         key={backup.id}
-                        className="grid min-w-0 gap-3 px-5 py-4 transition hover:bg-[color:color-mix(in_srgb,var(--accent)_5%,transparent)] xl:grid-cols-[minmax(170px,1fr)_118px_70px_90px_90px_86px] xl:items-center"
+                        className="grid min-w-0 gap-3 px-5 py-4 transition hover:bg-[var(--surface-hover)] xl:grid-cols-[minmax(170px,1fr)_118px_70px_90px_90px_86px] xl:items-center"
                       >
                         <div className="min-w-0">
                           <div className="flex items-center justify-center gap-3">
-                            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[color:color-mix(in_srgb,var(--accent)_10%,var(--surface)_90%)] text-[var(--accent)]">
+                            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-strong)] text-[var(--text-secondary)]">
                               {backup.origin === 'windows' ? <ShieldCheck className="h-4 w-4" /> : <DatabaseBackup className="h-4 w-4" />}
                             </span>
                             <div className="min-w-0">
@@ -1207,7 +1210,7 @@ function BackupRestorePanel({
               ) : (
                 <div className="flex min-h-[260px] items-center justify-center p-8">
                   <div className="max-w-sm text-center">
-                    <span className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[color:color-mix(in_srgb,var(--accent)_10%,var(--surface)_90%)] text-[var(--accent)]">
+                    <span className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--surface-strong)] text-[var(--text-secondary)]">
                       <DatabaseBackup className="h-7 w-7" />
                     </span>
                     <h3 className="mt-4 text-base font-semibold text-[var(--text-primary)]">

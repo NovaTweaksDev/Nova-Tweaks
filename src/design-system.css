@@ -1,114 +1,7 @@
-/*
- * Nova Tweaks professional desktop design system
- * This layer intentionally normalizes legacy page styles without changing
- * their information architecture or tab-specific functionality.
+/* Nova Instrument component language.
+ * All foundational tokens live in index.css; this file only maps existing
+ * component classes onto that shared system.
  */
-
-@font-face {
-  font-family: 'Inter Local';
-  src: url('/fonts/inter/InterVariable.woff2') format('woff2');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Nova Consolas';
-  src: local('Consolas');
-  font-weight: 400 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-:root {
-  --font-heading: 'Inter Local', 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
-  --font-body: 'Inter Local', 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
-  --font-mono: 'Nova Consolas', 'Consolas', 'Cascadia Mono', monospace;
-
-  --bg: #ececee;
-  --bg-overlay: rgba(236, 236, 238, 0.96);
-  --bg-tint-start: var(--bg);
-  --bg-tint-end: var(--bg);
-  --titlebar-bg: #e6e6e8;
-  --surface: #ffffff;
-  --surface-elevated: #f6f6f7;
-  --surface-hover: #eeeeef;
-  --surface-strong: #f2f2f3;
-  --border: rgba(24, 24, 27, 0.15);
-  --border-subtle: rgba(24, 24, 27, 0.09);
-  --hover-layer: rgba(24, 24, 27, 0.05);
-  --pressed-layer: rgba(24, 24, 27, 0.09);
-  --text-primary: #1d1d1f;
-  --text-secondary: #49494d;
-  --text-muted: #68686d;
-  --accent-soft: color-mix(in srgb, var(--accent) 11%, transparent);
-
-  --card-surface: var(--surface);
-  --card-surface-strong: var(--surface-elevated);
-  --card-surface-feature: var(--surface);
-  --card-border: var(--border);
-  --card-border-hover: color-mix(in srgb, var(--accent) 30%, var(--border));
-  --card-highlight: transparent;
-  --card-shadow-base: 0 1px 2px rgba(24, 24, 27, 0.05);
-  --card-shadow-feature: var(--card-shadow-base);
-  --card-shadow-panel: var(--card-shadow-base);
-  --card-shadow-item: none;
-  --card-shadow-hover: 0 2px 8px rgba(24, 24, 27, 0.08);
-
-  --orbital-panel: var(--surface);
-  --orbital-panel-strong: var(--surface);
-  --orbital-panel-inset: var(--surface-elevated);
-  --orbital-line: var(--border);
-  --orbital-line-bright: transparent;
-  --orbital-glass-blur: 0;
-  --orbital-shadow-low: var(--card-shadow-base);
-  --orbital-shadow-mid: var(--card-shadow-base);
-  --orbital-shadow-high: 0 18px 48px rgba(24, 24, 27, 0.18);
-  --orbital-grid: transparent;
-
-  --ui-radius-sm: 6px;
-  --ui-radius-md: 8px;
-  --ui-radius-lg: 10px;
-  --ui-radius-xl: 12px;
-  --ui-shadow-soft: var(--card-shadow-base);
-  --ui-shadow-modal: 0 22px 56px rgba(24, 24, 27, 0.22);
-  --ui-focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent) 24%, transparent);
-  --ui-btn-primary-shadow: none;
-  --ui-segment-active-shadow: 0 1px 2px rgba(24, 24, 27, 0.08);
-  --chart-grid: #dddddf;
-  --scrollbar-track: transparent;
-  --scrollbar-thumb: #b6b6ba;
-  --scrollbar-thumb-hover: #939398;
-}
-
-html[data-theme='dark'] {
-  --bg: #0c0d0f;
-  --bg-overlay: rgba(12, 13, 15, 0.96);
-  --bg-tint-start: var(--bg);
-  --bg-tint-end: var(--bg);
-  --titlebar-bg: #08090b;
-  --surface: #141619;
-  --surface-elevated: #1b1d21;
-  --surface-hover: #22252a;
-  --surface-strong: #1e2025;
-  --border: rgba(255, 255, 255, 0.12);
-  --border-subtle: rgba(255, 255, 255, 0.075);
-  --hover-layer: rgba(255, 255, 255, 0.055);
-  --pressed-layer: rgba(255, 255, 255, 0.09);
-  --text-primary: #f5f5f7;
-  --text-secondary: #c7c7cc;
-  --text-muted: #98989f;
-  --success: #4ecb8d;
-  --warning: #f2b84b;
-  --danger: #ff6b7c;
-  --loading: #a2a2a8;
-  --card-shadow-base: 0 1px 2px rgba(0, 0, 0, 0.26);
-  --card-shadow-hover: 0 2px 8px rgba(0, 0, 0, 0.32);
-  --orbital-shadow-high: 0 24px 64px rgba(0, 0, 0, 0.48);
-  --chart-grid: #34363b;
-  --scrollbar-thumb: #45484e;
-  --scrollbar-thumb-hover: #5b5e65;
-}
 
 html,
 body,
@@ -165,7 +58,7 @@ samp,
   font-variant-numeric: tabular-nums slashed-zero;
 }
 
-/* Metric values remain Inter; tabular figures preserve alignment. */
+/* Technical and live values use Geist Mono with tabular figures. */
 .dashboard-top-row-uptime-value,
 .dashboard-metric-card > div:last-child p:last-child,
 .overview-summary-value,
@@ -235,15 +128,11 @@ samp,
 .app-sidebar {
   isolation: isolate;
   overflow: hidden;
-  border-color: rgba(31, 42, 58, 0.14) !important;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08) 34%, rgba(222, 229, 238, 0.16)),
-    rgba(225, 231, 239, 0.72) !important;
-  box-shadow:
-    inset -1px 0 0 rgba(255, 255, 255, 0.42),
-    18px 0 52px -40px rgba(24, 34, 48, 0.52) !important;
-  backdrop-filter: blur(28px) saturate(132%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(132%) !important;
+  border-color: var(--nova-line) !important;
+  background: var(--nova-sidebar) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 html[data-theme='dark'] .app-sidebar {
@@ -330,8 +219,8 @@ html[data-theme='dark'] .app-sidebar::before {
 }
 
 .app-sidebar-nav-button:hover {
-  border-color: rgba(31, 42, 58, 0.1) !important;
-  background: rgba(255, 255, 255, 0.24) !important;
+  border-color: var(--nova-line) !important;
+  background: var(--nova-surface-hover) !important;
   color: var(--text-primary);
 }
 
@@ -342,14 +231,10 @@ html[data-theme='dark'] .app-sidebar-nav-button:hover {
 
 .app-sidebar .app-sidebar-nav-button.is-active,
 .app-shell.is-tweaks-section .app-sidebar-nav-button.is-active {
-  border-color: rgba(31, 42, 58, 0.12) !important;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.18)),
-    color-mix(in srgb, var(--accent) 5%, rgba(215, 222, 232, 0.54)) !important;
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--nova-line)) !important;
+  background: color-mix(in srgb, var(--accent) 8%, var(--nova-sidebar)) !important;
   color: var(--text-primary);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.52),
-    0 9px 24px -20px rgba(25, 36, 52, 0.62) !important;
+  box-shadow: var(--card-shadow-base) !important;
 }
 
 html[data-theme='dark'] .app-sidebar .app-sidebar-nav-button.is-active,
@@ -376,12 +261,12 @@ html[data-theme='dark'] .app-shell.is-tweaks-section .app-sidebar-nav-button.is-
 }
 
 .app-sidebar-nav-label {
-  font-size: 1.1rem;
+  font-size: 0.94rem;
   font-weight: 580;
 }
 
 .app-sidebar-nav-button.is-active .app-sidebar-nav-label {
-  font-size: 1.1rem;
+  font-size: 0.94rem;
 }
 
 .app-sidebar-feature-detail {
@@ -391,15 +276,15 @@ html[data-theme='dark'] .app-shell.is-tweaks-section .app-sidebar-nav-button.is-
 }
 
 .app-sidebar-command-button {
-  border-color: rgba(31, 42, 58, 0.12) !important;
-  background: rgba(255, 255, 255, 0.2) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34) !important;
-  backdrop-filter: blur(16px) saturate(120%);
-  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  border-color: var(--nova-line) !important;
+  background: var(--nova-surface-1) !important;
+  box-shadow: var(--card-shadow-base) !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .app-sidebar-command-button:hover {
-  background: rgba(255, 255, 255, 0.32) !important;
+  background: var(--nova-surface-hover) !important;
 }
 
 html[data-theme='dark'] .app-sidebar-command-button {
@@ -415,11 +300,11 @@ html[data-theme='dark'] .app-sidebar-command-button:hover {
 .app-sidebar-status-card,
 .app-sidebar-account-button,
 .app-sidebar-account-menu {
-  border-color: rgba(31, 42, 58, 0.12) !important;
-  background: rgba(255, 255, 255, 0.2) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34) !important;
-  backdrop-filter: blur(18px) saturate(120%);
-  -webkit-backdrop-filter: blur(18px) saturate(120%);
+  border-color: var(--nova-line) !important;
+  background: var(--nova-surface-1) !important;
+  box-shadow: var(--card-shadow-base) !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 html[data-theme='dark'] .app-sidebar-status-card,
@@ -454,6 +339,230 @@ html[data-theme='dark'] .app-sidebar-account-menu {
 
   .app-sidebar-account-button:hover {
     transform: none;
+  }
+}
+
+/* Nova Instrument — compact, calm, instrument-like refinement. */
+.app-titlebar {
+  height: 38px !important;
+  min-height: 38px !important;
+  border-bottom: 1px solid var(--nova-line-subtle) !important;
+  background: color-mix(in srgb, var(--nova-bg) 92%, var(--nova-surface-1)) !important;
+  box-shadow: none !important;
+}
+
+.app-sidebar {
+  width: 240px !important;
+  border-right: 1px solid var(--nova-line) !important;
+  background: var(--nova-surface-0) !important;
+  box-shadow: none !important;
+}
+
+.app-sidebar-header {
+  min-height: 66px !important;
+  padding: 14px 16px 10px !important;
+}
+
+.app-sidebar-nav {
+  padding: 8px 10px !important;
+}
+
+.app-sidebar-section-label {
+  margin: 14px 10px 6px !important;
+  color: var(--nova-text-tertiary) !important;
+  font-size: 10px !important;
+  font-weight: 650 !important;
+  letter-spacing: .12em !important;
+}
+
+.app-sidebar-nav-button,
+.app-sidebar-feature-button {
+  min-height: 40px !important;
+  border: 0 !important;
+  border-radius: var(--radius-control) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.app-sidebar-nav-button:hover,
+.app-sidebar-feature-button:hover {
+  background: var(--nova-surface-2) !important;
+  transform: translateX(1px);
+}
+
+.app-sidebar .app-sidebar-nav-button.is-active,
+.app-shell.is-tweaks-section .app-sidebar-nav-button.is-active {
+  border-color: color-mix(in srgb, var(--nova-selection) 42%, var(--nova-line)) !important;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--nova-selection) 17%, var(--nova-surface-1)),
+      color-mix(in srgb, var(--nova-selection) 8%, var(--nova-surface-1)) 68%,
+      color-mix(in srgb, var(--nova-selection) 5%, var(--nova-surface-1))
+    ) !important;
+  color: var(--nova-text-primary) !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 4%, transparent),
+    0 8px 22px -18px color-mix(in srgb, var(--nova-selection) 56%, transparent) !important;
+}
+
+.app-sidebar-icon-shell {
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.app-sidebar-nav-button.is-active .app-sidebar-icon-shell {
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent) !important;
+  background: color-mix(in srgb, var(--accent) 20%, transparent) !important;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 11%, transparent) !important;
+}
+
+.app-sidebar-nav-button.is-active .app-sidebar-nav-label {
+  font-weight: 680;
+}
+
+.ui-page-title,
+.dashboard-title {
+  color: var(--nova-text-primary) !important;
+  font-size: 28px !important;
+  font-weight: 650 !important;
+  letter-spacing: -.035em !important;
+  line-height: 1.12 !important;
+}
+
+.ui-page-description,
+.dashboard-subtitle {
+  max-width: 68ch;
+  color: var(--nova-text-secondary) !important;
+  font-size: 13px !important;
+  line-height: 1.55 !important;
+}
+
+.ui-page-header,
+.dashboard-header {
+  padding-bottom: 18px !important;
+  border-bottom-color: var(--nova-line-subtle) !important;
+}
+
+.ui-card,
+.nova-panel,
+.tweaks-list-shell,
+.tweak-detail-panel {
+  border-color: var(--nova-line) !important;
+  border-radius: var(--radius-panel) !important;
+  background: var(--nova-surface-1) !important;
+  box-shadow: none !important;
+}
+
+.ui-input-shell,
+.ui-select-trigger,
+.nova-dropdown-trigger,
+.ui-btn {
+  border-radius: var(--radius-control) !important;
+  box-shadow: none !important;
+}
+
+.ui-input-shell:focus-within,
+.ui-select-trigger:focus-visible,
+.nova-dropdown-trigger:focus-visible,
+.ui-btn:focus-visible,
+.nova-tweak-row:focus-within {
+  outline: 2px solid color-mix(in srgb, var(--nova-accent) 72%, transparent) !important;
+  outline-offset: 2px !important;
+}
+
+.nova-tweak-row {
+  border-width: 0 0 1px !important;
+  border-color: var(--nova-line-subtle) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.nova-tweak-row:last-child {
+  border-bottom: 0 !important;
+}
+
+.nova-tweak-row:hover {
+  background: var(--nova-surface-2) !important;
+}
+
+.nova-tweak-row.is-selected {
+  background: color-mix(in srgb, var(--category-accent, var(--accent)) 5%, var(--nova-surface-1)) !important;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 2.5%, transparent) !important;
+}
+
+.nova-tweak-row.is-selected:hover {
+  background: color-mix(in srgb, var(--category-accent, var(--accent)) 7%, var(--nova-surface-1)) !important;
+}
+
+.nova-tweak-row.is-selected::before {
+  inset: 0 auto 0 0 !important;
+  opacity: 1 !important;
+  transform: scaleY(1) !important;
+}
+
+.tweak-detail-panel {
+  overflow: hidden;
+}
+
+.tweak-detail-actions {
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--nova-line-subtle);
+}
+
+.metric-value,
+.dashboard-metric-value,
+.game-mode-live-metrics-footer strong,
+[data-metric-value='true'] {
+  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Consolas, monospace !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.03em;
+}
+
+.game-mode-live-metrics-group:first-child {
+  border-color: color-mix(in srgb, var(--nova-accent) 18%, var(--nova-line)) !important;
+  background: var(--nova-surface-1) !important;
+}
+
+.game-mode-live-metrics-group:first-child [class*='text-2xl'],
+.game-mode-live-metrics-group:first-child [class*='text-3xl'] {
+  font-size: 30px !important;
+}
+
+.ui-modal-shell {
+  border-radius: var(--radius-modal) !important;
+  background: var(--nova-surface-1) !important;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .38) !important;
+}
+
+@media (min-width: 768px) and (max-width: 1180px) {
+  .app-sidebar {
+    width: 5.25rem !important;
+  }
+}
+
+@media (min-width: 1181px) and (max-width: 1279px) {
+  .app-sidebar {
+    width: 232px !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .tweaks-side-panel {
+    position: static !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .ui-page-title,
+  .dashboard-title {
+    font-size: 24px !important;
+  }
+
+  .nova-tweak-row {
+    padding: 14px !important;
   }
 }
 
@@ -626,7 +735,7 @@ html[data-theme='dark'] .app-sidebar-account-menu {
 .ui-btn-primary {
   border-color: color-mix(in srgb, var(--accent) 72%, #000 12%) !important;
   background: var(--accent) !important;
-  color: #fff !important;
+  color: var(--accent-contrast) !important;
 }
 
 .ui-btn-primary:not(:disabled):hover {
@@ -732,7 +841,7 @@ select.ui-input:focus {
 
 .ui-switch {
   border-color: var(--border) !important;
-  background: #777980 !important;
+  background: #aaa39c !important;
 }
 
 .ui-switch[aria-checked='true'] {
@@ -867,4 +976,567 @@ html[data-compact='true'] .ui-page-header {
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
   }
+}
+
+/* Second polish pass: readability, inspector hierarchy and monitoring focus. */
+.app-sidebar-nav-label {
+  overflow: visible !important;
+  color: var(--text-primary) !important;
+  font-size: 14px !important;
+  line-height: 1.25 !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+
+.app-sidebar-feature-detail {
+  display: none !important;
+  overflow: hidden !important;
+  color: var(--text-muted) !important;
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.app-sidebar-nav-text {
+  min-width: 0;
+}
+
+.tweak-detail-panel {
+  padding: 0 !important;
+  background: color-mix(in srgb, var(--surface-elevated) 82%, var(--surface) 18%) !important;
+}
+
+.tweak-detail-panel .tech-panel-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.tweak-detail-summary,
+.tweak-detail-metadata {
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.tweak-detail-summary {
+  padding: 16px !important;
+}
+
+.tweak-detail-description {
+  max-height: none !important;
+  margin-top: 12px;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: var(--radius-control) !important;
+  background: color-mix(in srgb, var(--surface-strong) 72%, transparent) !important;
+  box-shadow: none !important;
+  color: var(--text-secondary) !important;
+  font-size: 13px !important;
+  line-height: 1.55 !important;
+  padding: 10px 12px !important;
+}
+
+.tweak-detail-category,
+.tweak-detail-group-title {
+  display: block;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .08em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.tweak-detail-name {
+  margin-top: 3px;
+  font-size: 15px !important;
+  line-height: 1.3 !important;
+}
+
+.tweak-detail-status {
+  display: inline-flex;
+  flex: 0 1 44%;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  max-width: 44%;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.tweak-detail-status.is-enabled {
+  color: var(--success);
+}
+
+.tweak-detail-status.is-ready {
+  color: var(--accent);
+}
+
+.tweak-detail-metadata {
+  padding: 0 16px 12px !important;
+}
+
+.tweak-detail-group {
+  border-top: 1px solid var(--border-subtle);
+  padding: 13px 0 4px;
+}
+
+.tweak-detail-group-title {
+  margin-bottom: 5px;
+}
+
+.tweak-detail-group [class*='py-3'] {
+  padding-top: 9px !important;
+  padding-bottom: 9px !important;
+}
+
+.tweak-detail-flags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  padding: 12px 0 4px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.tweak-detail-actions {
+  padding: 12px 16px 16px !important;
+}
+
+.game-mode-shell {
+  width: 100%;
+  max-width: 1260px;
+  margin-inline: auto;
+}
+
+.game-mode-shell .ui-page-description {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+}
+
+.game-mode-card-title {
+  font-size: 16px !important;
+}
+
+.game-mode-card-subtitle,
+.game-mode-control-center__path,
+.game-mode-live-metric-card__detail,
+.game-mode-metric-tile__detail {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+.game-mode-caption,
+.game-mode-live-status-item > div span,
+.game-mode-live-metrics-group__header h3,
+.game-mode-live-metrics-group__header p {
+  font-size: 11px !important;
+}
+
+.game-mode-control-center__title {
+  font-size: 20px !important;
+}
+
+.game-mode-auto-tracking > div p,
+.game-mode-live-status-item > div strong,
+.game-mode-live-metric-card__label,
+.game-mode-tuning-row__title,
+.game-mode-metric-tile__label {
+  font-size: 13px !important;
+}
+
+.game-mode-auto-tracking > div span,
+.game-mode-control-center__meta span {
+  font-size: 12px !important;
+}
+
+.game-mode-shell .ui-btn {
+  min-height: 38px !important;
+  font-size: 13px !important;
+}
+
+.game-mode-shell .ui-btn:disabled {
+  color: color-mix(in srgb, var(--text-secondary) 72%, transparent) !important;
+  opacity: .62 !important;
+}
+
+.game-mode-live-status-strip {
+  grid-template-columns: minmax(180px, 1.4fr) repeat(3, minmax(120px, 1fr)) !important;
+}
+
+.game-mode-live-metrics-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.game-mode-live-metric-card.is-priority:first-child .game-mode-live-metric-card__value {
+  font-size: 30px !important;
+}
+
+.game-mode-live-metric-card__value {
+  font-family: var(--font-mono) !important;
+  font-size: 22px !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.game-mode-health-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 12px;
+  border-block: 1px solid var(--border-subtle);
+}
+
+.game-mode-health-item {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  border-right: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  padding: 8px 14px;
+  font-size: 12px;
+}
+
+.game-mode-health-item:last-child {
+  border-right: 0;
+}
+
+.game-mode-health-item svg {
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+}
+
+.game-mode-health-item strong {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.game-mode-details-disclosure,
+.game-mode-secondary-details {
+  margin-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.game-mode-details-disclosure > summary,
+.game-mode-secondary-details > summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 12px 2px;
+  font-size: 13px;
+  font-weight: 650;
+  list-style-position: inside;
+}
+
+.game-mode-details-disclosure[open] > summary,
+.game-mode-secondary-details[open] > summary {
+  color: var(--text-primary);
+}
+
+.game-mode-secondary-details {
+  margin-top: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+
+.game-mode-secondary-details > summary {
+  padding: 14px 16px;
+}
+
+.game-mode-secondary-details__content {
+  display: grid;
+  gap: 16px;
+  padding: 0 16px 16px;
+}
+
+.game-mode-session-empty {
+  display: flex;
+  min-height: 250px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  padding: 36px 24px;
+  text-align: center;
+}
+
+.game-mode-session-empty__icon {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-row);
+  background: var(--surface-elevated);
+  color: var(--text-muted);
+}
+
+.game-mode-session-empty__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.game-mode-session-empty h2 {
+  margin-top: 16px;
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.game-mode-session-empty p {
+  max-width: 480px;
+  margin-top: 7px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.game-mode-session-empty > span:last-child {
+  margin-top: 12px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .game-mode-live-status-strip,
+  .game-mode-live-metrics-grid,
+  .game-mode-health-strip {
+    grid-template-columns: 1fr !important;
+  }
+
+  .game-mode-health-item {
+    border-right: 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .game-mode-health-item:last-child {
+    border-bottom: 0;
+  }
+}
+
+@media (min-width: 1181px) {
+  .app-content-shell {
+    padding-left: 240px !important;
+  }
+}
+
+@media (min-width: 1181px) and (max-width: 1279px) {
+  .app-content-shell {
+    padding-left: 232px !important;
+  }
+}
+
+@media (min-width: 1181px) and (max-width: 1439px) {
+  .app-shell.is-tweaks-section .app-content-shell {
+    padding-left: 5.25rem !important;
+  }
+
+  .app-shell.is-tweaks-section .app-sidebar {
+    width: 5.25rem !important;
+  }
+}
+
+/* Dark theme polish: one cool hierarchy shared by chrome, sidebar and content. */
+html[data-theme='dark'] .app-titlebar {
+  border-bottom-color: var(--nova-line-subtle) !important;
+  background: var(--nova-chrome) !important;
+}
+
+html[data-theme='dark'] .app-sidebar {
+  --sidebar-bg: var(--nova-sidebar);
+  --sidebar-bg-strong: var(--nova-sidebar);
+  --sidebar-bg-end: var(--nova-sidebar);
+  --sidebar-panel: var(--nova-surface-1);
+  --sidebar-panel-strong: var(--nova-surface-2);
+  --sidebar-border: var(--nova-line-subtle);
+  --sidebar-border-strong: var(--nova-line);
+  --sidebar-muted: var(--nova-text-muted);
+  --sidebar-text: var(--nova-text-secondary);
+  --sidebar-label-muted: var(--nova-text-secondary);
+  --sidebar-section-label: var(--nova-text-muted);
+  --sidebar-hover-border: transparent;
+  --sidebar-hover-bg: var(--nova-surface-hover);
+  --sidebar-icon-bg: transparent;
+  --sidebar-icon-hover-bg: transparent;
+  --sidebar-feature-border: transparent;
+  --sidebar-feature-bg-base: transparent;
+  --sidebar-feature-icon-bg: transparent;
+  --sidebar-feature-icon-color: var(--nova-text-muted);
+  --sidebar-active-border: transparent;
+  --sidebar-active-bg-base: color-mix(in srgb, var(--accent) 8%, var(--nova-sidebar));
+  --sidebar-active-text: var(--nova-text-primary);
+  --sidebar-active-icon-color: var(--accent);
+  --sidebar-active-shadow: inset 2px 0 0 var(--accent);
+  --sidebar-divider-start: transparent;
+  --sidebar-divider-mid: var(--nova-line-subtle);
+  --sidebar-divider-end: transparent;
+  --sidebar-panel-highlight-a: transparent;
+  --sidebar-panel-highlight-b: transparent;
+  --sidebar-panel-shadow: none;
+  --sidebar-menu-bg: var(--nova-surface-2);
+  --sidebar-shell-shadow: none;
+  border-right: 1px solid var(--nova-line-subtle) !important;
+  background: var(--nova-sidebar) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme='dark'] .app-sidebar::before {
+  background: radial-gradient(
+    circle at 20% 4%,
+    color-mix(in srgb, var(--accent) 5%, transparent),
+    transparent 220px
+  ) !important;
+  opacity: 1;
+}
+
+html[data-theme='dark'] .app-sidebar-nav-button,
+html[data-theme='dark'] .app-sidebar-feature-button {
+  border-color: transparent !important;
+  background: transparent !important;
+  color: var(--nova-text-secondary) !important;
+}
+
+html[data-theme='dark'] .app-sidebar-nav-button:not(.is-active) .app-sidebar-nav-label {
+  color: var(--nova-text-secondary) !important;
+}
+
+html[data-theme='dark'] .app-sidebar-nav-button:not(.is-active) .app-sidebar-icon-shell {
+  color: var(--nova-text-muted) !important;
+}
+
+html[data-theme='dark'] .app-sidebar-nav-button:not(.is-active):hover,
+html[data-theme='dark'] .app-sidebar-feature-button:not(.is-active):hover {
+  border-color: transparent !important;
+  background: var(--nova-surface-hover) !important;
+  color: var(--nova-text-primary) !important;
+}
+
+html[data-theme='dark'] .app-sidebar .app-sidebar-nav-button.is-active,
+html[data-theme='dark'] .app-shell.is-tweaks-section .app-sidebar-nav-button.is-active,
+html[data-theme='dark'] .app-sidebar .app-sidebar-nav-button.is-active:hover,
+html[data-theme='dark'] .app-shell.is-tweaks-section .app-sidebar-nav-button.is-active:hover {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--nova-line)) !important;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--accent) 18%, var(--nova-sidebar)),
+      color-mix(in srgb, var(--accent) 9%, var(--nova-sidebar)) 68%,
+      color-mix(in srgb, var(--accent) 5%, var(--nova-sidebar))
+    ) !important;
+  color: var(--nova-text-primary) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.045),
+    0 8px 22px -18px color-mix(in srgb, var(--accent) 52%, transparent) !important;
+  transform: none !important;
+}
+
+html[data-theme='dark'] .app-sidebar-nav-button.is-active .app-sidebar-icon-shell {
+  border-color: color-mix(in srgb, var(--accent) 44%, transparent) !important;
+  background: color-mix(in srgb, var(--accent) 22%, transparent) !important;
+  color: var(--accent) !important;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 13%, transparent) !important;
+}
+
+html[data-theme='dark'] .app-sidebar-command-button,
+html[data-theme='dark'] .app-sidebar-status-card,
+html[data-theme='dark'] .app-sidebar-account-button {
+  border-color: var(--nova-line-subtle) !important;
+  background: var(--nova-surface-1) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-theme='dark'] .app-sidebar-command-button:hover,
+html[data-theme='dark'] .app-sidebar-account-button:hover {
+  border-color: var(--nova-line) !important;
+  background: var(--nova-surface-2) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html[data-theme='dark'] .app-sidebar-account-menu {
+  border-color: var(--nova-line) !important;
+  background: var(--nova-surface-2) !important;
+}
+
+html[data-theme='dark'] .ui-card,
+html[data-theme='dark'] .ui-panel,
+html[data-theme='dark'] .ui-card-muted,
+html[data-theme='dark'] .ui-card-subtle,
+html[data-theme='dark'] .settings-shell .ui-card {
+  border-color: var(--nova-line) !important;
+  background: var(--nova-surface-1) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] .ui-input-shell,
+html[data-theme='dark'] .ui-select-shell,
+html[data-theme='dark'] .ui-select-trigger,
+html[data-theme='dark'] .nova-dropdown-trigger,
+html[data-theme='dark'] .ui-btn-secondary,
+html[data-theme='dark'] .ui-btn-ghost {
+  border-color: var(--nova-line) !important;
+  background: var(--nova-surface-2) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] .ui-input-shell:hover,
+html[data-theme='dark'] .ui-select-shell:hover,
+html[data-theme='dark'] .ui-select-trigger:hover,
+html[data-theme='dark'] .nova-dropdown-trigger:hover,
+html[data-theme='dark'] .ui-btn-secondary:not(:disabled):hover,
+html[data-theme='dark'] .ui-btn-ghost:not(:disabled):hover {
+  border-color: var(--nova-line-strong) !important;
+  background: var(--nova-surface-hover) !important;
+}
+
+html[data-theme='dark'] .ui-input-shell:focus-within,
+html[data-theme='dark'] .ui-select-shell:focus-within,
+html[data-theme='dark'] .ui-select-trigger:focus-visible,
+html[data-theme='dark'] .nova-dropdown-trigger:focus-visible,
+html[data-theme='dark'] .ui-btn:focus-visible,
+html[data-theme='dark'] .ui-switch:focus-visible,
+html[data-theme='dark'] .app-sidebar-nav-button:focus-visible {
+  outline: none !important;
+  box-shadow: var(--nova-focus-ring) !important;
+}
+
+html[data-theme='dark'] .ui-switch {
+  border-color: var(--nova-line-strong) !important;
+  background: var(--nova-surface-pressed) !important;
+}
+
+html[data-theme='dark'] .ui-switch[aria-checked='true'] {
+  border-color: var(--accent) !important;
+  background: var(--accent) !important;
+}
+
+html[data-theme='dark'] :disabled,
+html[data-theme='dark'] [aria-disabled='true'] {
+  color: var(--nova-text-disabled);
+}
+
+html[data-theme='dark'] .ui-btn-primary {
+  box-shadow: none !important;
+  color: var(--nova-bg) !important;
+  text-shadow: none;
 }

@@ -99,7 +99,7 @@ function createDefaultAppSettings() {
     preferences: {
       language: 'en',
       theme: 'dark',
-      accentColor: '#EC4899',
+      accentColor: '#9D4EDD',
       compactMode: false,
       reducedMotion: false,
       mascotAnimationEnabled: false
@@ -563,23 +563,44 @@ function GlobalOperationStatus({ execution, operation, t, suppressed = false }) 
           : t('tweaks.running', { defaultValue: 'Action is still running...' })
     );
   const toneClass = status === 'success'
-    ? 'border-[color:color-mix(in_srgb,var(--success)_38%,var(--border))] bg-[color:color-mix(in_srgb,var(--success)_13%,var(--surface)_87%)] text-[var(--success)]'
+    ? 'nova-toast--success'
     : status === 'error'
-      ? 'border-[color:color-mix(in_srgb,var(--danger)_38%,var(--border))] bg-[color:color-mix(in_srgb,var(--danger)_13%,var(--surface)_87%)] text-[var(--danger)]'
-      : 'border-[color:color-mix(in_srgb,var(--loading)_32%,var(--border))] bg-[color:color-mix(in_srgb,var(--loading)_10%,var(--surface)_90%)] text-[var(--loading)]';
+      ? 'nova-toast--error'
+      : 'nova-toast--loading';
   const Icon = status === 'success' ? CheckCircle2 : status === 'error' ? CircleX : Loader2;
+  const operationSteps = !executionActive && Array.isArray(operation?.steps) ? operation.steps : [];
+  const operationProgress = !executionActive && Number.isFinite(Number(operation?.progress))
+    ? Math.max(0, Math.min(1, Number(operation.progress)))
+    : null;
 
   return (
-    <div className={`fixed right-4 top-[3.25rem] z-[140] w-[min(92vw,390px)] animate-enter rounded-xl border px-4 py-3 shadow-[0_18px_42px_rgba(0,0,0,0.35)] backdrop-blur transition-colors duration-300 ${toneClass}`}>
-      <div className="flex items-center gap-3">
-        <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-current/30 bg-[color:color-mix(in_srgb,currentColor_10%,transparent)] transition-colors duration-300">
+    <div className={`nova-toast nova-toast--operation fixed right-4 top-[3.25rem] z-[140] w-[min(calc(100vw-2rem),360px)] animate-enter ${toneClass}`}>
+      <div className="flex items-center gap-2.5">
+        <span className="nova-toast__icon">
           <Icon key={status} className={`h-4 w-4 transition-all duration-300 ${status === 'running' ? 'animate-spin' : 'animate-execution-icon'}`} />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{label}</p>
-          <p className="mt-0.5 line-clamp-2 text-xs text-[var(--text-muted)]">{message}</p>
+          <p className="truncate text-[0.8rem] font-semibold leading-tight text-[var(--text-primary)]">{label}</p>
+          <p className="mt-1 line-clamp-2 text-[0.7rem] leading-snug text-[var(--text-muted)]">{message}</p>
         </div>
       </div>
+      {operationSteps.length > 0 ? (
+        <div className="nova-toast-progress">
+          <div className="nova-toast-progress__track" aria-hidden="true">
+            <span style={{ width: `${Math.round((operationProgress ?? 0) * 100)}%` }} />
+          </div>
+          <ul className="nova-toast-progress__steps">
+            {operationSteps.map((step) => (
+              <li key={step.id} data-status={step.status}>
+                <span className="nova-toast-progress__step-icon" aria-hidden="true">
+                  {step.status === 'success' ? <CheckCircle2 /> : step.status === 'error' ? <CircleX /> : step.status === 'running' ? <Loader2 className="animate-spin" /> : <span />}
+                </span>
+                <span>{step.label}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1782,7 +1803,9 @@ function App() {
     document.documentElement.setAttribute('data-theme', resolvedTheme);
     document.documentElement.setAttribute('data-compact', appSettings.preferences.compactMode ? 'true' : 'false');
     document.documentElement.setAttribute('data-reduced-motion', appSettings.preferences.reducedMotion ? 'true' : 'false');
-    document.documentElement.style.setProperty('--accent', appSettings.preferences.accentColor || '#EC4899');
+    const accentColor = appSettings.preferences.accentColor || '#9D4EDD';
+    document.documentElement.style.setProperty('--accent', accentColor);
+    document.documentElement.style.setProperty('--accent-contrast', accentColor.toUpperCase() === '#9D4EDD' ? '#FFFFFF' : '#101112');
     setTheme(resolvedTheme);
     try {
       localStorage.setItem('app-theme', resolvedTheme);

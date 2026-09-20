@@ -5,11 +5,23 @@ const SETTINGS_SCHEMA = 'nova-tweaks-settings';
 const SETTINGS_SCHEMA_VERSION = 1;
 const SUPPORTED_LANGUAGES = new Set(['en', 'de', 'fr']);
 const SUPPORTED_THEMES = new Set(['light', 'dark', 'system']);
-const SUPPORTED_ACCENTS = new Set(['#EC4899', '#3B82F6', '#6366F1', '#FFB24B', '#F43F5E']);
+const SUPPORTED_ACCENTS = new Set(['#9D4EDD', '#E93D82', '#FF6F61', '#FFB000', '#10B981']);
 const LEGACY_ACCENT_ALIASES = Object.freeze({
-  '#008CFF': '#3B82F6',
-  '#7C5CFF': '#6366F1',
-  '#FF738B': '#F43F5E'
+  '#7C3AED': '#9D4EDD',
+  '#A78BFA': '#9D4EDD',
+  '#E586A8': '#E93D82',
+  '#F08A7E': '#FF6F61',
+  '#F59E0B': '#FFB000',
+  '#E7AD55': '#FFB000',
+  '#69C7A5': '#10B981',
+  '#EC4899': '#E93D82',
+  '#3B82F6': '#9D4EDD',
+  '#6366F1': '#9D4EDD',
+  '#FFB24B': '#FFB000',
+  '#F43F5E': '#FF6F61',
+  '#008CFF': '#9D4EDD',
+  '#7C5CFF': '#9D4EDD',
+  '#FF738B': '#FF6F61'
 });
 
 class SettingsServiceError extends Error {
@@ -26,7 +38,7 @@ function getDefaultSettings(defaultBackupLocation = '') {
     preferences: {
       language: 'en',
       theme: 'dark',
-      accentColor: '#3B82F6',
+      accentColor: '#9D4EDD',
       compactMode: false,
       reducedMotion: false,
       mascotAnimationEnabled: false

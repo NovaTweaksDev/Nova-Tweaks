@@ -61,17 +61,17 @@ jobs:
           @'
           This is an unsigned preview build for evaluation and compatibility testing.
 
-          Changes in 1.0.1:
-          - Fix administrator approval and elevated worker communication.
-          - Remove the separate .NET 8 Desktop Runtime requirement for hardware monitoring.
-          - Keep tweak details visible while scrolling the tweak list.
-          - Localize release information and show the actual published GitHub release.
-          - Update the Competitive NVIDIA profile preset.
+          Changes in 1.0.2:
+          - Add a persistent 30-day game-session history with saved performance reports.
+          - Show total system RAM in session insights and improve memory-pressure evaluation.
+          - Fix local administrator-broker identity forwarding for Game Mode runtime tuning.
+          - Refine navigation, tweak cards, details, notifications, and monitoring views.
+          - Expand known-game detection and harden system-facing tweak execution.
+          - Improve bundled monitoring-sidecar integrity validation and hardware-monitor configuration.
 
-          Local Windows VM testing confirmed administrator tweaks and Advanced Sensors,
-          including disabling, re-enabling, and restarting the app. Testing the installer
-          downloaded from this release is still pending. Hardware-specific behavior is
-          not fully covered by a virtual machine test.
+          Automated tests and the production renderer build passed before tagging.
+          Hardware-specific behavior and the installer produced by this workflow are not
+          fully covered until the published artifact is tested on representative systems.
 
           Windows may show an unknown-publisher warning. Code signing through SignPath
           is being prepared and is not yet active. Review the included checksum before

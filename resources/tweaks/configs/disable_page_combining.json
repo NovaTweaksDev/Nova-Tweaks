@@ -13,7 +13,7 @@
   "risk_level": "medium",
   "impact": 3,
   "recommended": true,
-  "last_updated": "2026-04-28",
+  "last_updated": "2026-09-20",
   "container_type": "normal_tweak",
   "tags": [
     "windows",
@@ -32,7 +32,7 @@
     ],
     "notes": "Designed for supported Windows desktop systems."
   },
-  "technical_details": "The tweak uses the MMAgent API to disable memory page combining This changes system behavior by stopping background deduplication of identical data blocks in physical memory",
+  "technical_details": "The tweak uses the Windows MMAgent API to disable memory page combining. If SysMain is disabled, page combining is already inactive and Nova Tweaks leaves the service configuration unchanged.",
   "execution": {
     "type": "powershell",
     "script": "disable_page_combining.ps1",

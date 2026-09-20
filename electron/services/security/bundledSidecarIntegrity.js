@@ -6,7 +6,7 @@ const INTEGRITY_FORMAT = 'nova-bundled-sidecar-v2';
 const CRITICAL_EXTENSIONS = new Set(['.config', '.dll', '.exe', '.json']);
 const SIDECAR_POLICIES = Object.freeze({
   'game-detector-x64': {
-    expectedSha256: '566327499b8ea47920650ef337796a31ae7b33983d512dc8af4c0af199438d09',
+    expectedSha256: '9139691a592c445fcd5d71670f315248c8ea4302a4aa5375a80113f0589d579b',
     requiredFiles: ['NovaGameDetector.exe', 'NovaGameDetector.dll', 'NovaGameDetector.runtimeconfig.json']
   },
   'nvidia-display-helper': {

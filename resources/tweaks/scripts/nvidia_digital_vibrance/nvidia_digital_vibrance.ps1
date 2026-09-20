@@ -10,7 +10,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $TweakName = 'NVIDIA Digital Vibrance'
-$ExpectedHelperSha256 = '442591A2A83667E078878B6F819CC079E4B213A5BA6169467D0AF190D6A41CB0'
+$ExpectedHelperSha256 = '6B98B8324C612ADD4D1682BE66B114F4C34B7A452D1811F5A50A80A02F6924C2'
 $StateDirectory = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Nova Tweaks\state'
 $StatePath = Join-Path $StateDirectory 'nvidia_digital_vibrance.json'
 

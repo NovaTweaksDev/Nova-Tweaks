@@ -42,6 +42,7 @@ const TEMPERATURE_THRESHOLDS = {
 };
 
 const OVERVIEW_CARD_STORAGE_KEY = 'nova-tweaks:overview-cards:v1';
+const OVERVIEW_SECTION_STORAGE_KEY = 'nova-tweaks:overview-sections:v1';
 const SESSION_CLEANED_BYTES_STORAGE_KEY = 'nova-tweaks:session-cleaned-bytes:v1';
 const SUMMARY_CARD_IDS = ['cpu', 'gpu', 'memory', 'vram', 'storage', 'network', 'uptime'];
 const SUMMARY_CARD_GRID_COLUMNS = {
@@ -66,6 +67,22 @@ function readVisibleSummaryCards() {
     return valid.length ? valid : SUMMARY_CARD_IDS;
   } catch (_error) {
     return SUMMARY_CARD_IDS;
+  }
+}
+
+function readOpenSections() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(OVERVIEW_SECTION_STORAGE_KEY) || '{}');
+    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
+      return SECTION_DEFAULTS;
+    }
+
+    return Object.fromEntries(Object.entries(SECTION_DEFAULTS).map(([id, defaultOpen]) => [
+      id,
+      typeof stored[id] === 'boolean' ? stored[id] : defaultOpen
+    ]));
+  } catch (_error) {
+    return SECTION_DEFAULTS;
   }
 }
 
@@ -423,7 +440,7 @@ function OverviewPanel({ onNavigateSettings }) {
   const [snapshot, setSnapshot] = useState(() => overviewRuntimeCache.snapshot);
   const [loading, setLoading] = useState(() => !overviewRuntimeCache.snapshot);
   const [ipcError, setIpcError] = useState('');
-  const [openSections, setOpenSections] = useState(SECTION_DEFAULTS);
+  const [openSections, setOpenSections] = useState(readOpenSections);
   const [visibleSummaryCards, setVisibleSummaryCards] = useState(readVisibleSummaryCards);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [sessionSummary, setSessionSummary] = useState(() => ({
@@ -583,7 +600,15 @@ function OverviewPanel({ onNavigateSettings }) {
     .join(' ');
 
   function toggleSection(id) {
-    setOpenSections((previous) => ({ ...previous, [id]: !previous[id] }));
+    setOpenSections((previous) => {
+      const next = { ...previous, [id]: !previous[id] };
+      try {
+        localStorage.setItem(OVERVIEW_SECTION_STORAGE_KEY, JSON.stringify(next));
+      } catch (_error) {
+        // Keep the current session functional when persistent storage is unavailable.
+      }
+      return next;
+    });
   }
 
   return (

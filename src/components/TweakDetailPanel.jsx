@@ -1,7 +1,6 @@
-import { ArrowDown, ArrowUp, ArrowUpDown, Check, SlidersHorizontal, TrendingUp, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, Gauge, Info, RefreshCw, RotateCcw, ShieldAlert, SlidersHorizontal, TrendingUp, Wrench, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { PremiumBadge } from './ui';
-import CategoryIcon from './CategoryIcon';
+import { Button, PremiumBadge } from './ui';
 import SubcategoryIcon from './SubcategoryIcon';
 import {
   getLocalizedTweakDescription,
@@ -71,7 +70,7 @@ function localizeCategory(category, t) {
   return t(`tweaks.categories.${safeCategory}`, { defaultValue: safeCategory });
 }
 
-function TweakDetailPanel({ tweak, onClose, showRiskLabels = true, showCategoryAccent = false, blurName = false }) {
+function TweakDetailPanel({ tweak, onClose, onOpenTechnicalDetails, showRiskLabels = true, showCategoryAccent = false, blurName = false }) {
   const { i18n, t } = useTranslation();
 
   if (!tweak) {
@@ -101,6 +100,9 @@ function TweakDetailPanel({ tweak, onClose, showRiskLabels = true, showCategoryA
   const riskLevel = normalizeRiskLevel(tweak);
   const riskLabel = t(`tweakDetails.risk.${riskLevel}`, { defaultValue: riskLevel });
   const accentStyle = showCategoryAccent ? getCategoryAccentStyle(tweak.category) : undefined;
+  const requiresAdmin = Boolean(tweak.requiresAdmin ?? tweak.requires_admin);
+  const rebootRequired = Boolean(tweak.rebootRequired ?? tweak.reboot_required);
+  const hasRestoreAction = Boolean(tweak?.execution?.actions?.restore);
   const iconClass = showCategoryAccent
     ? 'border-[color:color-mix(in_srgb,var(--category-accent)_28%,var(--border))] bg-[var(--surface)] text-[var(--category-accent)]'
     : 'border-[var(--border-subtle)] bg-[var(--surface)] text-[var(--text-muted)]';
@@ -125,31 +127,37 @@ function TweakDetailPanel({ tweak, onClose, showRiskLabels = true, showCategoryA
           <span className={`tweak-detail-icon border ${iconClass}`}>
             <SubcategoryIcon category={tweak.category} subcategory={tweak.subcategory} className="h-5 w-5" />
           </span>
-          <h4 className="tweak-detail-name">
-            <span className={blurName ? 'premium-name-blur' : undefined}>{tweak.name}</span>
-          </h4>
+          <div className="min-w-0 flex-1">
+            <span className={`tweak-detail-category ${categoryValueClass}`}>{localizeCategory(tweak.category, t)}</span>
+            <h4 className="tweak-detail-name">
+              <span className={blurName ? 'premium-name-blur' : undefined}>{tweak.name}</span>
+            </h4>
+          </div>
+          <span className={`tweak-detail-status ${statusEnabled ? 'is-enabled' : normalizedStatusLabel === 'ready' ? 'is-ready' : ''}`}>
+            {statusEnabled ? <InlineValueIcon icon={Check} className="text-[var(--success)]" /> : normalizedStatusLabel === 'ready' ? <InlineValueIcon icon={TrendingUp} /> : null}
+            {localizeStatus(statusLabel, t)}
+          </span>
         </div>
-        <div className="tweak-detail-divider" />
         <p className="tweak-detail-description">{description}</p>
       </section>
 
       <section className="tweak-detail-metadata">
-        <div className="divide-y divide-[var(--border-subtle)]">
-          <DetailRow label={t('tweakDetails.category')}>
-            <span className={`inline-flex items-center justify-end gap-1.5 ${categoryValueClass}`}>
-              <CategoryIcon category={tweak.category} className="h-3.5 w-3.5 shrink-0" />
-              {localizeCategory(tweak.category, t)}
+        <div className="tweak-detail-group">
+          <p className="tweak-detail-group-title">{t('tweakDetails.assessment')}</p>
+          <div className="divide-y divide-[var(--border-subtle)]">
+          <DetailRow label={(
+            <span className="inline-flex items-center gap-2">
+              <Gauge className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
+              {t('tweakDetails.impact')}
             </span>
-          </DetailRow>
-          <DetailRow label={t('tweakDetails.status')}>
-            <span className={`inline-flex items-center justify-end gap-1.5 ${statusEnabled ? 'text-[var(--success)]' : normalizedStatusLabel === 'ready' ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'}`}>
-              {statusEnabled ? <InlineValueIcon icon={Check} className="text-[var(--success)]" /> : normalizedStatusLabel === 'ready' ? <InlineValueIcon icon={TrendingUp} /> : normalizedStatusLabel === 'disabled' ? <InlineValueIcon icon={X} className="text-[var(--text-muted)]" /> : null}
-              {localizeStatus(statusLabel, t)}
-            </span>
-          </DetailRow>
-          <DetailRow label={t('tweakDetails.impact')}><ImpactDots value={getImpactValue(tweak)} /></DetailRow>
+          )}><ImpactDots value={getImpactValue(tweak)} /></DetailRow>
           {showRiskLabels ? (
-            <DetailRow label={t('tweakDetails.riskLabel')}>
+            <DetailRow label={(
+              <span className="inline-flex items-center gap-2">
+                <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
+                {t('tweakDetails.riskLabel')}
+              </span>
+            )}>
               <span className={`inline-flex items-center justify-end gap-1.5 ${
                 riskLevel === 'high'
                   ? 'text-[var(--danger)]'
@@ -162,17 +170,68 @@ function TweakDetailPanel({ tweak, onClose, showRiskLabels = true, showCategoryA
               </span>
             </DetailRow>
           ) : null}
-          <DetailRow label={t('tweakDetails.recommended')}>
+          </div>
+        </div>
+        <div className="tweak-detail-group">
+          <p className="tweak-detail-group-title">{t('tweakDetails.requirements')}</p>
+          <div className="divide-y divide-[var(--border-subtle)]">
+          <DetailRow label={(
+            <span className="inline-flex items-center gap-2">
+              <Wrench className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
+              {t('tweaks.filters.requiresAdmin', { defaultValue: 'Administrator rights' })}
+            </span>
+          )}>
+            <span className={requiresAdmin ? undefined : 'text-[var(--text-muted)]'}>
+              {requiresAdmin ? t('tweakDetails.yes') : t('tweakDetails.no')}
+            </span>
+          </DetailRow>
+          <DetailRow label={(
+            <span className="inline-flex items-center gap-2">
+              <RefreshCw className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
+              {t('tweaks.filters.rebootRequired', { defaultValue: 'Restart required' })}
+            </span>
+          )}>
+            <span className={rebootRequired ? 'text-[var(--warning)]' : 'text-[var(--text-muted)]'}>
+              {rebootRequired ? t('tweakDetails.yes') : t('tweakDetails.no')}
+            </span>
+          </DetailRow>
+          <DetailRow label={(
+            <span className="inline-flex items-center gap-2">
+              <RotateCcw className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
+              {t('tweakDetails.restore')}
+            </span>
+          )}>
+            {hasRestoreAction ? t('tweakDetails.yes') : <MutedValue>{t('tweakDetails.unknown')}</MutedValue>}
+          </DetailRow>
+          </div>
+        </div>
+        {recommended || premium ? (
+          <div className="tweak-detail-flags">
             {recommended ? (
               <span className="inline-flex items-center justify-end gap-1.5 text-[var(--accent)]">
                 <InlineValueIcon icon={Check} />
-                {t('tweakDetails.yes')}
+                {t('tweakDetails.recommended')}
               </span>
-            ) : <MutedValue>{t('tweakDetails.no')}</MutedValue>}
-          </DetailRow>
-          <DetailRow label={t('tweaks.premiumBadge')}>{premium ? <PremiumBadge label={t('tweaks.premiumBadge')} /> : <MutedValue>{t('tweakDetails.no')}</MutedValue>}</DetailRow>
-        </div>
+            ) : null}
+            {premium ? <PremiumBadge label={t('tweaks.premiumBadge')} /> : null}
+          </div>
+        ) : null}
       </section>
+
+      {onOpenTechnicalDetails ? (
+        <footer className="tweak-detail-actions">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="w-full justify-center"
+            leftIcon={<Info className="h-3.5 w-3.5" />}
+            onClick={() => onOpenTechnicalDetails(tweak)}
+          >
+            {t('tweaks.technical.technicalDetails', { defaultValue: 'Technical details' })}
+          </Button>
+        </footer>
+      ) : null}
     </aside>
   );
 }

@@ -4,7 +4,29 @@ This file records changes described by the project's public Git tags and GitHub 
 
 ## Unreleased
 
-No release notes have been published for changes after `preview-v1.0.1`.
+No release notes have been published for changes after `preview-v1.0.2`.
+
+## 1.0.2 Preview - 2026-09-20
+
+### Added
+
+- Added a persistent 30-day game-session history with saved performance reports.
+- Expanded the known-game catalog and runtime monitoring details.
+
+### Changed
+
+- Refined the desktop interface, navigation, tweak cards, detail panels, notifications, and monitoring views.
+- Improved Game Mode runtime tuning, session reports, memory insights, and processor-affinity feedback.
+- Improved backup, overview, settings, and automation presentation while preserving their existing behavior.
+
+### Fixed
+
+- Fixed local administrator-broker identity forwarding for Game Mode runtime tuning.
+- Fixed total system RAM reporting in completed game-session insights.
+- Hardened memory-compression, page-combining, TCP auto-tuning, and NVIDIA display tweak execution.
+- Improved bundled monitoring-sidecar integrity validation and hardware-monitor configuration.
+
+[Release notes](https://github.com/NovaTweaksDev/Nova-Tweaks/releases/tag/preview-v1.0.2)
 
 ## 1.0.1 Preview - 2026-09-10
 

@@ -32,7 +32,7 @@ function ChoiceCards({
             {Icon ? (
               <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${
                 active
-                  ? 'border-[color:color-mix(in_srgb,var(--accent)_34%,var(--border))] bg-[var(--accent)] text-white'
+                  ? 'border-[color:color-mix(in_srgb,var(--accent)_34%,var(--border))] bg-[var(--accent)] text-[var(--accent-contrast)]'
                   : 'border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-muted)] group-hover:text-[var(--accent)]'
               }`}>
                 <Icon className="h-4 w-4" aria-hidden="true" />

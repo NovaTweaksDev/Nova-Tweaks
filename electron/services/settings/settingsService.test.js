@@ -5,7 +5,7 @@ const os = require('os');
 const path = require('path');
 const { createSettingsService } = require('./settingsService');
 
-test('persists Nova Pink as a supported accent color', () => {
+test('persists Nova Violet as a supported accent color', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-settings-'));
   const service = createSettingsService({
     app: {
@@ -15,12 +15,12 @@ test('persists Nova Pink as a supported accent color', () => {
 
   const updated = service.updateSettings({
     preferences: {
-      accentColor: '#EC4899'
+      accentColor: '#9D4EDD'
     }
   });
 
-  assert.equal(updated.preferences.accentColor, '#EC4899');
-  assert.equal(service.loadSettings().preferences.accentColor, '#EC4899');
+  assert.equal(updated.preferences.accentColor, '#9D4EDD');
+  assert.equal(service.loadSettings().preferences.accentColor, '#9D4EDD');
 });
 
 test('falls back to the default for removed accent colors', () => {
@@ -38,8 +38,8 @@ test('falls back to the default for removed accent colors', () => {
       }
     });
 
-    assert.equal(updated.preferences.accentColor, '#3B82F6');
-    assert.equal(service.loadSettings().preferences.accentColor, '#3B82F6');
+    assert.equal(updated.preferences.accentColor, '#9D4EDD');
+    assert.equal(service.loadSettings().preferences.accentColor, '#9D4EDD');
   }
 });
 
@@ -51,9 +51,21 @@ test('migrates replaced accent colors to their new values', () => {
     }
   });
   const replacements = new Map([
-    ['#008CFF', '#3B82F6'],
-    ['#7C5CFF', '#6366F1'],
-    ['#FF738B', '#F43F5E']
+    ['#7C3AED', '#9D4EDD'],
+    ['#A78BFA', '#9D4EDD'],
+    ['#E586A8', '#E93D82'],
+    ['#F08A7E', '#FF6F61'],
+    ['#F59E0B', '#FFB000'],
+    ['#E7AD55', '#FFB000'],
+    ['#69C7A5', '#10B981'],
+    ['#EC4899', '#E93D82'],
+    ['#3B82F6', '#9D4EDD'],
+    ['#6366F1', '#9D4EDD'],
+    ['#FFB24B', '#FFB000'],
+    ['#F43F5E', '#FF6F61'],
+    ['#008CFF', '#9D4EDD'],
+    ['#7C5CFF', '#9D4EDD'],
+    ['#FF738B', '#FF6F61']
   ]);
 
   for (const [legacyColor, replacementColor] of replacements) {

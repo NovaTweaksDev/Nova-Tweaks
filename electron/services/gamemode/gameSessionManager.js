@@ -1,4 +1,5 @@
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { execFile } = require('child_process');
 const { createMonitoringProviderManager } = require('./monitoringProviderManager');
@@ -263,6 +264,7 @@ function createSession({
   profileId = '',
   captureStatus = 'idle',
   rawCapturePath = '',
+  systemMemoryTotalMB = null,
   startedAt = new Date().toISOString()
 }) {
   return {
@@ -276,6 +278,7 @@ function createSession({
     endedAt: '',
     durationSeconds: 0,
     profileId: normalizeString(profileId),
+    systemMemoryTotalMB: roundOrNull(systemMemoryTotalMB, 0),
     captureStatus,
     sessionStatus: 'recording',
     live: {
@@ -334,12 +337,24 @@ function createGameSessionManager(options = {}) {
   const onUpdate = typeof options.onUpdate === 'function' ? options.onUpdate : null;
   const onRecordingStateChange = typeof options.onRecordingStateChange === 'function' ? options.onRecordingStateChange : null;
   const detectActiveGame = typeof options.detectActiveGame === 'function' ? options.detectActiveGame : null;
+  const totalMemoryBytesProvider = typeof options.totalMemoryBytesProvider === 'function'
+    ? options.totalMemoryBytesProvider
+    : () => os.totalmem();
   const captureService = options.captureService || createMonitoringProviderManager({
     app,
     logger,
     platform,
     onEvent: options.onPresentMonEvent
   });
+
+  function getTotalSystemMemoryMB() {
+    try {
+      const totalBytes = nonNegativeOrNull(totalMemoryBytesProvider());
+      return totalBytes !== null && totalBytes > 0 ? totalBytes / (1024 ** 2) : null;
+    } catch (_error) {
+      return null;
+    }
+  }
 
   let activeSession = null;
   let lastReport = null;
@@ -587,6 +602,7 @@ function createGameSessionManager(options = {}) {
     const gpuUsage = clampPercentOrNull(primaryGpu?.usagePercent ?? metrics?.gpuLoad);
     const gpuTemp = nonNegativeOrNull(primaryGpu?.temperatureC ?? metrics?.gpuTemp);
     const ramMB = nonNegativeOrNull(overview?.memory?.usedGB) !== null ? overview.memory.usedGB * 1024 : null;
+    const totalRamMB = nonNegativeOrNull(overview?.memory?.totalGB) !== null ? overview.memory.totalGB * 1024 : null;
     const vramMB = nonNegativeOrNull(primaryGpu?.memoryUsedMB);
     const latencyMs = nonNegativeOrNull(networkQuality?.latencyMs);
     const packetLossPercent = nonNegativeOrNull(networkQuality?.packetLossPercent);
@@ -625,6 +641,9 @@ function createGameSessionManager(options = {}) {
       latencyMs: roundOrNull(latencyMs, 1),
       packetLossPercent: roundOrNull(packetLossPercent, 2)
     };
+    if (totalRamMB !== null) {
+      activeSession.systemMemoryTotalMB = roundOrNull(totalRamMB, 0);
+    }
 
     ingestProcessSnapshot(overview?.processes);
     updateMetrics();
@@ -721,8 +740,12 @@ function createGameSessionManager(options = {}) {
 
   function readReportFile(filePath) {
     const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    const storedTotalMemoryMB = nonNegativeOrNull(parsed?.systemMemoryTotalMB);
     return {
       ...parsed,
+      systemMemoryTotalMB: storedTotalMemoryMB !== null && storedTotalMemoryMB > 0
+        ? storedTotalMemoryMB
+        : getTotalSystemMemoryMB(),
       reportPath: filePath
     };
   }
@@ -851,13 +874,17 @@ function createGameSessionManager(options = {}) {
       sessionId,
       outputDirectory: captureRoot
     });
+    const overviewTotalMemoryGB = nonNegativeOrNull(latestOverview?.memory?.totalGB);
 
     activeSession = createSession({
       sessionId,
       game: resolvedGame,
       profileId,
       captureStatus: captureStart.status,
-      rawCapturePath: captureStart.outputCsvPath
+      rawCapturePath: captureStart.outputCsvPath,
+      systemMemoryTotalMB: overviewTotalMemoryGB !== null && overviewTotalMemoryGB > 0
+        ? overviewTotalMemoryGB * 1024
+        : getTotalSystemMemoryMB()
     });
     activeSession.autoStarted = Boolean(autoStarted);
     activeSession.restore = {

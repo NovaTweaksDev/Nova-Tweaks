@@ -72,7 +72,8 @@ test('reads final PresentMon samples again after stopping capture', async () => 
   const manager = createGameSessionManager({
     captureService,
     platform: 'win32',
-    userDataPath: directory
+    userDataPath: directory,
+    totalMemoryBytesProvider: () => 32 * (1024 ** 3)
   });
 
   await manager.startSession({
@@ -88,4 +89,28 @@ test('reads final PresentMon samples again after stopping capture', async () => 
   assert.equal(readCalls, 2);
   assert.equal(report.metrics.currentFps, 120);
   assert.equal(report.metrics.avgFrametimeMs, 8.33);
+  assert.equal(report.systemMemoryTotalMB, 32768);
+}));
+
+test('hydrates total system memory for reports saved before the field existed', () => withTempDirectory((directory) => {
+  const sessionsRoot = path.join(directory, 'game-mode', 'sessions');
+  fs.mkdirSync(sessionsRoot, { recursive: true });
+  fs.writeFileSync(path.join(sessionsRoot, 'legacy-session.json'), JSON.stringify({
+    schemaVersion: 1,
+    sessionId: 'legacy-session',
+    gameName: 'Legacy Game',
+    startedAt: new Date().toISOString(),
+    endedAt: new Date().toISOString(),
+    sessionStatus: 'stopped',
+    metrics: {}
+  }));
+
+  const manager = createGameSessionManager({
+    userDataPath: directory,
+    totalMemoryBytesProvider: () => 16 * (1024 ** 3)
+  });
+  const reports = manager.listReports();
+
+  assert.equal(reports.length, 1);
+  assert.equal(reports[0].systemMemoryTotalMB, 16384);
 }));

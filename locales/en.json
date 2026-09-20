@@ -27,7 +27,7 @@
     "aiSubtitle": "Tweak guidance",
     "apps": "Apps",
     "appsSubtitle": "Manage installed applications",
-    "sessionMonitoring": "Session Monitoring",
+    "sessionMonitoring": "Monitoring",
     "sessionMonitoringSubtitle": "Live game sessions",
     "gameMode": "Game Mode",
     "gameModeEyebrow": "Premium runtime",
@@ -1529,6 +1529,23 @@
       "monitoringDescription": "Track live game sessions, FPS capture, performance charts, and session reports.",
       "gameModeDescription": "Apply per-game profiles and runtime tuning for the detected game."
     },
+    "monitoring": {
+      "health": "Session health",
+      "showDetails": "Show details",
+      "systemCharts": "System charts",
+      "sessionDetails": "Session details",
+      "historyTitle": "Session history",
+      "historyDescription": "Completed recordings remain available for 30 days.",
+      "historyCount": "{{count}} saved",
+      "historyEmpty": "Completed sessions will appear here.",
+      "unknownGame": "Game session",
+      "averageFps": "Avg FPS",
+      "ramPeak": "RAM peak",
+      "totalSystemRam": "Total System RAM: {{value}}",
+      "emptyTitle": "No active session",
+      "emptyDescription": "Start a detected game session to see FPS, frametime and health signals.",
+      "detectionReady": "Game detection remains active in the background."
+    },
     "status": {
       "detected": "{{gameName}} detected",
       "detectedWithPeriod": "{{gameName}} detected."
@@ -1571,7 +1588,20 @@
       "appliedSimple": "Nova Game Mode applied.",
       "disabledSimple": "Nova Game Mode disabled.",
       "disableFailed": "Game Mode could not be disabled.",
-      "disableFailedTweaks": "Some preset tweaks could not be disabled: {{names}}."
+      "disableFailedTweaks": "Some preset tweaks could not be disabled: {{names}}.",
+      "statusLabel": "Nova Game Mode preset",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "inactiveBadge": "Inactive",
+      "sessionProfile": "Session profile",
+      "clickToEnable": "Click to enable",
+      "enabling": "Enabling Game Mode",
+      "disabling": "Disabling Game Mode",
+      "restoring": "Restoring previous settings",
+      "preparing": "Preparing optimization steps...",
+      "progress": "Step {{current}} of {{total}}",
+      "snapshotFailed": "Game Mode was not changed because the previous tweak states could not be saved safely.",
+      "restartRequired": "Restart Nova Tweaks once to load the updated Game Mode service, then try again."
     },
     "detection": {
       "title": "Game Detection",
@@ -1637,6 +1667,9 @@
         "configured": "Configured",
         "pending": "Pending"
       }
+    },
+    "session": {
+      "manualSelected": "Manual executable selected. Start the game to enable monitoring and runtime tuning."
     }
   },
   "backup": {
@@ -2235,6 +2268,9 @@
     "status": "Status",
     "impact": "Impact",
     "riskLabel": "Risk",
+    "assessment": "Assessment",
+    "requirements": "Requirements and effects",
+    "restore": "Restorable",
     "recommended": "Recommended",
     "yes": "Yes",
     "no": "No",

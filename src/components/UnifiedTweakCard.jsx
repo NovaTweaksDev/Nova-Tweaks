@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
-import { Activity, AlertTriangle, Check, Info, Minus, MoreVertical, Play, SlidersHorizontal, Star, WandSparkles, X } from 'lucide-react';
+import { Check, Info, MoreVertical, Play, SlidersHorizontal, Star, WandSparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import SubcategoryIcon from './SubcategoryIcon';
 import CategoryIcon from './CategoryIcon';
@@ -8,9 +8,6 @@ import MascotToggle from './MascotToggle';
 import { Button, LoadingSpinner, ModalShell, PremiumBadge, Switch } from './ui';
 import {
   getActionType,
-  getStatusTextClass,
-  getStatusTone,
-  getTweakStatusLabel,
   normalizePremium,
   normalizeRangeConfig,
   normalizeRecommended,
@@ -26,7 +23,6 @@ import {
   TWEAK_LIST_GRID_CLASS,
   TWEAK_LIST_ICON_CELL_CLASS,
   SHARED_LIST_MAIN_CELL_CLASS,
-  SHARED_LIST_STATUS_CELL_CLASS,
   TWEAK_ROW_PRIMARY_ACTION_SLOT_CLASS,
   TWEAK_ROW_PRIMARY_BUTTON_CLASS
 } from '../constants/listLayout';
@@ -51,40 +47,9 @@ function normalizeOptionalRangeValue(value) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
-function localizeStatus(label, t) {
-  const normalized = String(label || '').toLowerCase();
-  if (normalized === 'enabled') return t('tweaks.state.enabled');
-  if (normalized === 'disabled') return t('tweaks.state.disabled');
-  if (normalized === 'pending') return t('tweaks.state.pending');
-  if (normalized === 'ready') return t('tweaks.oneShotAction.ready');
-  if (normalized === 'reboot required' || normalized === 'restart required') return t('tweaks.rebootRequired', { defaultValue: 'Reboot required' });
-  return label;
-}
-
 function localizeTaxonomy(value, type, t) {
   const safeValue = value || 'System';
   return t(`tweaks.${type}.${safeValue}`, { defaultValue: safeValue });
-}
-
-function StatusIcon({ tone }) {
-  const Icon = tone === 'ready'
-    ? Activity
-    : tone === 'enabled'
-      ? Check
-      : tone === 'disabled'
-        ? X
-        : tone === 'warning'
-          ? AlertTriangle
-          : Minus;
-  const toneClass = tone === 'ready'
-    ? 'text-[var(--accent)]'
-    : tone === 'enabled'
-      ? 'text-[color:color-mix(in_srgb,var(--success)_72%,var(--text-muted))]'
-      : tone === 'warning'
-        ? 'text-[var(--warning)]'
-        : 'text-[var(--text-muted)]';
-
-  return <Icon className={`h-3.5 w-3.5 shrink-0 ${toneClass}`} strokeWidth={2} aria-hidden="true" />;
 }
 
 function UnifiedTweakCard({
@@ -144,24 +109,6 @@ function UnifiedTweakCard({
   const isPremiumTweak = normalizePremium(tweak);
   const isRecommendedTweak = normalizeRecommended(tweak);
   const actionDisabled = loading || disabled || isCheckingState;
-  const statusLabel = getTweakStatusLabel({
-    ...tweak,
-    currentState: enabled ? 'enabled' : tweak.currentState
-  });
-  const statusTone = getStatusTone({
-    ...tweak,
-    currentState: enabled ? 'enabled' : tweak.currentState
-  });
-  const localizedStatusLabel = isCheckingState
-    ? t('common.loading')
-    : localizeStatus(statusLabel, t);
-  const statusTextClass = isCheckingState
-    ? 'text-[var(--text-muted)]'
-    : statusTone === 'ready'
-      ? 'text-[var(--accent)]'
-      : statusTone === 'enabled'
-        ? 'text-[color:color-mix(in_srgb,var(--success)_72%,var(--text-muted))]'
-        : getStatusTextClass(statusTone);
   const accentStyle = getCategoryAccentStyle(tweak.category);
   const selectedClass = showCategoryAccent
     ? 'border-[color:color-mix(in_srgb,var(--category-accent)_42%,var(--border))] bg-[color:color-mix(in_srgb,var(--surface)_82%,var(--surface-strong)_18%)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--category-accent)_10%,transparent)]'
@@ -315,14 +262,14 @@ function UnifiedTweakCard({
     <>
       <article
         style={accentStyle}
-        className={`tech-hover-lift tweak-hover-marker group relative grid min-h-[80px] cursor-pointer ${TWEAK_LIST_GRID_CLASS} items-center ${SHARED_LIST_GAP_CLASS} rounded-lg border px-5 py-4 transition-[background-color,border-color,box-shadow,transform] duration-200 md:h-[80px] md:py-0 ${
+        className={`nova-tweak-row tweak-hover-marker group relative grid min-h-[68px] cursor-pointer ${TWEAK_LIST_GRID_CLASS} items-center ${SHARED_LIST_GAP_CLASS} border px-5 py-3 transition-[background-color,border-color] duration-200 md:min-h-[68px] md:py-0 ${
           isSelected ? selectedClass : idleClass
         } ${isSelected ? 'is-selected' : ''} ${isPremiumTweak ? 'tweak-card-premium' : ''}`}
         onClick={() => onOpenDetails?.(tweak)}
       >
         <div className={TWEAK_LIST_ICON_CELL_CLASS}>
-          <span className={`relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${iconClass}`}>
-            <SubcategoryIcon category={tweak.category} subcategory={tweak.subcategory} className="h-5 w-5" />
+          <span className={`relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border ${iconClass}`}>
+            <SubcategoryIcon category={tweak.category} subcategory={tweak.subcategory} className="h-4 w-4" />
             {isPremiumTweak ? (
               <PremiumBadge
                 compact
@@ -334,14 +281,20 @@ function UnifiedTweakCard({
         </div>
 
         <div className={SHARED_LIST_MAIN_CELL_CLASS}>
-          <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 pr-6">
-            <h4 className="min-w-0 truncate text-[16px] font-semibold leading-6 text-[var(--text-primary)]" title={tweak.name}>
-              <span>{tweak.name || t('tweaks.untitled', { defaultValue: 'Unnamed Tweak' })}</span>
-            </h4>
+          <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 pr-4">
+            <div className="min-w-0">
+              <h4 className="min-w-0 truncate text-[14px] font-semibold leading-5 text-[var(--text-primary)]" title={tweak.name}>
+                {tweak.name || t('tweaks.untitled', { defaultValue: 'Unnamed Tweak' })}
+              </h4>
+              {tweak.description ? (
+                <p className="mt-0.5 truncate text-xs leading-4 text-[var(--text-muted)]" title={tweak.description}>
+                  {tweak.description}
+                </p>
+              ) : null}
+            </div>
             {isRecommendedTweak ? (
-              <span className="inline-flex h-[22px] shrink-0 items-center gap-1.5 rounded-md border border-[color:color-mix(in_srgb,var(--accent)_20%,var(--border))] bg-[color:color-mix(in_srgb,var(--accent)_6%,var(--surface-elevated))] px-2.5 text-[9px] font-semibold leading-none tracking-[0.025em] text-[var(--accent)] shadow-[inset_0_1px_0_color-mix(in_srgb,#fff_5%,transparent)]">
-                <WandSparkles className="h-3 w-3 shrink-0 opacity-90" aria-hidden="true" />
-                {t('tweaks.oneShotSelection.recommendedBadge')}
+              <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--accent)]" title={t('tweaks.oneShotSelection.recommendedBadge')} aria-label={t('tweaks.oneShotSelection.recommendedBadge')}>
+                <WandSparkles className="h-3.5 w-3.5" aria-hidden="true" />
               </span>
             ) : null}
           </div>
@@ -367,19 +320,6 @@ function UnifiedTweakCard({
             )}
             <span className="min-w-0 truncate">{taxonomyLabel}</span>
           </button>
-        </div>
-
-        <div className={`flex w-full max-w-full items-center justify-center overflow-hidden text-center text-xs font-medium ${SHARED_LIST_STATUS_CELL_CLASS}`}>
-          <span className="inline-flex min-w-0 max-w-full items-center justify-center gap-2">
-            <span className="inline-flex shrink-0 items-center justify-center">
-              {loading || isCheckingState ? (
-                <LoadingSpinner className="h-3.5 w-3.5" />
-              ) : <StatusIcon tone={statusTone} />}
-            </span>
-            <span className={`min-w-0 truncate ${statusTextClass}`} title={localizedStatusLabel}>
-              {localizedStatusLabel}
-            </span>
-          </span>
         </div>
 
         <div className={SHARED_LIST_ACTIONS_CLASS}>

@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict');
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -43,6 +44,21 @@ test('all checked-in executable sidecar sets match their pinned digest', () => {
       SIDECAR_POLICIES[policyName].expectedSha256,
       policyName
     );
+  }
+});
+
+test('NVIDIA display tweak scripts trust the checked-in display helper', () => {
+  const helperPath = path.join(CHECKED_IN_SIDECARS['nvidia-display-helper'], 'nvidia-display-helper.exe');
+  const helperSha256 = crypto.createHash('sha256').update(fs.readFileSync(helperPath)).digest('hex').toUpperCase();
+  const scriptPaths = [
+    path.join(PROJECT_ROOT, 'resources', 'tweaks', 'scripts', 'nvidia_digital_vibrance', 'nvidia_digital_vibrance.ps1'),
+    path.join(PROJECT_ROOT, 'resources', 'tweaks', 'scripts', 'nvidia_output_color_range', 'nvidia_output_color_range.ps1')
+  ];
+
+  for (const scriptPath of scriptPaths) {
+    const script = fs.readFileSync(scriptPath, 'utf8');
+    const pinnedSha256 = script.match(/\$ExpectedHelperSha256\s*=\s*'([A-F0-9]{64})'/)?.[1];
+    assert.equal(pinnedSha256, helperSha256, path.relative(PROJECT_ROOT, scriptPath));
   }
 });
 

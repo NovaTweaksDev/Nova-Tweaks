@@ -746,6 +746,7 @@ function RuleEditor({ rule, open, tweaks, tweakCatalogStatus, onClose, onSave })
                         </div>
                       </div>
                       <Switch
+                        className="shrink-0"
                         checked={bypassesTweakConfirmation}
                         onChange={(bypassConfirmation) => setDraft({
                           ...draft,

@@ -49,6 +49,26 @@ function quoteWindowsArgument(value) {
   return result + '\\'.repeat(backslashes * 2) + '"';
 }
 
+function resolveCurrentWindowsUserSid(powerShellPath = 'powershell.exe', executeFile = execFile) {
+  return new Promise((resolve, reject) => {
+    executeFile(powerShellPath, [
+      '-NoLogo', '-NoProfile', '-NonInteractive', '-Command',
+      '[Security.Principal.WindowsIdentity]::GetCurrent().User.Value'
+    ], { windowsHide: true, timeout: 15000 }, (error, stdout) => {
+      if (error) {
+        reject(new AdminBrokerError('Unable to identify the originating Windows user.', 'ADMIN_BROKER_USER_SCOPE_UNSUPPORTED'));
+        return;
+      }
+      const sid = String(stdout || '').trim().toUpperCase();
+      if (!/^S-\d+(?:-\d+)+$/.test(sid)) {
+        reject(new AdminBrokerError('The originating Windows user identity is invalid.', 'ADMIN_BROKER_USER_SCOPE_UNSUPPORTED'));
+        return;
+      }
+      resolve(sid);
+    });
+  });
+}
+
 function createAdminBrokerManager(options = {}) {
   const app = options.app;
   const logger = options.logger;
@@ -161,9 +181,18 @@ function createAdminBrokerManager(options = {}) {
   async function defaultLaunchBroker({ pipeName, brokerSessionId }) {
     const executablePath = process.execPath;
     const appPath = app?.getAppPath?.() || process.cwd();
+    const originUserSid = app?.isPackaged
+      ? ''
+      : await resolveCurrentWindowsUserSid(options.powerShellPath || 'powershell.exe', options.execFile || execFile);
     const workerArgs = app?.isPackaged
       ? ['--nova-admin-broker-worker', '--broker-pipe', pipeName, '--broker-session', brokerSessionId]
-      : [appPath, '--nova-admin-broker-worker', '--broker-pipe', pipeName, '--broker-session', brokerSessionId];
+      : [
+          appPath,
+          '--nova-admin-broker-worker',
+          '--broker-pipe', pipeName,
+          '--broker-session', brokerSessionId,
+          '--broker-origin-sid', originUserSid
+        ];
     const nativeHostPath = app?.isPackaged
       ? path.join(process.resourcesPath, 'tools', 'nova-admin-broker', 'NovaAdminBrokerHost.exe')
       : path.join(appPath, 'tools', 'nova-admin-broker', 'bin', 'NovaAdminBrokerHost.exe');
@@ -363,4 +392,4 @@ function createAdminBrokerManager(options = {}) {
   return { ensureReady, execute, getState, shutdown };
 }
 
-module.exports = { AdminBrokerError, createAdminBrokerManager, quoteWindowsArgument };
+module.exports = { AdminBrokerError, createAdminBrokerManager, quoteWindowsArgument, resolveCurrentWindowsUserSid };

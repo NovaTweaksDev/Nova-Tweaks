@@ -1,5 +1,5 @@
 export const SHARED_LIST_GRID_CLASS = 'grid-cols-1 md:grid-cols-[3rem_minmax(150px,1fr)_130px_112px_180px_1.25rem]';
-export const TWEAK_LIST_GRID_CLASS = 'grid-cols-1 md:grid-cols-[3rem_minmax(150px,1fr)_130px_96px_180px_1.25rem]';
+export const TWEAK_LIST_GRID_CLASS = 'grid-cols-1 md:grid-cols-[2.5rem_minmax(220px,1fr)_128px_180px_1.25rem]';
 export const TWEAK_LIST_HEADER_PADDING_CLASS = 'px-9';
 export const SHARED_LIST_HEADER_DIVIDER_CLASS = "relative before:pointer-events-none before:absolute before:-bottom-3 before:-left-2 before:-top-3 before:w-px before:bg-[color:color-mix(in_srgb,var(--border)_42%,transparent)] before:content-['']";
 export const SHARED_LIST_GAP_CLASS = 'gap-4';

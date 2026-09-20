@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('desktopApi', {
   getSystemDetection: () => ipcRenderer.invoke('app:get-system-detection'),
   openExternalUrl: (payload) => ipcRenderer.invoke('app:open-external-url', payload),
   openMailUrl: (payload) => ipcRenderer.invoke('app:open-mail-url', payload),
+  writeClipboardText: (payload) => ipcRenderer.invoke('app:clipboard:write-text', payload),
   openPath: (payload) => ipcRenderer.invoke('app:open-path', payload),
   openThirdPartyLicenses: () => ipcRenderer.invoke('app:open-third-party-licenses'),
   getSettings: () => ipcRenderer.invoke('settings:get'),
@@ -83,6 +84,7 @@ contextBridge.exposeInMainWorld('desktopApi', {
   },
   getActiveGame: () => ipcRenderer.invoke('gamemode:active-game'),
   getGameModeState: () => ipcRenderer.invoke('gamemode:state'),
+  setGameModeState: (payload) => ipcRenderer.invoke('gamemode:set-state', payload),
   applyGameModeSettings: (payload) => ipcRenderer.invoke('gamemode:apply-settings', payload),
   getGameSessionState: () => ipcRenderer.invoke('game-session:get-state'),
   startGameSession: (payload) => ipcRenderer.invoke('game-session:start', payload),
@@ -91,6 +93,7 @@ contextBridge.exposeInMainWorld('desktopApi', {
   setGameSessionAutoTracking: (payload) => ipcRenderer.invoke('game-session:set-auto-tracking', payload),
   listGameSessionReports: () => ipcRenderer.invoke('game-session:list-reports'),
   chooseGameExecutable: () => ipcRenderer.invoke('game-session:choose-executable'),
+  inspectGameExecutable: (payload) => ipcRenderer.invoke('game-session:inspect-executable', payload),
   exportGameSessionReport: (payload) => ipcRenderer.invoke('game-session:export-report', payload),
   openGameSessionReport: (payload) => ipcRenderer.invoke('game-session:open-report', payload),
   onGameSessionUpdate: (callback) => {

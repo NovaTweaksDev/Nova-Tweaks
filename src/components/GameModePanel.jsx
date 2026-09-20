@@ -14,6 +14,7 @@ import {
   Activity,
   AlertTriangle,
   BarChart3,
+  Check,
   Clock,
   Cpu,
   Download,
@@ -45,7 +46,8 @@ const GAME_MODE_PRESET_TWEAKS = [
   },
   {
     id: 'clear_standby_list',
-    label: 'Clear Standby Memory'
+    label: 'Clear Standby Memory',
+    stateful: false
   },
   {
     id: 'xbox_services',
@@ -388,19 +390,24 @@ function GameModeSectionTitle({ title, subtitle, icon: Icon, actions = null }) {
   );
 }
 
-function GameModeOrb({ active, pending, ariaLabel, brand, mode, onClick, className = '' }) {
+function GameModeOrb({ active, pending, ariaLabel, brand, mode, activeLabel, inactiveLabel, onClick, className = '' }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={pending}
       aria-label={ariaLabel}
+      aria-pressed={active}
       className={`game-mode-orb ${active ? 'is-active' : ''} ${className}`}
     >
       <span className="game-mode-orb__content">
         <Gamepad2 {...LUCIDE_ICON_PROPS} className="game-mode-orb__icon" aria-hidden="true" />
         <span className="game-mode-orb__brand">{brand}</span>
         <span className="game-mode-orb__mode">{mode}</span>
+        <span className="game-mode-orb__status">
+          {active ? <Check size={13} strokeWidth={2.4} aria-hidden="true" /> : null}
+          {active ? activeLabel : inactiveLabel}
+        </span>
       </span>
     </button>
   );
@@ -763,15 +770,11 @@ function LiveGameMetrics({
   const frametimeSeries = chartData.filter((row) => Number.isFinite(row.frametime));
   const latestFrametime = frametimeSeries.length ? frametimeSeries[frametimeSeries.length - 1].frametime : null;
   const providerLabel = String(capture?.selectedProvider || capture?.provider || captureAvailability?.selectedProvider || '').trim();
-  const statusDetail = String(capture?.message || captureAvailability?.message || '').trim();
   const retryable = recording && canUsePremium && ['failed', 'unavailable', 'no_data'].includes(captureStatus) && typeof onRetryMonitoring === 'function';
   const frameFallback = ['starting', 'connected', 'running'].includes(captureStatus)
     ? t('gameMode.metrics.noFrameData', { defaultValue: 'No frame data' })
     : fpsUnavailable;
   const sessionStatusLabel = recording ? i18n.t('interfaceText.recording_9b98e') : i18n.t('interfaceText.not_recording_ccde0');
-  const statusLabel = recording ? normalizeCaptureStatus(captureStatus) : i18n.t('interfaceText.waiting_for_samples_c006f');
-  const statusValue = statusDetail || statusLabel;
-
   function formatCapturedMetric(value, formatter) {
     if (!canUsePremium || !recording) {
       return fpsUnavailable;
@@ -834,8 +837,9 @@ function LiveGameMetrics({
       detail: i18n.t('interfaceText.network_probe_4d609')
     }
   ];
-  const primaryMetrics = metrics.slice(0, 4);
-  const systemMetrics = metrics.slice(4);
+  const primaryMetrics = metrics.slice(0, 3);
+  const healthMetrics = [metrics[4], metrics[3], metrics[7]];
+  const systemMetrics = [metrics[5], metrics[6]];
 
   return (
     <section className="game-mode-card">
@@ -858,11 +862,10 @@ function LiveGameMetrics({
       />
       <div className="game-mode-live-status-strip">
         {[
-          { icon: Play, label: i18n.t('interfaceText.session_f7f19'), value: sessionStatusLabel },
           { icon: Gamepad2, label: i18n.t('interfaceText.game_e3e82'), value: recording ? session?.gameName || gameName : gameName, gameIcon: true },
-          { icon: MonitorCheck, label: i18n.t('apps.startup.sourcePathLabel'), value: providerLabel || i18n.t('settingsPanel.legal.presentMonTitle') },
+          { icon: Play, label: i18n.t('interfaceText.session_f7f19'), value: sessionStatusLabel },
           { icon: Clock, label: i18n.t('tweaks.fix.result.durationLabel'), value: formatDuration(session?.durationSeconds) },
-          { icon: Activity, label: i18n.t('common.status'), value: statusValue }
+          { icon: MonitorCheck, label: i18n.t('apps.startup.sourcePathLabel'), value: providerLabel || i18n.t('settingsPanel.legal.presentMonTitle') }
         ].map((item) => {
           const ItemIcon = item.icon;
           return (
@@ -898,11 +901,27 @@ function LiveGameMetrics({
         ))}
       </LiveMetricsGroup>
 
-      <LiveMetricsGroup title={i18n.t('dashboard.systemMetrics.title')} description={i18n.t('interfaceText.hardware_and_network_context_d8c55')}>
-        {systemMetrics.map((metric) => (
-          <LiveMetricCard key={metric.label} {...metric} />
-        ))}
-      </LiveMetricsGroup>
+      <div className="game-mode-health-strip" aria-label={t('gameMode.monitoring.health', { defaultValue: 'Session health' })}>
+        {healthMetrics.map((metric) => {
+          const MetricIcon = metric.icon;
+          return (
+            <div key={metric.label} className="game-mode-health-item">
+              <MetricIcon {...LUCIDE_ICON_PROPS} aria-hidden="true" />
+              <span>{metric.label}</span>
+              <strong>{metric.value}</strong>
+            </div>
+          );
+        })}
+      </div>
+
+      <details className="game-mode-details-disclosure">
+        <summary>{t('gameMode.monitoring.showDetails', { defaultValue: 'Show details' })}</summary>
+        <LiveMetricsGroup title={i18n.t('dashboard.systemMetrics.title')} description={i18n.t('interfaceText.hardware_and_network_context_d8c55')}>
+          {systemMetrics.map((metric) => (
+            <LiveMetricCard key={metric.label} {...metric} />
+          ))}
+        </LiveMetricsGroup>
+      </details>
 
       <div className="game-mode-live-metrics-footer">
         <span><ShieldCheck {...LUCIDE_ICON_PROPS} aria-hidden="true" /> {i18n.t('interfaceText.metrics_will_appear_automatically_once_capture_begins_and_live_da_7ad23')}</span>
@@ -1003,10 +1022,13 @@ function LivePerformanceGraph({ t, session }) {
           </div>
         )}
       </div>
-      <div className="game-mode-system-chart-grid">
-        {renderSystemChart({ dataKey: 'cpu', label: i18n.t('dashboard.metricsCards.cpu'), className: 'is-cpu' })}
-        {renderSystemChart({ dataKey: 'gpu', label: i18n.t('dashboard.metricsCards.gpu'), className: 'is-gpu' })}
-      </div>
+      <details className="game-mode-details-disclosure">
+        <summary>{t('gameMode.monitoring.systemCharts', { defaultValue: 'System charts' })}</summary>
+        <div className="game-mode-system-chart-grid">
+          {renderSystemChart({ dataKey: 'cpu', label: i18n.t('dashboard.metricsCards.cpu'), className: 'is-cpu' })}
+          {renderSystemChart({ dataKey: 'gpu', label: i18n.t('dashboard.metricsCards.gpu'), className: 'is-gpu' })}
+        </div>
+      </details>
     </section>
   );
 }
@@ -1038,10 +1060,18 @@ function ActiveGameProfileCard({
       />
       <div className="game-mode-profile-summary">
         <GameIcon iconSource={iconSource} label={gameName} className="game-mode-game-icon--profile" />
-        <div>
-          <p className="game-mode-profile-summary__label">{i18n.t('account.menu.profile')}</p>
-          <p className="game-mode-profile-summary__value">{activeProfileLabel}</p>
+        <div className="game-mode-profile-summary__content">
+          <p className="game-mode-profile-summary__label">{t('gameMode.preset.statusLabel')}</p>
+          <p className="game-mode-profile-summary__value">
+            {presetActive ? t('gameMode.preset.enabled') : t('gameMode.preset.disabled')}
+          </p>
+          <p className="game-mode-profile-summary__profile">
+            {t('gameMode.preset.sessionProfile')}: {activeProfileLabel}
+          </p>
         </div>
+        <StatusPill tone={presetActive ? 'success' : 'neutral'}>
+          {presetActive ? t('gameMode.activeBadge') : t('gameMode.preset.inactiveBadge')}
+        </StatusPill>
       </div>
       <div className="game-mode-profile-orb-wrap">
         <GameModeOrb
@@ -1050,6 +1080,8 @@ function ActiveGameProfileCard({
           ariaLabel={gameModeButtonAria}
           brand="NOVA"
           mode="GAME MODE"
+          activeLabel={t('gameMode.preset.enabled')}
+          inactiveLabel={t('gameMode.preset.clickToEnable')}
           onClick={canUsePremium ? onRunPreset : onRequestPremium}
           className="game-mode-profile-orb"
         />
@@ -1086,6 +1118,7 @@ function createMetricInsights(session) {
   const onePercentLow = getSessionMetric(session, 'onePercentLow');
   const gpuMaxTempC = getSessionMetric(session, 'gpuMaxTempC');
   const ramPeakMB = getSessionMetric(session, 'ramPeakMB');
+  const systemMemoryTotalMB = Number(session?.systemMemoryTotalMB);
   const vramPeakMB = getSessionMetric(session, 'vramPeakMB');
   const avgLatencyMs = getSessionMetric(session, 'avgLatencyMs');
   const packetLossPercent = getSessionMetric(session, 'packetLossPercent');
@@ -1125,14 +1158,22 @@ function createMetricInsights(session) {
 
   if (hasFiniteValue(ramPeakMB)) {
     const ramPeakGb = ramPeakMB / 1024;
-    const severity = ramPeakGb >= 14 ? 'warning' : 'info';
+    const hasSystemMemoryTotal = Number.isFinite(systemMemoryTotalMB) && systemMemoryTotalMB > 0;
+    const severity = hasSystemMemoryTotal
+      ? ramPeakMB / systemMemoryTotalMB >= 0.85 ? 'warning' : 'info'
+      : ramPeakGb >= 14 ? 'warning' : 'info';
     insights.push({
       id: 'ram-peak',
       title: `RAM peak was ${formatNumber(ramPeakGb, 1)} GB`,
       description: severity === 'warning'
         ? i18n.t('interfaceText.high_memory_usage_detected_during_the_session_473cc')
         : i18n.t('interfaceText.memory_usage_stayed_within_normal_bounds_for_this_session_2df17'),
-      detail: i18n.t('interfaceText.total_system_ram_unavailable_0043d'),
+      detail: hasSystemMemoryTotal
+        ? i18n.t('gameMode.monitoring.totalSystemRam', {
+          value: formatMemoryMb(systemMemoryTotalMB),
+          defaultValue: 'Total System RAM: {{value}}'
+        })
+        : i18n.t('interfaceText.total_system_ram_unavailable_0043d'),
       category: 'Memory',
       severity,
       icon: MemoryStick
@@ -1450,6 +1491,58 @@ function LastSessionReportCard({ t, report, onViewReport, onExportReport, onOpen
   );
 }
 
+function SessionHistoryCard({ t, reports, onSelectReport }) {
+  const savedReports = Array.isArray(reports) ? reports : [];
+
+  return (
+    <section className="game-mode-card game-mode-session-history">
+      <GameModeSectionTitle
+        title={t('gameMode.monitoring.historyTitle', { defaultValue: 'Session history' })}
+        subtitle={t('gameMode.monitoring.historyDescription', { defaultValue: 'Completed recordings remain available for 30 days.' })}
+        icon={Clock}
+        actions={savedReports.length ? (
+          <StatusPill tone="neutral">
+            {t('gameMode.monitoring.historyCount', { count: savedReports.length, defaultValue: '{{count}} saved' })}
+          </StatusPill>
+        ) : null}
+      />
+      {savedReports.length ? (
+        <div className="game-mode-session-history__list">
+          {savedReports.map((report) => {
+            const metrics = report?.metrics || {};
+            const health = getSessionHealthSummary(report);
+            return (
+              <button
+                key={report.sessionId}
+                type="button"
+                className="game-mode-session-history__row"
+                onClick={() => onSelectReport?.(report)}
+              >
+                <GameIcon label={report.gameName || report.processName} className="game-mode-game-icon--session" />
+                <span className="game-mode-session-history__identity">
+                  <strong>{report.gameName || report.processName || t('gameMode.monitoring.unknownGame', { defaultValue: 'Game session' })}</strong>
+                  <span>{formatDateTime(report.startedAt)} · {formatDuration(report.durationSeconds)}</span>
+                </span>
+                <span className="game-mode-session-history__metrics">
+                  <span>{t('gameMode.monitoring.averageFps', { defaultValue: 'Avg FPS' })}<strong>{formatFps(metrics.avgFps)}</strong></span>
+                  <span>{t('gameMode.monitoring.ramPeak', { defaultValue: 'RAM peak' })}<strong>{formatMemoryMb(metrics.ramPeakMB)}</strong></span>
+                </span>
+                <span className={`game-mode-session-history__health is-${health.health}`}>{health.label}</span>
+                <Eye {...LUCIDE_ICON_PROPS} aria-hidden="true" />
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="game-mode-session-history__empty">
+          <FileText {...LUCIDE_ICON_PROPS} aria-hidden="true" />
+          <span>{t('gameMode.monitoring.historyEmpty', { defaultValue: 'Completed sessions will appear here.' })}</span>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function GameModeFootnote({ t }) {
   return (
     <div className="game-mode-footnote">
@@ -1681,6 +1774,7 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
   const [affinityModalOpen, setAffinityModalOpen] = useState(false);
   const [presetPending, setPresetPending] = useState(false);
   const [presetActive, setPresetActive] = useState(false);
+  const [presetRestoreSnapshot, setPresetRestoreSnapshot] = useState([]);
   const [presetMessage, setPresetMessage] = useState('');
   const [presetTone, setPresetTone] = useState('info');
   const [applyPending, setApplyPending] = useState(false);
@@ -1699,6 +1793,8 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
   const [sessionMessage, setSessionMessage] = useState('');
   const [sessionTone, setSessionTone] = useState('info');
   const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [sessionReports, setSessionReports] = useState([]);
+  const [selectedReport, setSelectedReport] = useState(null);
   const activeGameRef = useRef(null);
   const activeGameRequestInFlightRef = useRef(false);
   const syncedGameIdentityRef = useRef('');
@@ -1757,6 +1853,52 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
     };
   }
 
+  async function persistPresetState({ active: nextActive, restoreSnapshot }) {
+    const normalizedSnapshot = Array.isArray(restoreSnapshot) ? restoreSnapshot : [];
+    setPresetRestoreSnapshot(normalizedSnapshot);
+    if (!window.desktopApi?.setGameModeState) {
+      return { ok: false, code: 'APP_RESTART_REQUIRED' };
+    }
+
+    try {
+      return await window.desktopApi.setGameModeState({
+        active: nextActive,
+        lastActivatedAt: nextActive ? new Date().toISOString() : '',
+        source: 'nova-game-mode-preset',
+        restoreSnapshot: normalizedSnapshot
+      });
+    } catch (_error) {
+      return { ok: false, code: 'APP_RESTART_REQUIRED' };
+    }
+  }
+
+  function createPresetRestoreSnapshot(resolvedTweaks) {
+    return resolvedTweaks
+      .filter(({ presetDefinition }) => presetDefinition.stateful !== false)
+      .flatMap(({ tweak, presetDefinition }) => {
+        const currentState = String(tweak?.currentState || '').trim().toLowerCase();
+        if (!['enabled', 'disabled'].includes(currentState)) {
+          return [];
+        }
+        return [{
+          id: presetDefinition.id,
+          currentState,
+          selectedOption: String(tweak?.selectedOption || '').trim(),
+          selectedResolution: String(tweak?.selectedResolution || tweak?.currentResolution || '').trim()
+        }];
+      });
+  }
+
+  function getRestoreParams(snapshotEntry) {
+    if (snapshotEntry?.id === 'set_dns_provider' && snapshotEntry.selectedOption) {
+      return { Selection: snapshotEntry.selectedOption };
+    }
+    if (snapshotEntry?.id === 'set_timer_resolution' && snapshotEntry.selectedResolution) {
+      return { Resolution: snapshotEntry.selectedResolution };
+    }
+    return {};
+  }
+
   async function loadPresetCatalog() {
     if (!window.desktopApi?.listTweaks) {
       return {
@@ -1807,10 +1949,11 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
       }
 
       const resolvedTweaks = resolvePresetTweaks(result.tweaks);
+      const statefulTweaks = resolvedTweaks.filter(({ presetDefinition }) => presetDefinition.stateful !== false);
       const hasAllTweaks = resolvedTweaks.every((entry) => Boolean(entry.tweak));
       const allTweaksActive =
         hasAllTweaks &&
-        resolvedTweaks.every(({ tweak, presetDefinition }) => isPresetTweakActive(tweak, presetDefinition));
+        statefulTweaks.every(({ tweak, presetDefinition }) => isPresetTweakActive(tweak, presetDefinition));
 
       setPresetActive(allTweaksActive);
     } catch (_error) {
@@ -1821,6 +1964,21 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
   useEffect(() => {
     if (!active) return;
     void refreshPresetState();
+  }, [active]);
+
+  useEffect(() => {
+    if (!active || !window.desktopApi?.getGameModeState) return;
+    let mounted = true;
+    window.desktopApi.getGameModeState()
+      .then((result) => {
+        if (mounted && result?.ok) {
+          setPresetRestoreSnapshot(Array.isArray(result.state?.restoreSnapshot) ? result.state.restoreSnapshot : []);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
   }, [active]);
 
   async function loadActiveGame({ silent = false } = {}) {
@@ -1840,6 +1998,22 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
     }
 
     try {
+      const manuallySelectedGame = activeGameRef.current?.manual ? activeGameRef.current : null;
+      if (manuallySelectedGame?.executablePath && window.desktopApi?.inspectGameExecutable) {
+        const inspected = await window.desktopApi.inspectGameExecutable({
+          executablePath: manuallySelectedGame.executablePath,
+          processId: manuallySelectedGame.targetProcessId || manuallySelectedGame.processId || 0,
+          displayName: manuallySelectedGame.displayName,
+          processName: manuallySelectedGame.processName
+        });
+        if (inspected?.ok && inspected.game?.processId) {
+          setErrorCode('');
+          setActiveGame(inspected.game);
+          lastDetectedAtRef.current = Date.now();
+          return;
+        }
+      }
+
       const result = await window.desktopApi.getActiveGame();
       if (!result?.ok) {
         setErrorCode(String(result?.code || 'LOAD_FAILED'));
@@ -1924,6 +2098,21 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
   }, [active]);
 
   useEffect(() => {
+    if (!active || !window.desktopApi?.listGameSessionReports) return undefined;
+    let mounted = true;
+    window.desktopApi.listGameSessionReports()
+      .then((result) => {
+        if (mounted && result?.ok) {
+          setSessionReports(Array.isArray(result.reports) ? result.reports : []);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, [active, gameSessionState.lastReport?.sessionId]);
+
+  useEffect(() => {
     if (!active) return undefined;
 
     let mounted = true;
@@ -1970,13 +2159,23 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
     setPresetPending(true);
     setPresetMessage('');
     setPresetTone('info');
+    onRuntimeStatusChange?.({
+      id: 'game-mode:preset',
+      label: t('gameMode.preset.enabling'),
+      message: t('gameMode.preset.preparing'),
+      status: 'running',
+      progress: 0,
+      steps: GAME_MODE_PRESET_TWEAKS.map((entry) => ({ id: entry.id, label: entry.label, status: 'pending' }))
+    });
 
     try {
       const catalogResult = await loadPresetCatalog();
       if (!catalogResult.ok) {
         setPresetTone("error");
-        setPresetMessage(t('gameMode.preset.loadFailed', { code: catalogResult.code }));
+        const message = t('gameMode.preset.loadFailed', { code: catalogResult.code });
+        setPresetMessage(message);
         setPresetActive(false);
+        onRuntimeStatusChange?.({ id: 'game-mode:preset', label: t('nav.gameMode'), message, status: 'error' });
         return;
       }
 
@@ -1984,17 +2183,57 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
       const missingTweaks = resolvedTweaks.filter((entry) => !entry.tweak);
       if (missingTweaks.length > 0) {
         setPresetTone("error");
-        setPresetMessage(t('gameMode.preset.missingTweaks', {
+        const message = t('gameMode.preset.missingTweaks', {
           names: missingTweaks.map((entry) => entry.presetDefinition.id).join(', ')
-        }));
+        });
+        setPresetMessage(message);
         setPresetActive(false);
+        onRuntimeStatusChange?.({ id: 'game-mode:preset', label: t('nav.gameMode'), message, status: 'error' });
         return;
       }
 
-      const shouldDisablePreset = resolvedTweaks.every(({ tweak, presetDefinition }) => isPresetTweakActive(tweak, presetDefinition));
+      const statefulTweaks = resolvedTweaks.filter(({ presetDefinition }) => presetDefinition.stateful !== false);
+      const shouldDisablePreset = statefulTweaks.every(({ tweak, presetDefinition }) => isPresetTweakActive(tweak, presetDefinition));
+      let restoreSnapshot = presetRestoreSnapshot;
+      if (!shouldDisablePreset && restoreSnapshot.length === 0) {
+        restoreSnapshot = createPresetRestoreSnapshot(resolvedTweaks);
+        if (restoreSnapshot.length !== statefulTweaks.length) {
+          const message = t('gameMode.preset.snapshotFailed');
+          setPresetTone('error');
+          setPresetMessage(message);
+          onRuntimeStatusChange?.({ id: 'game-mode:preset', label: t('nav.gameMode'), message, status: 'error' });
+          return;
+        }
+        const persistResult = await persistPresetState({ active: false, restoreSnapshot });
+        if (!persistResult?.ok) {
+          const message = persistResult?.code === 'APP_RESTART_REQUIRED'
+            ? t('gameMode.preset.restartRequired')
+            : t('gameMode.preset.snapshotFailed');
+          setPresetTone('error');
+          setPresetMessage(message);
+          onRuntimeStatusChange?.({ id: 'game-mode:preset', label: t('nav.gameMode'), message, status: 'error' });
+          return;
+        }
+      }
+
       const tweaksToApply = shouldDisablePreset
-        ? resolvedTweaks
-        : resolvedTweaks.filter(({ tweak, presetDefinition }) => !isPresetTweakActive(tweak, presetDefinition));
+        ? statefulTweaks.map((entry) => {
+          const snapshotEntry = restoreSnapshot.find((snapshot) => snapshot.id === entry.presetDefinition.id);
+          return {
+            ...entry,
+            targetState: snapshotEntry?.currentState || 'disabled',
+            executionParams: getRestoreParams(snapshotEntry)
+          };
+        })
+        : resolvedTweaks
+          .filter(({ tweak, presetDefinition }) => (
+            presetDefinition.stateful === false || !isPresetTweakActive(tweak, presetDefinition)
+          ))
+          .map((entry) => ({
+            ...entry,
+            targetState: 'enabled',
+            executionParams: entry.presetDefinition.params || {}
+          }));
       if (tweaksToApply.length === 0) {
         setPresetTone("success");
         setPresetMessage(t('gameMode.preset.alreadyActive'));
@@ -2003,17 +2242,55 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
       }
 
       const failedTweaks = [];
-      for (const { tweak, presetDefinition } of tweaksToApply) {
+      let progressSteps = tweaksToApply.map(({ tweak, presetDefinition }) => ({
+        id: presetDefinition.id,
+        label: tweak.name || presetDefinition.label || presetDefinition.id,
+        status: 'pending'
+      }));
+      onRuntimeStatusChange?.({
+        id: 'game-mode:preset',
+        label: shouldDisablePreset ? t('gameMode.preset.restoring') : t('gameMode.preset.enabling'),
+        message: t('gameMode.preset.progress', { current: 0, total: progressSteps.length }),
+        status: 'running',
+        progress: 0,
+        steps: progressSteps
+      });
+
+      for (let index = 0; index < tweaksToApply.length; index += 1) {
+        const { tweak, presetDefinition, targetState, executionParams } = tweaksToApply[index];
+        progressSteps = progressSteps.map((step, stepIndex) => ({
+          ...step,
+          status: stepIndex < index ? step.status : stepIndex === index ? 'running' : 'pending'
+        }));
+        onRuntimeStatusChange?.({
+          id: 'game-mode:preset',
+          label: shouldDisablePreset ? t('gameMode.preset.restoring') : t('gameMode.preset.enabling'),
+          message: t('gameMode.preset.progress', { current: index + 1, total: progressSteps.length }),
+          status: 'running',
+          progress: index / progressSteps.length,
+          steps: progressSteps
+        });
         const result = await executeRemoteTweak({
           id: tweak.id,
-          targetState: shouldDisablePreset ? 'disabled' : 'enabled',
-          params: shouldDisablePreset ? {} : presetDefinition.params || {},
+          targetState,
+          params: executionParams,
           timeoutMs: 60000
         });
 
         if (!result?.ok) {
           failedTweaks.push(tweak.name || presetDefinition.label || presetDefinition.id);
         }
+        progressSteps = progressSteps.map((step, stepIndex) => stepIndex === index
+          ? { ...step, status: result?.ok ? 'success' : 'error' }
+          : step);
+        onRuntimeStatusChange?.({
+          id: 'game-mode:preset',
+          label: shouldDisablePreset ? t('gameMode.preset.restoring') : t('gameMode.preset.enabling'),
+          message: t('gameMode.preset.progress', { current: index + 1, total: progressSteps.length }),
+          status: 'running',
+          progress: (index + 1) / progressSteps.length,
+          steps: progressSteps
+        });
       }
 
       if (shouldDisablePreset && failedTweaks.length === 0) {
@@ -2025,15 +2302,39 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
       if (failedTweaks.length > 0) {
         setPresetTone('warning');
         setPresetMessage(t(shouldDisablePreset ? 'gameMode.preset.disableFailedTweaks' : 'gameMode.preset.failedTweaks', { names: failedTweaks.join(', ') }));
+        onRuntimeStatusChange?.({
+          id: 'game-mode:preset',
+          label: t('nav.gameMode'),
+          message: t(shouldDisablePreset ? 'gameMode.preset.disableFailedTweaks' : 'gameMode.preset.failedTweaks', { names: failedTweaks.join(', ') }),
+          status: 'error',
+          progress: 1,
+          steps: progressSteps
+        });
         return;
       }
 
+      if (shouldDisablePreset) {
+        await persistPresetState({ active: false, restoreSnapshot: [] });
+      } else {
+        setPresetActive(true);
+        await persistPresetState({ active: true, restoreSnapshot });
+      }
       setPresetTone("success");
-      setPresetMessage(t(shouldDisablePreset ? 'gameMode.preset.disabledSimple' : 'gameMode.preset.appliedSimple'));
+      setPresetMessage('');
+      onRuntimeStatusChange?.({
+        id: 'game-mode:preset',
+        label: t('nav.gameMode'),
+        message: t(shouldDisablePreset ? 'gameMode.preset.disabledSimple' : 'gameMode.preset.appliedSimple'),
+        status: 'success',
+        progress: 1,
+        steps: progressSteps
+      });
     } catch (_error) {
       setPresetTone("error");
-      setPresetMessage(t(presetActive ? 'gameMode.preset.disableFailed' : 'gameMode.preset.failed'));
+      const message = t(presetActive ? 'gameMode.preset.disableFailed' : 'gameMode.preset.failed');
+      setPresetMessage(message);
       setPresetActive(false);
+      onRuntimeStatusChange?.({ id: 'game-mode:preset', label: t('nav.gameMode'), message, status: 'error' });
     } finally {
       setPresetPending(false);
     }
@@ -2187,8 +2488,24 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
     const result = await window.desktopApi.chooseGameExecutable();
     if (result?.ok && result.game) {
       setManualGame(result.game);
+      if (result.game.processId) {
+        setActiveGame(result.game);
+        lastDetectedAtRef.current = Date.now();
+        syncedGameIdentityRef.current = `${result.game.processId}:${result.game.executablePath || ''}`;
+        setDisableFullscreenOptimizations(Boolean(result.game.fullscreenOptimizationsDisabled));
+        setPreferHighPriority(isHighPriorityConfigured(result.game));
+        setSelectedAffinityProcessors(
+          normalizeProcessorList(result.game.cpuAffinityProcessors, getLogicalProcessorCount(result.game))
+        );
+      } else {
+        setActiveGame(null);
+        syncedGameIdentityRef.current = '';
+        setDisableFullscreenOptimizations(Boolean(result.game.fullscreenOptimizationsDisabled));
+        setPreferHighPriority(isHighPriorityConfigured(result.game));
+        setSelectedAffinityProcessors([]);
+      }
       setSessionTone('info');
-      setSessionMessage(t('gameMode.session.manualSelected', { defaultValue: 'Manual executable selected. Start the game before recording.' }));
+      setSessionMessage(t('gameMode.session.manualSelected', { defaultValue: 'Manual executable selected. Start the game to enable monitoring and runtime tuning.' }));
     }
   }
 
@@ -2210,6 +2527,12 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
       return;
     }
     await window.desktopApi.openGameSessionReport({ sessionId: report.sessionId });
+  }
+
+  function openReportModal(report = lastReport) {
+    if (!report) return;
+    setSelectedReport(report);
+    setReportModalOpen(true);
   }
 
   useEffect(() => {
@@ -2596,15 +2919,6 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
       return;
     }
 
-    if (presetPending) {
-      onRuntimeStatusChange({
-        id: 'game-mode:preset',
-        label: t('nav.gameMode'),
-        status: 'running'
-      });
-      return;
-    }
-
     if (sessionPending) {
       onRuntimeStatusChange({
         id: 'game-mode:session',
@@ -2624,11 +2938,11 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
     }
 
     onRuntimeStatusChange((previous) =>
-      String(previous?.id || '').startsWith('game-mode:')
+      ['game-mode:session', 'game-mode:tuning'].includes(String(previous?.id || ''))
         ? { id: '', label: '', status: 'idle' }
         : previous
     );
-  }, [applyPending, onRuntimeStatusChange, presetPending, sessionPending, t]);
+  }, [applyPending, onRuntimeStatusChange, sessionPending, t]);
 
   return (
     <PageShell className="game-mode-shell">
@@ -2671,6 +2985,7 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
 
         {isSessionMonitoringView ? (
           <>
+          {recording ? <>
             <LiveGameMetrics
               t={t}
               session={activeSession}
@@ -2688,20 +3003,37 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
               session={activeSession}
             />
 
-            <SessionInsightsCard
+            <details className="game-mode-secondary-details">
+              <summary>{t('gameMode.monitoring.sessionDetails', { defaultValue: 'Session details' })}</summary>
+              <div className="game-mode-secondary-details__content">
+                <SessionInsightsCard
+                  t={t}
+                  session={activeSession || lastReport}
+                  iconSource={iconSource}
+                  onViewReport={lastReport ? () => openReportModal(lastReport) : null}
+                  onStartSession={null}
+                />
+                <LastSessionReportCard
+                  t={t}
+                  report={lastReport}
+                  onViewReport={() => openReportModal(lastReport)}
+                  onExportReport={exportLastReport}
+                  onOpenReport={openLastReport}
+                />
+              </div>
+            </details>
+          </> : (
+            <section className="game-mode-session-empty" aria-live="polite">
+              <span className="game-mode-session-empty__icon" aria-hidden="true"><Activity {...LUCIDE_ICON_PROPS} /></span>
+              <h2>{t('gameMode.monitoring.emptyTitle', { defaultValue: 'No active session' })}</h2>
+              <p>{t('gameMode.monitoring.emptyDescription', { defaultValue: 'Start a detected game session to see FPS, frametime and health signals.' })}</p>
+              <span>{t('gameMode.monitoring.detectionReady', { defaultValue: 'Game detection remains active in the background.' })}</span>
+            </section>
+          )}
+            <SessionHistoryCard
               t={t}
-              session={activeSession || lastReport}
-              iconSource={iconSource}
-              onViewReport={lastReport ? () => setReportModalOpen(true) : null}
-              onStartSession={!recording && hasSelectedGame ? () => startSession() : null}
-            />
-
-            <LastSessionReportCard
-              t={t}
-              report={lastReport}
-              onViewReport={() => setReportModalOpen(true)}
-              onExportReport={exportLastReport}
-              onOpenReport={openLastReport}
+              reports={sessionReports}
+              onSelectReport={openReportModal}
             />
           </>
         ) : (
@@ -2812,9 +3144,12 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
       </ModalShell>
       <SessionReportModal
         t={t}
-        report={lastReport}
+        report={selectedReport || lastReport}
         open={reportModalOpen}
-        onClose={() => setReportModalOpen(false)}
+        onClose={() => {
+          setReportModalOpen(false);
+          setSelectedReport(null);
+        }}
       />
     </PageShell>
   );

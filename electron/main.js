@@ -3,7 +3,7 @@ const fs = require('fs');
 const os = require('os');
 const { execFileSync } = require('child_process');
 const { pathToFileURL } = require('url');
-const { app, BrowserWindow, Menu, Tray, Notification, dialog, ipcMain, shell, webContents, nativeImage, screen, protocol, net } = require('electron');
+const { app, BrowserWindow, Menu, Tray, Notification, clipboard, dialog, ipcMain, shell, webContents, nativeImage, screen, protocol, net } = require('electron');
 const { createLogger } = require('./logger');
 const { getReleaseInfo } = require('./services/releaseInfo');
 const { createScriptRunner, ScriptRunnerError } = require('./services/script-runner');
@@ -331,7 +331,15 @@ let latestUpdateCheck = null;
 const metricsSubscriberIds = new Set();
 const gameSessionSubscriberIds = new Set();
 let advancedSensorMonitoringEnabled = false;
-const GAME_MODE_STATE_VERSION = 1;
+const GAME_MODE_STATE_VERSION = 2;
+const GAME_MODE_PRESET_TWEAK_IDS = new Set([
+  'nova_ultimate_powerplan',
+  'xbox_services',
+  'windows_game_mode',
+  'set_timer_resolution',
+  'set_dns_provider',
+  'hardware_accelerated_gpu'
+]);
 const IPC_SLOW_CALL_THRESHOLD_MS = 1000;
 
 function resolveExistingPath(candidates) {
@@ -418,8 +426,30 @@ function getDefaultGameModeState() {
     version: GAME_MODE_STATE_VERSION,
     active: false,
     lastActivatedAt: '',
-    source: ''
+    source: '',
+    restoreSnapshot: []
   };
+}
+
+function normalizeGameModeRestoreSnapshot(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.slice(0, GAME_MODE_PRESET_TWEAK_IDS.size).flatMap((entry) => {
+    const id = typeof entry?.id === 'string' ? entry.id.trim() : '';
+    const currentState = String(entry?.currentState || '').trim().toLowerCase();
+    if (!GAME_MODE_PRESET_TWEAK_IDS.has(id) || !['enabled', 'disabled'].includes(currentState)) {
+      return [];
+    }
+
+    return [{
+      id,
+      currentState,
+      selectedOption: typeof entry?.selectedOption === 'string' ? entry.selectedOption.trim().slice(0, 160) : '',
+      selectedResolution: typeof entry?.selectedResolution === 'string' ? entry.selectedResolution.trim().slice(0, 16) : ''
+    }];
+  });
 }
 
 function getGameModeStatePath() {
@@ -442,7 +472,8 @@ function readGameModeState() {
       ...(parsed && typeof parsed === 'object' ? parsed : {}),
       active: Boolean(parsed?.active),
       lastActivatedAt: typeof parsed?.lastActivatedAt === 'string' ? parsed.lastActivatedAt.trim() : '',
-      source: typeof parsed?.source === 'string' ? parsed.source.trim() : ''
+      source: typeof parsed?.source === 'string' ? parsed.source.trim() : '',
+      restoreSnapshot: normalizeGameModeRestoreSnapshot(parsed?.restoreSnapshot)
     };
   } catch (error) {
     logger.warn('Failed to read persisted Game Mode state.', { message: error.message });
@@ -1408,6 +1439,24 @@ async function createAutomaticTweakBackup({ name, description }, tweaks) {
   }
 }
 
+function writeGameModeState(value = {}) {
+  const storagePath = getGameModeStatePath();
+  const storageDirectory = path.dirname(storagePath);
+  const nextState = {
+    version: GAME_MODE_STATE_VERSION,
+    active: Boolean(value?.active),
+    lastActivatedAt: typeof value?.lastActivatedAt === 'string' ? value.lastActivatedAt.trim() : '',
+    source: typeof value?.source === 'string' ? value.source.trim().slice(0, 80) : '',
+    restoreSnapshot: normalizeGameModeRestoreSnapshot(value?.restoreSnapshot)
+  };
+  const temporaryPath = `${storagePath}.${process.pid}.tmp`;
+
+  fs.mkdirSync(storageDirectory, { recursive: true });
+  fs.writeFileSync(temporaryPath, `${JSON.stringify(nextState, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
+  fs.renameSync(temporaryPath, storagePath);
+  return nextState;
+}
+
 async function runScheduledBackup() {
   if (!backupManager || Date.now() < automaticBackupRetryAt) return;
   try {
@@ -2101,6 +2150,28 @@ function registerIpcHandlers() {
         ok: false,
         code: 'OPEN_MAIL_FAILED',
         message: error?.message || 'Unable to open email client.'
+      };
+    }
+  });
+
+  ipcMain.handle('app:clipboard:write-text', async (_event, payload = {}) => {
+    const text = typeof payload?.text === 'string' ? payload.text : '';
+    if (!text || text.length > 1_000_000 || /\0/.test(text)) {
+      return {
+        ok: false,
+        code: 'INVALID_CLIPBOARD_TEXT',
+        message: 'Valid clipboard text is required.'
+      };
+    }
+
+    try {
+      clipboard.writeText(text);
+      return { ok: true };
+    } catch (error) {
+      return {
+        ok: false,
+        code: 'CLIPBOARD_WRITE_FAILED',
+        message: error?.message || 'Unable to write to the clipboard.'
       };
     }
   });
@@ -3121,6 +3192,23 @@ function registerIpcHandlers() {
     }
   });
 
+  ipcMain.handle('gamemode:set-state', async (_event, payload = {}) => {
+    try {
+      return {
+        ok: true,
+        state: writeGameModeState(payload)
+      };
+    } catch (error) {
+      const ipcError = toIpcError(error);
+      appsLogger.error('Failed to persist Game Mode state.', ipcError);
+      return {
+        ok: false,
+        ...ipcError,
+        state: readGameModeState()
+      };
+    }
+  });
+
   ipcMain.handle('gamemode:apply-settings', async (_event, payload = {}) => {
     if (!appsManager) {
       return {
@@ -3383,16 +3471,68 @@ function registerIpcHandlers() {
 
     const executablePath = result.filePaths[0];
     const processName = path.basename(executablePath);
+    let runtimeState = null;
+    if (appsManager?.inspectGameExecutable) {
+      try {
+        runtimeState = await appsManager.inspectGameExecutable({ executablePath });
+      } catch (error) {
+        gameSessionLogger.warn('Failed to inspect manually selected game executable.', {
+          ...toIpcError(error),
+          executablePath
+        });
+      }
+    }
+    const runtimeProcessId = Number(runtimeState?.runtimeProcessId);
     return {
       ok: true,
       game: {
         displayName: path.basename(executablePath, path.extname(executablePath)),
         processName,
         executablePath,
-        processId: 0,
-        manual: true
+        processId: Number.isFinite(runtimeProcessId) && runtimeProcessId > 0 ? Math.trunc(runtimeProcessId) : 0,
+        targetProcessId: Number.isFinite(runtimeProcessId) && runtimeProcessId > 0 ? Math.trunc(runtimeProcessId) : 0,
+        manual: true,
+        ...(runtimeState || {})
       }
     };
+  });
+
+  ipcMain.handle('game-session:inspect-executable', async (_event, payload = {}) => {
+    if (!appsManager?.inspectGameExecutable) {
+      return {
+        ok: false,
+        code: 'APPS_NOT_READY',
+        message: 'Apps manager is not initialized.',
+        details: {},
+        game: null
+      };
+    }
+
+    try {
+      const executablePath = String(payload?.executablePath || '').trim();
+      const runtimeState = await appsManager.inspectGameExecutable({
+        executablePath,
+        processId: Number(payload?.processId) || 0
+      });
+      const runtimeProcessId = Number(runtimeState?.runtimeProcessId);
+      return {
+        ok: true,
+        game: {
+          ...payload,
+          executablePath,
+          processId: Number.isFinite(runtimeProcessId) && runtimeProcessId > 0 ? Math.trunc(runtimeProcessId) : 0,
+          targetProcessId: Number.isFinite(runtimeProcessId) && runtimeProcessId > 0 ? Math.trunc(runtimeProcessId) : 0,
+          manual: true,
+          ...(runtimeState || {})
+        }
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        ...toIpcError(error),
+        game: null
+      };
+    }
   });
 
   ipcMain.handle('game-session:export-report', async (_event, payload = {}) => {

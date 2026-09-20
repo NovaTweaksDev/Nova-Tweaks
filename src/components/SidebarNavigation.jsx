@@ -1,4 +1,3 @@
-import i18n from '../i18n';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -35,7 +34,6 @@ function getInitialReducedMotionPreference() {
 
 function createSupportHeartParticles() {
   const particleCount = 4 + Math.floor(Math.random() * 3);
-
   return Array.from({ length: particleCount }, (_, index) => ({
     id: nextSupportHeartParticleId++,
     color: SUPPORT_HEART_COLORS[index % SUPPORT_HEART_COLORS.length],
@@ -154,10 +152,7 @@ function SidebarNavigation({
 
     setPrefersReducedMotion(mediaQuery.matches);
     mediaQuery.addEventListener('change', handlePreferenceChange);
-
-    return () => {
-      mediaQuery.removeEventListener('change', handlePreferenceChange);
-    };
+    return () => mediaQuery.removeEventListener('change', handlePreferenceChange);
   }, []);
 
   function handleSupportMouseEnter() {
@@ -284,9 +279,9 @@ function SidebarNavigation({
             type="button"
             onClick={onSupport}
             onMouseEnter={handleSupportMouseEnter}
-            title={t('support.voluntary', { defaultValue: 'Entirely optional. Nova Tweaks remains fully usable without support.' })}
-            aria-label={t('support.voluntaryAction', { defaultValue: 'Optional support: Buy me a coffee' })}
-            className="app-sidebar-account-button ui-card app-region-no-drag flex w-full items-center gap-2.5 p-2.5 text-left transition hover:border-[color:color-mix(in_srgb,var(--accent)_28%,var(--border))] hover:bg-[var(--surface-hover)]"
+            title={t('strings.entirely_optional_nova_tweaks_remains_fully_usable_without_suppor_855fd', { defaultValue: 'Entirely optional. Nova Tweaks remains fully usable without support.' })}
+            aria-label={t('strings.optional_support_buy_me_a_coffee_23adc', { defaultValue: 'Optional support: Buy me a coffee' })}
+            className="app-sidebar-account-button ui-card app-region-no-drag flex w-full items-center gap-2.5 p-2.5 text-left transition"
           >
             <span className="app-sidebar-support-icon inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--accent)]">
               <Coffee className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
@@ -312,10 +307,15 @@ function SidebarNavigation({
               </span>
             </span>
             <span className="app-sidebar-account-text min-w-0">
-              <span className="block truncate text-[0.95rem] font-semibold tracking-normal">{t('support.title', { defaultValue: 'Support Nova Tweaks' })}</span>
-              <span className="block truncate text-xs text-[var(--text-muted)]">{t('support.subtitle', { defaultValue: 'Optional · Buy me a coffee' })}</span>
+              <span className="block truncate text-sm font-semibold tracking-normal">
+                {t('strings.support_nova_tweaks_649e9', { defaultValue: 'Support Nova Tweaks' })}
+              </span>
+              <span className="block truncate text-xs text-[var(--text-muted)]">
+                {t('strings.optional_support_buy_me_a_coffee_23adc', { defaultValue: 'Optional · Buy me a coffee' })}
+              </span>
             </span>
           </button>
+
         </div>
       </aside>
     </>

@@ -180,6 +180,163 @@
         ".minecraft",
         "Minecraft"
       ]
+    },
+    {
+      "id": "pubg-battlegrounds",
+      "displayName": "PUBG: Battlegrounds",
+      "processNames": ["TslGame.exe"],
+      "excludeProcesses": ["TslGame_BE.exe", "TslGame_UC.exe", "ExecPubg.exe", "zksvc.exe"],
+      "launchers": ["steam.exe"],
+      "pathHints": ["PUBG\\TslGame\\Binaries\\Win64", "steamapps\\common\\PUBG"],
+      "installDirMarkers": ["PUBG", "TslGame"]
+    },
+    {
+      "id": "marvel-rivals",
+      "displayName": "Marvel Rivals",
+      "processNames": ["Marvel-Win64-Shipping.exe"],
+      "excludeProcesses": ["Marvel.exe", "Marvel-Win64-Shipping_EAC_EOS.exe", "EpicWebHelper.exe"],
+      "launchers": ["steam.exe", "EpicGamesLauncher.exe"],
+      "pathHints": ["MarvelRivals\\MarvelGame\\Marvel\\Binaries\\Win64", "steamapps\\common\\MarvelRivals"],
+      "installDirMarkers": ["MarvelRivals", "Marvel Rivals"]
+    },
+    {
+      "id": "overwatch-2",
+      "displayName": "Overwatch 2",
+      "processNames": ["Overwatch.exe"],
+      "excludeProcesses": ["Battle.net.exe", "Agent.exe"],
+      "launchers": ["Battle.net.exe", "steam.exe"],
+      "pathHints": ["Overwatch\\_retail_", "steamapps\\common\\Overwatch"],
+      "installDirMarkers": ["Overwatch"]
+    },
+    {
+      "id": "rainbow-six-siege",
+      "displayName": "Tom Clancy's Rainbow Six Siege",
+      "processNames": ["RainbowSix.exe", "RainbowSix_Vulkan.exe"],
+      "excludeProcesses": ["RainbowSix_BE.exe", "upc.exe", "UbisoftConnect.exe"],
+      "launchers": ["upc.exe", "UbisoftConnect.exe", "steam.exe"],
+      "pathHints": ["Tom Clancy's Rainbow Six Siege", "steamapps\\common\\Tom Clancy's Rainbow Six Siege"],
+      "installDirMarkers": ["Rainbow Six Siege"]
+    },
+    {
+      "id": "dota-2",
+      "displayName": "Dota 2",
+      "processNames": ["dota2.exe"],
+      "excludeProcesses": ["steam.exe", "steamwebhelper.exe"],
+      "launchers": ["steam.exe"],
+      "pathHints": ["dota 2 beta\\game\\bin\\win64", "steamapps\\common\\dota 2 beta"],
+      "installDirMarkers": ["dota 2 beta", "Dota 2"]
+    },
+    {
+      "id": "league-of-legends",
+      "displayName": "League of Legends",
+      "processNames": ["League of Legends.exe"],
+      "excludeProcesses": ["LeagueClient.exe", "LeagueClientUx.exe", "LeagueClientUxRender.exe", "RiotClientServices.exe"],
+      "launchers": ["LeagueClient.exe", "RiotClientServices.exe"],
+      "pathHints": ["League of Legends\\Game", "Riot Games\\League of Legends"],
+      "installDirMarkers": ["League of Legends", "Riot Games"]
+    },
+    {
+      "id": "warframe",
+      "displayName": "Warframe",
+      "processNames": ["Warframe.x64.exe"],
+      "excludeProcesses": ["Launcher.exe", "Warframe.exe"],
+      "launchers": ["Launcher.exe", "steam.exe", "EpicGamesLauncher.exe"],
+      "pathHints": ["Warframe\\Downloaded\\Public", "steamapps\\common\\Warframe"],
+      "installDirMarkers": ["Warframe"]
+    },
+    {
+      "id": "destiny-2",
+      "displayName": "Destiny 2",
+      "processNames": ["destiny2.exe"],
+      "excludeProcesses": ["BEService.exe", "BEService_x64.exe"],
+      "launchers": ["steam.exe", "EpicGamesLauncher.exe"],
+      "pathHints": ["steamapps\\common\\Destiny 2", "Destiny2"],
+      "installDirMarkers": ["Destiny 2", "Destiny2"]
+    },
+    {
+      "id": "rust",
+      "displayName": "Rust",
+      "processNames": ["RustClient.exe"],
+      "excludeProcesses": ["Rust.exe", "RustClient_EAC.exe", "EasyAntiCheat.exe", "EasyAntiCheat_EOS.exe"],
+      "launchers": ["steam.exe"],
+      "pathHints": ["steamapps\\common\\Rust", "RustClient_Data"],
+      "installDirMarkers": ["Rust"]
+    },
+    {
+      "id": "dead-by-daylight",
+      "displayName": "Dead by Daylight",
+      "processNames": ["DeadByDaylight-Win64-Shipping.exe"],
+      "excludeProcesses": ["DeadByDaylight.exe", "DeadByDaylight-EAC.exe", "EasyAntiCheat.exe", "EasyAntiCheat_EOS.exe"],
+      "launchers": ["steam.exe", "EpicGamesLauncher.exe"],
+      "pathHints": ["DeadByDaylight\\Binaries\\Win64", "steamapps\\common\\Dead by Daylight"],
+      "installDirMarkers": ["Dead by Daylight", "DeadByDaylight"]
+    },
+    {
+      "id": "helldivers-2",
+      "displayName": "Helldivers 2",
+      "processNames": ["helldivers2.exe"],
+      "excludeProcesses": ["GameGuard.des", "ggerror.exe"],
+      "launchers": ["steam.exe"],
+      "pathHints": ["steamapps\\common\\Helldivers 2\\bin", "Helldivers 2"],
+      "installDirMarkers": ["Helldivers 2"]
+    },
+    {
+      "id": "battlefield",
+      "displayName": "Battlefield",
+      "processNames": ["bf6.exe", "BF2042.exe", "bfv.exe", "bf1.exe"],
+      "excludeProcesses": ["EADesktop.exe", "EALauncher.exe", "EAAntiCheat.GameServiceLauncher.exe", "EAAntiCheat.Installer.exe"],
+      "launchers": ["EADesktop.exe", "steam.exe", "EpicGamesLauncher.exe"],
+      "pathHints": ["Battlefield 6", "Battlefield 2042", "Battlefield V", "Battlefield 1"],
+      "installDirMarkers": ["Battlefield"]
+    },
+    {
+      "id": "escape-from-tarkov",
+      "displayName": "Escape from Tarkov",
+      "processNames": ["EscapeFromTarkov.exe"],
+      "excludeProcesses": ["BsgLauncher.exe", "BEService.exe", "BEService_x64.exe"],
+      "launchers": ["BsgLauncher.exe"],
+      "pathHints": ["Battlestate Games\\EFT", "Escape from Tarkov"],
+      "installDirMarkers": ["Escape from Tarkov", "EFT"]
+    },
+    {
+      "id": "the-finals",
+      "displayName": "The Finals",
+      "processNames": ["Discovery.exe"],
+      "excludeProcesses": ["Discovery_BE.exe", "BEService.exe", "BEService_x64.exe"],
+      "launchers": ["steam.exe"],
+      "pathHints": ["The Finals\\Discovery\\Binaries\\Win64", "steamapps\\common\\The Finals"],
+      "installDirMarkers": ["The Finals", "Discovery"]
+    },
+    {
+      "id": "war-thunder",
+      "displayName": "War Thunder",
+      "processNames": ["aces.exe", "aces_min-cpu.exe"],
+      "excludeProcesses": ["launcher.exe", "gaijin_downloader.exe"],
+      "launchers": ["launcher.exe", "steam.exe"],
+      "pathHints": ["War Thunder\\win64", "steamapps\\common\\War Thunder"],
+      "installDirMarkers": ["War Thunder"]
+    },
+    {
+      "id": "dying-light-the-beast",
+      "displayName": "Dying Light: The Beast",
+      "processNames": [
+        "DyingLightGame_TheBeast_x64_rwdi.exe"
+      ],
+      "excludeProcesses": [
+        "crashpad_handler.exe"
+      ],
+      "launchers": [
+        "steam.exe",
+        "EpicGamesLauncher.exe"
+      ],
+      "pathHints": [
+        "Dying Light The Beast",
+        "ph_ft\\work\\bin\\x64"
+      ],
+      "installDirMarkers": [
+        "Dying Light The Beast",
+        "ph_ft"
+      ]
     }
   ]
 }

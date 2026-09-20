@@ -1481,7 +1481,7 @@ function TweaksPanel({
   return (
     <PageShell className="tweaks-shell relative">
       <div className="pb-4">
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(340px,360px)]">
           <div className="min-w-0 space-y-5">
             <header className="ui-page-header grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
               <div className="ui-page-heading min-w-0">
@@ -1879,12 +1879,11 @@ function TweaksPanel({
               <span aria-hidden="true" />
               <span>{t('tweaks.table.tweak')}</span>
               <span className={`text-center ${SHARED_LIST_HEADER_DIVIDER_CLASS}`}>{t('tweakDetails.category')}</span>
-              <span className={`text-center ${SHARED_LIST_HEADER_DIVIDER_CLASS}`}>{t('tweakDetails.status')}</span>
               <span className={`text-center ${SHARED_LIST_HEADER_DIVIDER_CLASS}`}>{t('apps.actionsLabel')}</span>
               <span aria-hidden="true" />
             </div>
 
-            <div className="space-y-[10px] p-4 pb-5">
+            <div className="px-4 pb-4">
               {refreshingCatalog ? <LoadingIndicator label={t('tweaks.refreshing')} compact className="mx-2 my-1" /> : null}
               {refreshingStates ? <LoadingIndicator label={t('tweaks.loadingStates')} compact className="mx-2 my-1" /> : null}
               {initialLoading ? <LoadingIndicator label={t('common.loading')} className="mx-2 my-1" /> : null}
@@ -1917,6 +1916,7 @@ function TweaksPanel({
             <TweakDetailPanel
               tweak={activeDetailTweak}
               onClose={() => setSelectedDetailTweak(null)}
+              onOpenTechnicalDetails={setTechnicalTweak}
               showRiskLabels={showRiskLabels}
               showCategoryAccent={categoryMode}
               blurName={Boolean(activeDetailTweak && normalizePremium(activeDetailTweak) && !canUsePremium)}

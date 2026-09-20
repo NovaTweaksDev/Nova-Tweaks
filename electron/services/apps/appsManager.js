@@ -596,7 +596,9 @@ function createAppsManager({
         });
       });
 
-      child.stdin.end(scriptSource, 'utf8');
+      // Windows PowerShell reads `-Command -` line by line. Terminate the final
+      // statement explicitly so the JSON result is executed before stdin closes.
+      child.stdin.end(`${scriptSource}\n`, 'utf8');
     });
   }
 
@@ -1107,6 +1109,28 @@ $fullscreenOptimizationsDisabled = [bool](Get-FullscreenOptimizationState -targe
 
       return null;
     }
+  }
+
+  async function inspectGameExecutable({ executablePath, processId = 0 } = {}) {
+    const normalizedExecutablePath = String(executablePath || '').trim();
+    const normalizedProcessId = Number(processId);
+
+    if (
+      !normalizedExecutablePath ||
+      !/\.exe$/i.test(normalizedExecutablePath) ||
+      !path.win32.isAbsolute(normalizedExecutablePath) ||
+      /[\x00-\x1f]/.test(normalizedExecutablePath) ||
+      !Number.isInteger(normalizedProcessId) ||
+      normalizedProcessId < 0 ||
+      normalizedProcessId > 0x7fffffff
+    ) {
+      throw new AppsManagerError('An absolute executable path and valid process ID are required.', 'APPS_INVALID_PAYLOAD');
+    }
+
+    return readRuntimeStateForExecutable({
+      executablePath: normalizedExecutablePath,
+      processId: normalizedProcessId
+    });
   }
 
   async function iconFileToDataUrl(iconPath) {
@@ -4439,6 +4463,7 @@ if ($cpuAffinityApplyErrors.Count -gt 0) {
     scanGameDetection,
     getCurrentGameDetection,
     detectActiveGame,
+    inspectGameExecutable,
     configureActiveGame,
     uninstallApp,
     optimizeApp,

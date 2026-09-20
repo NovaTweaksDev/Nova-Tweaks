@@ -3,13 +3,34 @@ const assert = require('node:assert/strict');
 const net = require('node:net');
 
 const { createLineDecoder, encodeMessage, PROTOCOL_VERSION } = require('./adminBrokerProtocol');
-const { AdminBrokerError, createAdminBrokerManager, quoteWindowsArgument } = require('./adminBrokerManager');
+const {
+  AdminBrokerError,
+  createAdminBrokerManager,
+  quoteWindowsArgument,
+  resolveCurrentWindowsUserSid
+} = require('./adminBrokerManager');
 
 test('quotes Windows process arguments without splitting installed paths', () => {
   assert.equal(quoteWindowsArgument('plain'), 'plain');
   assert.equal(quoteWindowsArgument('C:\\Program Files\\Nova Tweaks\\NovaTweaks.exe'), '"C:\\Program Files\\Nova Tweaks\\NovaTweaks.exe"');
   assert.equal(quoteWindowsArgument(''), '""');
   assert.equal(quoteWindowsArgument('ends with space\\'), '"ends with space\\\\"');
+});
+
+test('normalizes the originating Windows SID used by the development broker', async () => {
+  const executeFile = (_file, _args, _options, callback) => callback(null, ' s-1-5-21-100-200-300-1001\r\n');
+  assert.equal(
+    await resolveCurrentWindowsUserSid('powershell.exe', executeFile),
+    'S-1-5-21-100-200-300-1001'
+  );
+});
+
+test('rejects an invalid originating Windows SID before launching the development broker', async () => {
+  const executeFile = (_file, _args, _options, callback) => callback(null, 'not-a-sid');
+  await assert.rejects(
+    resolveCurrentWindowsUserSid('powershell.exe', executeFile),
+    { code: 'ADMIN_BROKER_USER_SCOPE_UNSUPPORTED' }
+  );
 });
 
 function createFixture() {

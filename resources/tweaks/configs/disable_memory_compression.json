@@ -9,11 +9,11 @@
   },
   "script": "disable_memory_compression.ps1",
   "requires_admin": true,
-  "reboot_required": false,
+  "reboot_required": true,
   "risk_level": "medium",
   "impact": 3,
   "recommended": true,
-  "last_updated": "2026-04-28",
+  "last_updated": "2026-09-20",
   "container_type": "normal_tweak",
   "tags": [
     "windows",
@@ -32,7 +32,7 @@
     ],
     "notes": "Designed for supported Windows desktop systems."
   },
-  "technical_details": "The tweak modifies the MemoryCompression setting within the MMAgent configuration to control whether memory pages are compressed before being paged out",
+  "technical_details": "The tweak uses the Windows MMAgent API to control memory compression. If SysMain is disabled, memory compression is already inactive and Nova Tweaks leaves the service configuration unchanged.",
   "execution": {
     "type": "powershell",
     "script": "disable_memory_compression.ps1",
