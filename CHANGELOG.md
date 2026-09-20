@@ -14,6 +14,8 @@ No release notes have been published for changes after `v1.0.2`.
 - Restored the complete seven-action Game Mode activation sequence instead of skipping actions that were already active.
 - Hardened Game Mode against concurrent execution and incomplete restore snapshots, with regression coverage for activation and deactivation.
 
+[Release notes](https://github.com/NovaTweaksDev/Nova-Tweaks/releases/tag/v1.0.2)
+
 ## 1.0.2 Preview - 2026-09-20
 
 ### Added

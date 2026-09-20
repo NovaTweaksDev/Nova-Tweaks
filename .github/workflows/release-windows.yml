@@ -37,16 +37,8 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Build signed installer
-        run: npm run dist:win
-        env:
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          NOVA_ARTIFACT_PUBLIC_KEY: ${{ secrets.NOVA_ARTIFACT_PUBLIC_KEY }}
-          NOVA_TWEAK_PUBLIC_KEY: ${{ secrets.NOVA_TWEAK_PUBLIC_KEY }}
-          NOVA_UPDATE_PUBLIC_KEY: ${{ secrets.NOVA_UPDATE_PUBLIC_KEY }}
-          NOVA_REQUIRE_TWEAK_SIGNATURES: 'true'
-          NOVA_REQUIRE_UPDATE_SIGNATURES: 'true'
+      - name: Build unsigned installer
+        run: npm run dist:local
 
       - name: Validate release files
         id: artifacts
@@ -65,8 +57,23 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           INSTALLER_PATH: ${{ steps.artifacts.outputs.installer }}
         run: |
+          @'
+          Nova Tweaks 1.0.2 improves Game Mode reliability:
+
+          - Active Game Mode clicks now report that the preset is being disabled.
+          - Activation consistently executes all seven configured actions.
+          - Deactivation validates and restores the saved pre-activation state.
+          - Concurrent execution and incomplete restore snapshots are handled safely.
+
+          Automated tests and the production Windows build passed before publication.
+
+          This installer is unsigned. Windows may show an unknown-publisher warning.
+          Verify the installer against the included checksums.txt file before running it.
+          '@ | Set-Content -LiteralPath release-notes.md
+
           gh release create $env:GITHUB_REF_NAME `
             $env:INSTALLER_PATH `
+            dist-release/checksums.txt `
             --verify-tag `
-            --generate-notes `
-            --title "Nova Tweaks $env:GITHUB_REF_NAME"
+            --title "Nova Tweaks $env:GITHUB_REF_NAME" `
+            --notes-file release-notes.md

@@ -71,7 +71,7 @@ See the [website privacy policy](https://nova-tweaks.com/privacy) and [Cloudflar
 
 Download the current installer from [GitHub Releases](https://github.com/NovaTweaksDev/Nova-Tweaks/releases). GitHub's automatically generated source ZIP and tarball contain source code, not the Windows installer.
 
-Current preview installers are unsigned. Windows can therefore display an `Unknown publisher` warning. Use only releases published by `NovaTweaksDev`, compare the installer against the included `checksums.txt`, and review the release notes before installation.
+Current Windows installers are unsigned. Windows can therefore display an `Unknown publisher` warning. Use only releases published by `NovaTweaksDev`, compare the installer against the included `checksums.txt`, and review the release notes before installation.
 
 Nova Tweaks does not currently use a SignPath Foundation certificate. See [SIGNPATH.md](SIGNPATH.md) for the current status and technical preparation record.
 

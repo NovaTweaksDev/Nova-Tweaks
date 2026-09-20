@@ -6,7 +6,7 @@ Nova Tweaks does not currently use a SignPath Foundation certificate.
 
 A Foundation application submitted in September 2026 was not approved at that stage because the young project had not yet established sufficient externally verifiable public reputation and visibility. The response did not identify a technical or licensing defect. The project may reapply after building a broader public track record.
 
-Current preview releases remain unsigned unless a different documented signing method is configured. Windows can therefore display an `Unknown publisher` warning.
+Current Windows releases remain unsigned unless a different documented signing method is configured. Windows can therefore display an `Unknown publisher` warning.
 
 No SignPath organization, project, signing policy, or artifact configuration is active for Nova Tweaks. The repository must not be described as SignPath-approved or SignPath-signed.
 
