@@ -35,6 +35,13 @@ import {
   Thermometer
 } from 'lucide-react';
 import { Button, IconBadge, ModalShell, PageHeader, PageShell, PremiumBadge, StatusPill, Switch } from './ui';
+import {
+  createPresetExecutionPlan,
+  createPresetOperation,
+  createPresetRestoreSnapshot,
+  isPresetTweakActive,
+  normalizePresetId
+} from './gameModePresetPolicy.mjs';
 
 const POLL_INTERVAL_MS = 5000;
 const STALE_GAME_KEEP_MS = 12000;
@@ -199,34 +206,6 @@ function formatAffinitySummary(processors, logicalProcessorCount, t) {
     count: processors.length,
     total: logicalProcessorCount
   });
-}
-
-function normalizePresetId(value) {
-  return String(value || '').trim();
-}
-
-function normalizeSelectionValue(value) {
-  return String(value || '').trim();
-}
-
-function normalizeResolutionValue(value) {
-  return String(value || '').trim().replace(',', '.');
-}
-
-function isPresetTweakActive(tweak, presetDefinition) {
-  if (String(tweak?.currentState || '').trim().toLowerCase() !== 'enabled') {
-    return false;
-  }
-
-  if (presetDefinition.expectedSelection) {
-    return normalizeSelectionValue(tweak?.selectedOption) === normalizeSelectionValue(presetDefinition.expectedSelection);
-  }
-
-  if (presetDefinition.expectedResolution) {
-    return normalizeResolutionValue(tweak?.selectedResolution || tweak?.currentResolution) === normalizeResolutionValue(presetDefinition.expectedResolution);
-  }
-
-  return true;
 }
 
 function valueOrUnavailable(value, formatter) {
@@ -1800,6 +1779,7 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
   const syncedGameIdentityRef = useRef('');
   const lastDetectedAtRef = useRef(0);
   const affinityModalInitialProcessorsRef = useRef([]);
+  const presetOperationInFlightRef = useRef(false);
   const hasDetectedGame = Boolean(activeGame?.processId && activeGame?.executablePath);
   const displayGame = activeGame || manualGame;
   const hasSelectedGame = Boolean(displayGame?.executablePath);
@@ -1870,33 +1850,6 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
     } catch (_error) {
       return { ok: false, code: 'APP_RESTART_REQUIRED' };
     }
-  }
-
-  function createPresetRestoreSnapshot(resolvedTweaks) {
-    return resolvedTweaks
-      .filter(({ presetDefinition }) => presetDefinition.stateful !== false)
-      .flatMap(({ tweak, presetDefinition }) => {
-        const currentState = String(tweak?.currentState || '').trim().toLowerCase();
-        if (!['enabled', 'disabled'].includes(currentState)) {
-          return [];
-        }
-        return [{
-          id: presetDefinition.id,
-          currentState,
-          selectedOption: String(tweak?.selectedOption || '').trim(),
-          selectedResolution: String(tweak?.selectedResolution || tweak?.currentResolution || '').trim()
-        }];
-      });
-  }
-
-  function getRestoreParams(snapshotEntry) {
-    if (snapshotEntry?.id === 'set_dns_provider' && snapshotEntry.selectedOption) {
-      return { Selection: snapshotEntry.selectedOption };
-    }
-    if (snapshotEntry?.id === 'set_timer_resolution' && snapshotEntry.selectedResolution) {
-      return { Resolution: snapshotEntry.selectedResolution };
-    }
-    return {};
   }
 
   async function loadPresetCatalog() {
@@ -2145,7 +2098,7 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
   }, [active]);
 
   async function runGameModePreset() {
-    if (presetPending) {
+    if (presetOperationInFlightRef.current) {
       return;
     }
 
@@ -2156,16 +2109,22 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
       return;
     }
 
+    const presetOperation = createPresetOperation({
+      presetActive,
+      presetDefinitions: GAME_MODE_PRESET_TWEAKS
+    });
+    const shouldDisablePreset = presetOperation.disableRequested;
+    presetOperationInFlightRef.current = true;
     setPresetPending(true);
     setPresetMessage('');
     setPresetTone('info');
     onRuntimeStatusChange?.({
       id: 'game-mode:preset',
-      label: t('gameMode.preset.enabling'),
+      label: t(presetOperation.statusLabelKey),
       message: t('gameMode.preset.preparing'),
       status: 'running',
       progress: 0,
-      steps: GAME_MODE_PRESET_TWEAKS.map((entry) => ({ id: entry.id, label: entry.label, status: 'pending' }))
+      steps: presetOperation.initialPresetDefinitions.map((entry) => ({ id: entry.id, label: entry.label, status: 'pending' }))
     });
 
     try {
@@ -2193,8 +2152,16 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
       }
 
       const statefulTweaks = resolvedTweaks.filter(({ presetDefinition }) => presetDefinition.stateful !== false);
-      const shouldDisablePreset = statefulTweaks.every(({ tweak, presetDefinition }) => isPresetTweakActive(tweak, presetDefinition));
       let restoreSnapshot = presetRestoreSnapshot;
+      if (shouldDisablePreset && restoreSnapshot.length === 0 && window.desktopApi?.getGameModeState) {
+        const persistedStateResult = await window.desktopApi.getGameModeState();
+        if (persistedStateResult?.ok) {
+          restoreSnapshot = Array.isArray(persistedStateResult.state?.restoreSnapshot)
+            ? persistedStateResult.state.restoreSnapshot
+            : [];
+          setPresetRestoreSnapshot(restoreSnapshot);
+        }
+      }
       if (!shouldDisablePreset && restoreSnapshot.length === 0) {
         restoreSnapshot = createPresetRestoreSnapshot(resolvedTweaks);
         if (restoreSnapshot.length !== statefulTweaks.length) {
@@ -2216,30 +2183,19 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
         }
       }
 
-      const tweaksToApply = shouldDisablePreset
-        ? statefulTweaks.map((entry) => {
-          const snapshotEntry = restoreSnapshot.find((snapshot) => snapshot.id === entry.presetDefinition.id);
-          return {
-            ...entry,
-            targetState: snapshotEntry?.currentState || 'disabled',
-            executionParams: getRestoreParams(snapshotEntry)
-          };
-        })
-        : resolvedTweaks
-          .filter(({ tweak, presetDefinition }) => (
-            presetDefinition.stateful === false || !isPresetTweakActive(tweak, presetDefinition)
-          ))
-          .map((entry) => ({
-            ...entry,
-            targetState: 'enabled',
-            executionParams: entry.presetDefinition.params || {}
-          }));
-      if (tweaksToApply.length === 0) {
-        setPresetTone("success");
-        setPresetMessage(t('gameMode.preset.alreadyActive'));
-        setPresetActive(true);
+      const executionPlan = createPresetExecutionPlan({
+        resolvedTweaks,
+        disableRequested: shouldDisablePreset,
+        restoreSnapshot
+      });
+      if (!executionPlan.ok) {
+        const message = t('gameMode.preset.snapshotFailed');
+        setPresetTone('error');
+        setPresetMessage(message);
+        onRuntimeStatusChange?.({ id: 'game-mode:preset', label: t('nav.gameMode'), message, status: 'error' });
         return;
       }
+      const tweaksToApply = executionPlan.entries;
 
       const failedTweaks = [];
       let progressSteps = tweaksToApply.map(({ tweak, presetDefinition }) => ({
@@ -2336,6 +2292,7 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
       setPresetActive(false);
       onRuntimeStatusChange?.({ id: 'game-mode:preset', label: t('nav.gameMode'), message, status: 'error' });
     } finally {
+      presetOperationInFlightRef.current = false;
       setPresetPending(false);
     }
   }

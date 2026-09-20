@@ -4,7 +4,15 @@ This file records changes described by the project's public Git tags and GitHub 
 
 ## Unreleased
 
-No release notes have been published for changes after `preview-v1.0.2`.
+No release notes have been published for changes after `v1.0.2`.
+
+## 1.0.2 - 2026-09-20
+
+### Fixed
+
+- Fixed Game Mode deactivation status so an active preset immediately reports that it is being disabled.
+- Restored the complete seven-action Game Mode activation sequence instead of skipping actions that were already active.
+- Hardened Game Mode against concurrent execution and incomplete restore snapshots, with regression coverage for activation and deactivation.
 
 ## 1.0.2 Preview - 2026-09-20
 
