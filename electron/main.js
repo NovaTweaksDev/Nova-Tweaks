@@ -49,7 +49,11 @@ const WINDOWS_SHUTDOWN_EVENT_QUERY_TIMEOUT_MS = 5000;
 let cachedWindowsShutdownEventAt = null;
 const PRODUCT_NAME = 'Nova Tweaks';
 const LEGACY_PRODUCT_NAME = 'Nova Tweaks Local';
+const WINDOWS_APP_USER_MODEL_ID = 'de.novatweaks.desktop';
 app.setName(PRODUCT_NAME);
+if (process.platform === 'win32' && process.windowsStore !== true) {
+  app.setAppUserModelId(WINDOWS_APP_USER_MODEL_ID);
+}
 try {
   migrateLegacyUserData({
     appDataPath: app.getPath('appData'),
@@ -60,7 +64,6 @@ try {
   console.warn(`Legacy user-data migration failed: ${error?.message || error}`);
 }
 app.setAppLogsPath();
-const WINDOWS_APP_USER_MODEL_ID = 'de.novatweaks';
 const RELEASES_URL = 'https://github.com/NovaTweaksDev/Nova-Tweaks/releases';
 const PROFILE_IMAGE_SOURCE_MAX_BYTES = 6_000_000;
 const PROFILE_IMAGE_UPLOAD_MAX_BYTES = 650_000;
@@ -360,7 +363,8 @@ function resolveAppIconPath() {
 }
 
 const APP_ICON_PATH = resolveAppIconPath();
-const HAS_APP_ICON = Boolean(APP_ICON_PATH);
+const APP_ICON = APP_ICON_PATH ? nativeImage.createFromPath(APP_ICON_PATH) : null;
+const HAS_APP_ICON = Boolean(APP_ICON && !APP_ICON.isEmpty());
 
 function warnIfSlow(loggerInstance, label, startedAt, thresholdMs, details = {}) {
   const durationMs = Date.now() - startedAt;
@@ -1608,7 +1612,7 @@ function ensureTray(settings = getCurrentSettings()) {
     return Boolean(tray);
   }
 
-  tray = new Tray(APP_ICON_PATH);
+  tray = new Tray(APP_ICON);
   tray.setToolTip('Nova Tweaks');
   tray.setContextMenu(Menu.buildFromTemplate([
     {
@@ -1877,7 +1881,7 @@ function createMainWindow() {
     show: false,
     frame: false,
     autoHideMenuBar: true,
-    ...(HAS_APP_ICON ? { icon: APP_ICON_PATH } : {}),
+    ...(HAS_APP_ICON ? { icon: APP_ICON } : {}),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -1888,6 +1892,16 @@ function createMainWindow() {
       allowRunningInsecureContent: false
     }
   });
+
+  if (process.platform === 'win32' && HAS_APP_ICON) {
+    mainWindow.setAppDetails({
+      appId: WINDOWS_APP_USER_MODEL_ID,
+      appIconPath: APP_ICON_PATH,
+      appIconIndex: 0,
+      relaunchCommand: `"${process.execPath}"`,
+      relaunchDisplayName: PRODUCT_NAME
+    });
+  }
 
   const devServerUrl = resolveTrustedRendererDevUrl(process.env.VITE_DEV_SERVER_URL);
   mainWindow.webContents.session.setPermissionRequestHandler((_webContents, _permission, callback) => {
@@ -1918,6 +1932,9 @@ function createMainWindow() {
   }
 
   mainWindow.once('ready-to-show', () => {
+    if (HAS_APP_ICON && process.platform === 'win32') {
+      mainWindow.setIcon(APP_ICON);
+    }
     applySettingsRuntimeEffects(settings);
     if (settings?.startupWindow?.startMinimized) {
       if (shouldUseTray(settings)) {
@@ -4464,10 +4481,6 @@ if (!initializePrivilegeState()) {
     });
 
   app.whenReady().then(() => {
-    if (process.platform === 'win32' && process.windowsStore !== true) {
-      app.setAppUserModelId(WINDOWS_APP_USER_MODEL_ID);
-    }
-
     Menu.setApplicationMenu(null);
 
     registerLocalRendererProtocol({

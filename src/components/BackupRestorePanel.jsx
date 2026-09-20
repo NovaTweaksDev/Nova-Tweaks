@@ -1076,7 +1076,7 @@ function BackupRestorePanel({
 
         <main className="grid min-w-0 items-stretch gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
           <div className="relative min-h-[560px] min-w-0 xl:min-h-0">
-          <section className="absolute inset-0 flex min-w-0 flex-col overflow-hidden rounded-3xl border border-[var(--border)] bg-[color:color-mix(in_srgb,var(--surface)_94%,var(--surface-strong)_6%)] shadow-[0_24px_62px_rgba(0,0,0,0.18)]">
+          <section className="absolute inset-0 flex min-w-0 flex-col overflow-hidden rounded-3xl border border-[var(--border)] bg-[color:color-mix(in_srgb,var(--surface)_92%,var(--surface-strong)_8%)] shadow-[0_24px_62px_rgba(0,0,0,0.18)]">
             <div className="flex flex-col gap-3 border-b border-[color:color-mix(in_srgb,var(--border)_76%,transparent)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-base font-semibold tracking-normal text-[var(--text-primary)]">{i18n.t('backup.history.title')}</h2>

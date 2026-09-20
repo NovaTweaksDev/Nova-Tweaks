@@ -40,7 +40,7 @@
     "test": "node --test"
   },
   "build": {
-    "appId": "de.novatweaks",
+    "appId": "de.novatweaks.desktop",
     "electronFuses": {
       "runAsNode": false,
       "enableCookieEncryption": true,
@@ -204,6 +204,7 @@
       "icon": "resources/pictures/logo/logo.ico"
     },
     "nsis": {
+      "guid": "b7139bf8-d59a-5795-b95b-57eeb1dbd620",
       "oneClick": false,
       "perMachine": false,
       "allowElevation": true,

@@ -65,6 +65,8 @@ jobs:
           - Add a persistent 30-day game-session history with saved performance reports.
           - Show total system RAM in session insights and improve memory-pressure evaluation.
           - Fix local administrator-broker identity forwarding for Game Mode runtime tuning.
+          - Register the Nova Tweaks Windows identity and taskbar icon explicitly.
+          - Align the backup-history table surface with the surrounding panels.
           - Refine navigation, tweak cards, details, notifications, and monitoring views.
           - Expand known-game detection and harden system-facing tweak execution.
           - Improve bundled monitoring-sidecar integrity validation and hardware-monitor configuration.
