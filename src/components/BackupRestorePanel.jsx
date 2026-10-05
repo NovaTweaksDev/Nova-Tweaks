@@ -1,3 +1,4 @@
+import { useRestoreJobs } from '../hooks/useRestoreJobs';
 import i18n from '../i18n';
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -299,6 +300,7 @@ function BackupRestorePanel({
   onOperationStatus
 }) {
   const { t } = useTranslation();
+  const { jobs: restoreJobs, error: restoreJournalError } = useRestoreJobs();
   const [configBackups, setConfigBackups] = useState([]);
   const [restorePoints, setRestorePoints] = useState([]);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -412,7 +414,8 @@ function BackupRestorePanel({
   const totalPages = Math.max(1, Math.ceil(filteredBackups.length / PAGE_SIZE));
   const pagedBackups = filteredBackups.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const initialBackupLoading = loading && backups.length === 0;
-  const isBusy = creating || creatingRestorePoint || Boolean(restoringId) || Boolean(deletingId) || cleaning || settingsSaving;
+  const restoreRunning = restoreJobs.some((job) => ['prepared', 'running'].includes(job.status));
+  const isBusy = restoreRunning || creating || creatingRestorePoint || Boolean(restoringId) || Boolean(deletingId) || cleaning || settingsSaving;
 
   function notify(message, tone = 'info') {
     if (message) {
@@ -799,32 +802,24 @@ function BackupRestorePanel({
     startOperation(operationId, i18n.t('backup.confirm.restoreTitle'), `Restoring "${backup.name}"...`);
 
     try {
-      const result = await window.desktopApi.restoreBackup({
-        id: backup.id,
-        scope: Array.isArray(backup.scope) ? backup.scope : DEFAULT_SCOPE_SELECTION
-      });
-
-      if (!result?.ok || !result.restorePlan) {
-        finishOperation(operationId, "error", resolveMessage(result, i18n.t('backup.notifications.restoreFailed')));
-        return;
-      }
-
-      if (result.restorePlan.origin === 'windows') {
-        finishOperation(operationId, "success", `Backup "${backup.name}" restore has been started. A restart may be required.`);
+      if (backup.origin === 'windows') {
+        const result = await window.desktopApi.restoreBackup({ id: backup.id, scope: backup.scope });
+        finishOperation(operationId, result?.ok ? 'success' : 'error', result?.ok
+          ? `Backup "${backup.name}" restore has been started. A restart may be required.`
+          : resolveMessage(result, i18n.t('backup.notifications.restoreFailed')));
         await loadBackups({ quiet: true });
         return;
       }
-
       if (typeof onRestoreBackup !== 'function') {
-        finishOperation(operationId, "error", t('backup.notifications.restoreHandlerUnavailable'));
+        finishOperation(operationId, 'error', t('backup.notifications.restoreHandlerUnavailable'));
         return;
       }
-
-      const applyResult = await onRestoreBackup(result.restorePlan);
+      const applyResult = await onRestoreBackup({ id: backup.id,
+        scope: Array.isArray(backup.scope) ? backup.scope : DEFAULT_SCOPE_SELECTION });
       if (applyResult?.ok) {
-        finishOperation(operationId, "success", `Backup "${backup.name}" restored.`);
+        finishOperation(operationId, "success", `Backup "${backup.name}" restored.${applyResult.requiresRestart ? ` ${t('backup.recovery.restartRequired')}` : ''}`);
       } else if (applyResult?.partial) {
-        finishOperation(operationId, "success", `Backup "${backup.name}" restored with ${applyResult.errorCount || 0} issue(s).`);
+        finishOperation(operationId, "error", `Backup "${backup.name}" restored with ${applyResult.errorCount || 0} issue(s).`);
       } else {
         finishOperation(operationId, "error", applyResult?.errors?.[0]?.message || i18n.t('backup.notifications.restoreFailed'));
       }
@@ -835,6 +830,18 @@ function BackupRestorePanel({
     } finally {
       setRestoringId('');
     }
+  }
+
+  async function resumeRestore(job) {
+    setRestoringId(job.backupId);
+    const operationId = `backup:restore:${job.backupId}`;
+    startOperation(operationId, t('backup.recovery.title'), t('backup.recovery.resuming'));
+    try {
+      const result = await onRestoreBackup({ resumeId: job.id });
+      finishOperation(operationId, result?.ok ? 'success' : 'error', result?.ok
+        ? `${t('backup.recovery.completed')}${result.requiresRestart ? ` ${t('backup.recovery.restartRequired')}` : ''}` : result?.errors?.[0]?.message || t('backup.notifications.restoreFailed'));
+    } catch (error) { finishOperation(operationId, 'error', error.message); }
+    finally { setRestoringId(''); }
   }
 
   function requestDelete(backup) {
@@ -993,6 +1000,21 @@ function BackupRestorePanel({
   return (
     <PageShell className="backup-shell relative font-ui">
       <div className="grid gap-5 pb-6">
+        {restoreJournalError ? <p role="alert" className="text-[var(--danger)]">{restoreJournalError}</p> : null}
+        {restoreJobs.filter((job) => job.status !== 'completed').map((job) => (
+          <section key={job.id} className="ui-panel p-4" aria-live="polite">
+            <h2 className="font-semibold">{t('backup.recovery.title')}</h2>
+            <p>{t(`backup.recovery.${job.status}`)} · {job.current}/{job.total}</p>
+            {job.errors?.[0]?.message ? <p className="text-[var(--danger)]">{job.errors[0].message}</p> : null}
+            <ul className="text-sm text-[var(--text-muted)]">
+              {job.steps?.map((step) => <li key={step.id}>{step.id} · {t(`backup.recovery.step.${step.status}`)}</li>)}
+            </ul>
+            {['failed', 'interrupted'].includes(job.status) ? (
+              <Button variant="secondary" disabled={isBusy || restoreJobs.some((entry) => ['prepared', 'running'].includes(entry.status))}
+                onClick={() => resumeRestore(job)}>{t('backup.recovery.resume')}</Button>
+            ) : null}
+          </section>
+        ))}
         <header className="backup-page-header ui-page-header gap-4">
           <div className="ui-page-heading min-w-0">
             <PageHeadingSignal />

@@ -258,13 +258,16 @@ function createAdminBrokerManager(options = {}) {
     });
   }
 
-  function ensureReady({ reason = 'manual' } = {}) {
+  function ensureReady({ reason = 'manual', explicitApproval = false } = {}) {
     if (isAdminProvider()) return Promise.resolve(getState());
     if (platform !== 'win32') {
       return Promise.reject(new AdminBrokerError('Administrator access is unavailable on this platform.', 'ADMIN_BROKER_UNAVAILABLE'));
     }
     if (status === 'ready' && socket && !socket.destroyed) return Promise.resolve(getState());
     if (startPromise) return startPromise;
+    if (options.requireExplicitApproval === true && !explicitApproval) {
+      return Promise.reject(new AdminBrokerError('Enable administrator access using the sidebar button first.', 'ADMIN_BROKER_APPROVAL_REQUIRED'));
+    }
 
     shuttingDown = false;
     sessionId = crypto.randomUUID();

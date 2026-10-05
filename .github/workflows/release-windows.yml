@@ -34,11 +34,23 @@ jobs:
             throw "Tag $env:GITHUB_REF_NAME does not match package version $packageVersion."
           }
 
+      - name: Validate and generate release notes
+        run: node scripts/release-notes.js
+
+      - name: Lint source
+        run: npm run lint
+
+      - name: Check interface types
+        run: npm run typecheck
+
       - name: Run tests
         run: npm test
 
       - name: Build unsigned installer
         run: npm run dist:local
+
+      - name: Start packaged application and verify helpers
+        run: npm run test:packaged
 
       - name: Validate release files
         id: artifacts
@@ -57,20 +69,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           INSTALLER_PATH: ${{ steps.artifacts.outputs.installer }}
         run: |
-          @'
-          Nova Tweaks 1.0.2 improves Game Mode reliability:
-
-          - Active Game Mode clicks now report that the preset is being disabled.
-          - Activation consistently executes all seven configured actions.
-          - Deactivation validates and restores the saved pre-activation state.
-          - Concurrent execution and incomplete restore snapshots are handled safely.
-
-          Automated tests and the production Windows build passed before publication.
-
-          This installer is unsigned. Windows may show an unknown-publisher warning.
-          Verify the installer against the included checksums.txt file before running it.
-          '@ | Set-Content -LiteralPath release-notes.md
-
           gh release create $env:GITHUB_REF_NAME `
             $env:INSTALLER_PATH `
             dist-release/checksums.txt `

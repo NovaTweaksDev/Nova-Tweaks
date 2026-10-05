@@ -12,7 +12,7 @@ permissions:
 jobs:
   validate:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -26,8 +26,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Lint source
+        run: npm run lint
+
+      - name: Check interface types
+        run: npm run typecheck
+
       - name: Run tests
         run: npm test
 
       - name: Build application
         run: npm run build
+
+      - name: Package unsigned application
+        run: npm run dist:local:dir
+
+      - name: Start packaged application and verify helpers
+        run: npm run test:packaged

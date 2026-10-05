@@ -48,3 +48,12 @@ test('rejects an invalid preflight batch before any execution', async () => {
   assert.equal(result.code, 'INVALID_PAYLOAD');
   assert.equal(fixture.getExecutionCount(), 0);
 });
+
+test('IPC preserves absent and invalid timeouts for central resolution', async () => {
+  const handlers = new Map(); const calls = [];
+  registerTweakExecutionIpcHandlers({ ipcMain: { handle: (channel, handler) => handlers.set(channel, handler) },
+    tweakRunner: { runTweak: async (request) => { calls.push(request); return { ok: true }; } } });
+  await handlers.get('run-tweak')(null, { id: 'test' });
+  await handlers.get('api:tweaks:execute')(null, { id: 'test', timeoutMs: -1 });
+  assert.deepEqual(calls.map((request) => request.timeoutMs), [undefined, -1]);
+});

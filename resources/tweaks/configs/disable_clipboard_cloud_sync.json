@@ -1,0 +1,96 @@
+{
+  "id": "disable_clipboard_cloud_sync",
+  "name": "Disable Clipboard Cloud Sync",
+  "description": "Disables cross-device clipboard synchronization in Windows. Clipboard contents remain available locally, but Windows is prevented from synchronizing them to other devices signed in with the same Microsoft or work account.",
+  "description_i18n": {
+    "en": "Disables cross-device clipboard synchronization in Windows. Clipboard contents remain available locally, but Windows is prevented from synchronizing them to other devices signed in with the same Microsoft or work account.",
+    "de": "Deaktiviert die geräteübergreifende Synchronisierung der Windows-Zwischenablage. Inhalte der Zwischenablage bleiben lokal verfügbar, werden jedoch nicht mehr mit anderen Geräten synchronisiert, die mit demselben Microsoft- oder Geschäfts-/Schulkonto angemeldet sind.",
+    "fr": "Désactive la synchronisation du presse-papiers entre les appareils Windows. Le contenu du presse-papiers reste disponible localement, mais Windows ne peut plus le synchroniser avec d'autres appareils connectés au même compte Microsoft ou professionnel."
+  },
+  "script": "disable_clipboard_cloud_sync.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 1,
+  "recommended": true,
+  "premium": false,
+  "last_updated": "2026-10-05",
+  "container_type": "normal_tweak",
+  "tags": [
+    "privacy",
+    "clipboard",
+    "security"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Cross-Device Clipboard",
+      "message": "Applying this tweak prevents clipboard contents from being synchronized across devices. Local clipboard functionality remains available, but cross-device copy and paste will no longer work while the policy is active.",
+      "icon": "shield-check",
+      "source": "Windows Privacy Policy"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Uses the Windows AllowCrossDeviceClipboard machine policy introduced with Windows 10 version 1809. The policy is officially supported on applicable Pro, Enterprise, Education and IoT Enterprise editions."
+  },
+  "technical_details": "Configures the Windows machine policy HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows\\System\\AllowCrossDeviceClipboard. A DWORD value of 0 prevents clipboard contents from being synchronized across devices. Restoring the tweak removes the policy value and returns control to the Windows default or any higher-level policy management. The policy change takes effect immediately and does not require a reboot.",
+  "profiles": [],
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "disable_clipboard_cloud_sync.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "category": "General",
+  "subcategory": "System"
+}

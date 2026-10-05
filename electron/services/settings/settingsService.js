@@ -44,6 +44,7 @@ function getDefaultSettings(defaultBackupLocation = '') {
       mascotAnimationEnabled: false
     },
     startupWindow: {
+      requestAdminOnStartup: false,
       startWithWindows: false,
       startMinimized: false,
       minimizeToTray: false,
@@ -252,6 +253,7 @@ function sanitizeSettings(input, defaults, options = {}) {
       )
     },
     startupWindow: {
+      requestAdminOnStartup: normalizeBoolean(startupWindow.requestAdminOnStartup, defaults.startupWindow.requestAdminOnStartup),
       startWithWindows: normalizeBoolean(startupWindow.startWithWindows, defaults.startupWindow.startWithWindows),
       startMinimized: normalizeBoolean(startupWindow.startMinimized, defaults.startupWindow.startMinimized),
       minimizeToTray: normalizeBoolean(startupWindow.minimizeToTray, defaults.startupWindow.minimizeToTray),

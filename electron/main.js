@@ -1,3 +1,14 @@
+const { registerTweakHandlers } = require('./ipc/tweakHandlers');
+const { registerSettingsHandlers } = require('./ipc/settingsHandlers');
+const { registerMonitoringHandlers } = require('./ipc/monitoringHandlers');
+const { registerAppsHandlers } = require('./ipc/appsHandlers');
+const { registerBackupHandlers } = require('./ipc/backupHandlers');
+const { normalizeRiskLevel, normalizeContainerType, normalizeBulletpoints, normalizeCompactDescription, normalizeStatusLabels, normalizeCtaLabels, normalizeUiConfig, normalizeMetrics, normalizeSelections, normalizeRangeConfig, normalizeSelectedOption, normalizeResolutionValue } = require('./services/tweaks/metadataNormalization');
+const { createRestoreService } = require('./services/backups/restoreService');
+const { createExecutionGate } = require('./services/tweaks/executionGate');
+const { registerRestoreHandlers } = require('./ipc/restoreHandlers');
+const executionGate = createExecutionGate();
+let restoreService;
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -47,6 +58,12 @@ registerLocalRendererScheme(protocol);
 const TRUSTED_POWERSHELL = resolveWindowsSystemExecutable('powershell');
 const WINDOWS_SHUTDOWN_EVENT_QUERY_TIMEOUT_MS = 5000;
 let cachedWindowsShutdownEventAt = null;
+const isPackagedSmoke = process.argv.includes('--nova-packaged-smoke');
+if (isPackagedSmoke) {
+  if (!process.env.NOVA_SMOKE_USER_DATA) throw new Error('Smoke user-data directory is required.');
+  app.setPath('userData', path.resolve(process.env.NOVA_SMOKE_USER_DATA));
+  app.setPath('sessionData', app.getPath('userData'));
+}
 const PRODUCT_NAME = 'Nova Tweaks';
 const LEGACY_PRODUCT_NAME = 'Nova Tweaks Local';
 const WINDOWS_APP_USER_MODEL_ID = 'de.novatweaks.desktop';
@@ -55,7 +72,7 @@ if (process.platform === 'win32' && process.windowsStore !== true) {
   app.setAppUserModelId(WINDOWS_APP_USER_MODEL_ID);
 }
 try {
-  migrateLegacyUserData({
+  if (!isPackagedSmoke) migrateLegacyUserData({
     appDataPath: app.getPath('appData'),
     currentUserDataPath: app.getPath('userData'),
     legacyDirectoryName: LEGACY_PRODUCT_NAME
@@ -63,7 +80,7 @@ try {
 } catch (error) {
   console.warn(`Legacy user-data migration failed: ${error?.message || error}`);
 }
-app.setAppLogsPath();
+app.setAppLogsPath(isPackagedSmoke ? path.join(app.getPath('userData'), 'logs') : undefined);
 const RELEASES_URL = 'https://github.com/NovaTweaksDev/Nova-Tweaks/releases';
 const PROFILE_IMAGE_SOURCE_MAX_BYTES = 6_000_000;
 const PROFILE_IMAGE_UPLOAD_MAX_BYTES = 650_000;
@@ -607,251 +624,12 @@ function buildTweakActionLogCsv(rows) {
   return `${lines.join('\r\n')}\r\n`;
 }
 
-function normalizeRiskLevel(value) {
-  const normalized = String(value || '').trim().toLowerCase();
-  if (normalized === 'low' || normalized === 'medium' || normalized === 'high') {
-    return normalized;
-  }
-  return '';
-}
 
-function normalizeContainerType(value) {
-  const normalized = String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[\s-]+/g, '_');
 
-  if (normalized === 'powerplan' || normalized === 'power_plans') {
-    return 'power_plan';
-  }
 
-  if (normalized === 'timerresolution' || normalized === 'timer_resolutions') {
-    return 'timer_resolution';
-  }
 
-  if (normalized === 'oneshotselection' || normalized === 'one_shot' || normalized === 'one_shot_selections') {
-    return 'one_shot_selection';
-  }
 
-  if (normalized === 'oneshotaction' || normalized === 'one_shot_action' || normalized === 'one_shot_actions') {
-    return 'one_shot_action';
-  }
 
-  if (normalized === 'fix' || normalized === 'fixes') {
-    return 'fix';
-  }
-
-  if (normalized === 'normal' || normalized === 'normaltweak' || normalized === 'normal_tweaks') {
-    return 'normal_tweak';
-  }
-
-  return normalized || 'normal_tweak';
-}
-
-function normalizeBulletpoints(value) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((entry) => {
-      if (typeof entry === 'string') {
-        const text = entry.trim();
-        return text ? { icon: '', text } : null;
-      }
-
-      if (!entry || typeof entry !== 'object') {
-        return null;
-      }
-
-      const text = typeof entry.text === 'string'
-        ? entry.text.trim()
-        : typeof entry.label === 'string'
-          ? entry.label.trim()
-          : typeof entry.title === 'string'
-            ? entry.title.trim()
-            : '';
-      if (!text) {
-        return null;
-      }
-
-      const icon = typeof entry.icon === 'string' ? entry.icon.trim().toLowerCase() : '';
-      return {
-        icon,
-        text
-      };
-    })
-    .filter(Boolean);
-}
-
-function normalizeCompactDescription(value) {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function normalizeStatusLabels(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-
-  const active = typeof value.active === 'string' ? value.active.trim() : '';
-  const inactive = typeof value.inactive === 'string' ? value.inactive.trim() : '';
-  if (!active && !inactive) {
-    return null;
-  }
-
-  return {
-    ...(active ? { active } : {}),
-    ...(inactive ? { inactive } : {})
-  };
-}
-
-function normalizeCtaLabels(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-
-  const defaultLabel = typeof value.default === 'string' ? value.default.trim() : '';
-  const active = typeof value.active === 'string' ? value.active.trim() : '';
-  if (!defaultLabel && !active) {
-    return null;
-  }
-
-  return {
-    ...(defaultLabel ? { default: defaultLabel } : {}),
-    ...(active ? { active } : {})
-  };
-}
-
-function normalizeUiConfig(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-
-  const variant = typeof value.variant === 'string' ? value.variant.trim().toLowerCase() : '';
-  const size = typeof value.size === 'string' ? value.size.trim().toLowerCase() : '';
-  const showProfileBadgeSource = value.showProfileBadge ?? value.show_profile_badge;
-  const showTargetSystemSource = value.showTargetSystem ?? value.show_target_system;
-  const showTradeoffsSource = value.showTradeoffs ?? value.show_tradeoffs;
-  const showBulletpointsSource = value.showBulletpoints ?? value.show_bulletpoints;
-  const maxMetricsSource = value.maxMetrics ?? value.max_metrics;
-  const maxMetricsNumber = Number(maxMetricsSource);
-  const maxMetrics = Number.isFinite(maxMetricsNumber) && maxMetricsNumber > 0
-    ? Math.max(1, Math.trunc(maxMetricsNumber))
-    : null;
-
-  const normalized = {
-    ...(variant ? { variant } : {}),
-    ...(size ? { size } : {}),
-    ...(typeof showProfileBadgeSource === 'boolean' ? { showProfileBadge: showProfileBadgeSource } : {}),
-    ...(typeof showTargetSystemSource === 'boolean' ? { showTargetSystem: showTargetSystemSource } : {}),
-    ...(typeof showTradeoffsSource === 'boolean' ? { showTradeoffs: showTradeoffsSource } : {}),
-    ...(typeof showBulletpointsSource === 'boolean' ? { showBulletpoints: showBulletpointsSource } : {}),
-    ...(maxMetrics ? { maxMetrics } : {})
-  };
-
-  return Object.keys(normalized).length ? normalized : null;
-}
-
-function normalizeMetricDirection(value) {
-  const normalized = String(value || '').trim().toLowerCase();
-  if (normalized === 'positive' || normalized === 'negative' || normalized === 'neutral') {
-    return normalized;
-  }
-  return '';
-}
-
-function normalizeMetrics(value) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((entry) => {
-      if (!entry || typeof entry !== 'object') {
-        return null;
-      }
-
-      const label = typeof entry.label === 'string'
-        ? entry.label.trim()
-        : typeof entry.text === 'string'
-          ? entry.text.trim()
-          : '';
-      if (!label) {
-        return null;
-      }
-
-      const maxSource = Number(entry.max);
-      const max = Number.isFinite(maxSource) && maxSource > 0 ? Math.min(5, Math.max(1, Math.trunc(maxSource))) : 5;
-      const valueSource = Number(entry.value);
-      const rawValue = Number.isFinite(valueSource) ? Math.trunc(valueSource) : 0;
-      const boundedValue = Math.max(0, Math.min(max, rawValue));
-
-      return {
-        icon: typeof entry.icon === 'string' ? entry.icon.trim().toLowerCase() : '',
-        label,
-        value: boundedValue,
-        max,
-        direction: normalizeMetricDirection(entry.direction)
-      };
-    })
-    .filter(Boolean);
-}
-
-function normalizeSelections(value) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((entry) => {
-      if (typeof entry === 'string' || typeof entry === 'number') {
-        const label = String(entry).trim();
-        return label ? { label, value: label } : null;
-      }
-
-      if (!entry || typeof entry !== 'object') {
-        return null;
-      }
-
-      const label = String(entry.label || entry.name || entry.value || entry.id || '').trim();
-      const optionValue = String(entry.value || entry.id || label).trim();
-      if (!label || !optionValue) {
-        return null;
-      }
-
-      return {
-        ...entry,
-        label,
-        value: optionValue
-      };
-    })
-    .filter(Boolean);
-}
-
-function normalizeRangeConfig(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-
-  const minimum = Number(value.min ?? value.minimum);
-  const maximum = Number(value.max ?? value.maximum);
-  const step = Number(value.step);
-  const recommendedValue = Number(value.recommendedValue ?? value.recommended_value);
-  if (!Number.isFinite(minimum) || !Number.isFinite(maximum) || maximum <= minimum) {
-    return null;
-  }
-
-  return {
-    parameter: typeof value.parameter === 'string' && value.parameter.trim() ? value.parameter.trim() : 'Value',
-    min: minimum,
-    max: maximum,
-    step: Number.isFinite(step) && step > 0 ? step : 1,
-    unit: typeof value.unit === 'string' ? value.unit.trim() : '',
-    recommendedValue: Number.isFinite(recommendedValue)
-      ? Math.min(maximum, Math.max(minimum, recommendedValue))
-      : minimum + ((maximum - minimum) / 2)
-  };
-}
 
 function normalizeOptionalRangeValue(value) {
   if (value === null || value === undefined || value === '') {
@@ -859,10 +637,6 @@ function normalizeOptionalRangeValue(value) {
   }
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : null;
-}
-
-function normalizeSelectedOption(value) {
-  return typeof value === 'string' ? value.trim() : '';
 }
 
 function normalizeBooleanFlag(value, fallback = false) {
@@ -889,19 +663,6 @@ function normalizeBooleanFlag(value, fallback = false) {
   }
 
   return fallback === undefined || fallback === null ? false : normalizeBooleanFlag(fallback, false);
-}
-
-function normalizeResolutionValue(value) {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return String(value);
-  }
-
-  if (typeof value !== 'string') {
-    return '';
-  }
-
-  const normalized = value.trim().replace(',', '.');
-  return normalized || '';
 }
 
 function normalizeRecommendedSelection(value, selections = []) {
@@ -1977,6 +1738,7 @@ function createMainWindow() {
 }
 
 function registerIpcHandlers() {
+  registerRestoreHandlers({ ipcMain, restoreService });
   ipcMain.handle('app:get-admin-state', async () => ({
     isAdmin: isAdminSession,
     ...(adminBrokerManager?.getState?.() || {})
@@ -2000,7 +1762,7 @@ function registerIpcHandlers() {
       return { ok: true, alreadyElevated: true, state: adminBrokerManager?.getState?.() || null };
     }
     try {
-      const state = await adminBrokerManager.ensureReady({ reason: String(payload?.reason || 'manual') });
+      const state = await adminBrokerManager.ensureReady({ reason: String(payload?.reason || 'manual'), explicitApproval: true });
       return { ok: true, state };
     } catch (error) {
       adminBrokerLogger.error('Administrator access request failed.', {
@@ -2271,279 +2033,31 @@ function registerIpcHandlers() {
     }
   });
 
-  ipcMain.handle('settings:get', async () => ({
-    ok: true,
-    settings: settingsService.getSettings(),
-    defaults: settingsService.getDefaults(),
-    settingsPath: settingsService.getSettingsPath(),
-    warning: settingsService.getLastLoadWarning()
-  }));
-
-  ipcMain.handle('settings:update', async (_event, payload = {}) => {
-    try {
-      const settings = settingsService.updateSettings(payload);
-      applySettingsRuntimeEffects(settings);
-      return { ok: true, settings };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      settingsLogger.error('Failed to update settings.', ipcError);
-      return { ok: false, ...ipcError, settings: settingsService.getSettings() };
-    }
-  });
-
-  ipcMain.handle('settings:reset', async () => {
-    try {
-      const settings = settingsService.resetSettings();
-      applySettingsRuntimeEffects(settings);
-      return { ok: true, settings };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      settingsLogger.error('Failed to reset settings.', ipcError);
-      return { ok: false, ...ipcError, settings: settingsService.getSettings() };
-    }
-  });
-
-  ipcMain.handle('settings:choose-backup-location', async () => {
-    try {
-      const currentPath = settingsService.getSettings()?.backupData?.backupLocation || app.getPath('documents');
-      const result = await dialog.showOpenDialog({
-        title: 'Choose Backup Location',
-        defaultPath: currentPath,
-        properties: ['openDirectory', 'createDirectory']
-      });
-      if (result.canceled || !result.filePaths?.[0]) {
-        return { ok: true, canceled: true, settings: settingsService.getSettings() };
-      }
-
-      const settings = settingsService.updateSettings({
-        backupData: { backupLocation: result.filePaths[0] }
-      });
-      applySettingsRuntimeEffects(settings);
-      return { ok: true, canceled: false, settings };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      settingsLogger.error('Failed to choose backup location.', ipcError);
-      return { ok: false, ...ipcError, canceled: false, settings: settingsService.getSettings() };
-    }
-  });
-
-  ipcMain.handle('profile:choose-image', async () => {
-    try {
-      const result = await dialog.showOpenDialog({
-        title: 'Choose Profile Image',
-        properties: ['openFile'],
-        filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }]
-      });
-      if (result.canceled || !result.filePaths?.[0]) {
-        return { ok: true, canceled: true, avatarDataUrl: '' };
-      }
-
-      const filePath = result.filePaths[0];
-      const stat = fs.statSync(filePath);
-      if (stat.size > PROFILE_IMAGE_SOURCE_MAX_BYTES) {
-        return {
-          ok: false,
-          code: 'PROFILE_IMAGE_TOO_LARGE',
-          message: 'Profile image must be smaller than 6 MB.',
-          avatarDataUrl: ''
-        };
-      }
-
-      const buffer = resizeProfileImage(filePath);
-      if (!buffer) {
-        return {
-          ok: false,
-          code: 'PROFILE_IMAGE_INVALID',
-          message: 'Profile image could not be read.',
-          avatarDataUrl: ''
-        };
-      }
-
-      if (buffer.length > PROFILE_IMAGE_UPLOAD_MAX_BYTES) {
-        return {
-          ok: false,
-          code: 'PROFILE_IMAGE_TOO_LARGE',
-          message: 'Profile image is too large after resizing. Please choose a smaller image.',
-          avatarDataUrl: ''
-        };
-      }
-
-      const data = buffer.toString('base64');
-      return {
-        ok: true,
-        canceled: false,
-        avatarDataUrl: `data:image/jpeg;base64,${data}`
-      };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      return { ok: false, ...ipcError, avatarDataUrl: '' };
-    }
-  });
-
-  ipcMain.handle('settings:export', async () => {
-    try {
-      const result = await dialog.showSaveDialog({
-        title: 'Export Settings',
-        defaultPath: path.join(app.getPath('documents'), 'nova-tweaks-settings.json'),
-        showOverwriteConfirmation: true,
-        filters: [{ name: 'Nova Tweaks Settings JSON', extensions: ['json'] }]
-      });
-      if (result.canceled || !result.filePath) {
-        return { ok: true, canceled: true, filePath: '' };
-      }
-
-      writePrivateExportFile(
-        result.filePath,
-        JSON.stringify(settingsService.createExportDocument(), null, 2)
-      );
-      return { ok: true, canceled: false, filePath: result.filePath };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      settingsLogger.error('Failed to export settings.', ipcError);
-      return { ok: false, ...ipcError, canceled: false, filePath: '' };
-    }
-  });
-
-  ipcMain.handle('settings:import', async () => {
-    try {
-      const result = await dialog.showOpenDialog({
-        title: 'Import Settings',
-        properties: ['openFile'],
-        filters: [{ name: 'Nova Tweaks Settings JSON', extensions: ['json'] }]
-      });
-      if (result.canceled || !result.filePaths?.[0]) {
-        return { ok: true, canceled: true, settings: settingsService.getSettings() };
-      }
-
-      const document = JSON.parse(fs.readFileSync(result.filePaths[0], 'utf8'));
-      const importedSettings = settingsService.validateImportDocument(document);
-      const settings = settingsService.saveSettings(importedSettings);
-      applySettingsRuntimeEffects(settings);
-      return { ok: true, canceled: false, settings, filePath: result.filePaths[0] };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      settingsLogger.error('Failed to import settings.', ipcError);
-      return { ok: false, ...ipcError, canceled: false, settings: settingsService.getSettings() };
-    }
-  });
-
-  ipcMain.handle('settings:metadata', async () => ({
-    ok: true,
-    metadata: {
-      appName: app.getName(),
-      appVersion: app.getVersion(),
-      platform: process.platform,
-      release: os.release(),
-      arch: process.arch,
-      logsPath: app.getPath('logs'),
-      settingsPath: settingsService.getSettingsPath(),
-      backupPath: backupManager?.getStoragePaths?.().backupsRoot || getBackupRootFromSettings()
-    }
-  }));
-
-  ipcMain.handle('settings:open-logs-folder', async () => {
-    try {
-      const logsPath = app.getPath('logs');
-      fs.mkdirSync(logsPath, { recursive: true });
-      const openError = await shell.openPath(logsPath);
-      if (openError) {
-        return { ok: false, code: 'OPEN_LOGS_FOLDER_FAILED', message: openError, path: logsPath };
-      }
-      return { ok: true, path: logsPath };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      return { ok: false, ...ipcError, path: '' };
-    }
-  });
-
-  ipcMain.handle('settings:clear-cache', async () => {
-    try {
-      const result = clearSafeCacheTargets();
-      if (result.removedTargets === 0) {
-        return {
-          ok: false,
-          code: 'NO_SAFE_CACHE_FOUND',
-          message: 'No safe local cache folder is available to clear.',
-          ...result
-        };
-      }
-      return { ok: true, ...result };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      settingsLogger.error('Failed to clear app cache.', ipcError);
-      return { ok: false, ...ipcError, removedTargets: 0, removedBytes: 0 };
-    }
-  });
-
-  ipcMain.handle('settings:export-diagnostics', async () => {
-    try {
-      const backupPaths = backupManager?.getStoragePaths?.() || {};
-      const diagnosticReport = {
-        schema: 'nova-tweaks-diagnostic-report',
-        schemaVersion: 1,
-        createdAt: new Date().toISOString(),
-        app: { name: app.getName(), version: app.getVersion() },
-        system: {
-          platform: process.platform,
-          release: os.release(),
-          arch: process.arch,
-          uptimeSeconds: Math.max(0, Math.floor(os.uptime()))
-        },
-        paths: {
-          logsPath: app.getPath('logs'),
-          settingsPath: settingsService.getSettingsPath(),
-          backupPath: backupPaths.backupsRoot || getBackupRootFromSettings()
-        },
-        settings: settingsService.getSettings(),
-        status: {
-          admin: isAdminSession,
-          adminBroker: adminBrokerManager?.getState?.() || null,
-          updateCheckCode: latestUpdateCheck?.code || ''
-        },
-        recentLogs: safeReadRecentLogLines()
-      };
-
-      const result = await dialog.showSaveDialog({
-        title: 'Export Diagnostic Report',
-        defaultPath: path.join(app.getPath('documents'), 'nova-tweaks-diagnostics.json'),
-        showOverwriteConfirmation: true,
-        filters: [{ name: 'Diagnostic JSON', extensions: ['json'] }]
-      });
-      if (result.canceled || !result.filePath) {
-        return { ok: true, canceled: true, filePath: '' };
-      }
-
-      writePrivateExportFile(
-        result.filePath,
-        JSON.stringify(redactDiagnosticValue(diagnosticReport), null, 2)
-      );
-      return { ok: true, canceled: false, filePath: result.filePath };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      settingsLogger.error('Failed to export diagnostic report.', ipcError);
-      return { ok: false, ...ipcError, canceled: false, filePath: '' };
-    }
-  });
-
-  ipcMain.handle('tweak-actions:export-log-csv', async (_event, payload = {}) => {
-    try {
-      const result = await dialog.showSaveDialog({
-        title: 'Export Tweak Action Log',
-        defaultPath: path.join(app.getPath('documents'), 'nova-tweaks-action-log.csv'),
-        showOverwriteConfirmation: true,
-        filters: [{ name: 'CSV', extensions: ['csv'] }]
-      });
-      if (result.canceled || !result.filePath) {
-        return { ok: true, canceled: true, filePath: '' };
-      }
-
-      writePrivateExportFile(result.filePath, buildTweakActionLogCsv(payload?.rows));
-      return { ok: true, canceled: false, filePath: result.filePath };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      settingsLogger.error('Failed to export tweak action log.', ipcError);
-      return { ok: false, ...ipcError, canceled: false, filePath: '' };
-    }
+  registerSettingsHandlers({
+    get ipcMain() { return ipcMain; },
+    get settingsService() { return settingsService; },
+    get applySettingsRuntimeEffects() { return applySettingsRuntimeEffects; },
+    get toIpcError() { return toIpcError; },
+    get settingsLogger() { return settingsLogger; },
+    get app() { return app; },
+    get dialog() { return dialog; },
+    get fs() { return fs; },
+    get PROFILE_IMAGE_SOURCE_MAX_BYTES() { return PROFILE_IMAGE_SOURCE_MAX_BYTES; },
+    get resizeProfileImage() { return resizeProfileImage; },
+    get PROFILE_IMAGE_UPLOAD_MAX_BYTES() { return PROFILE_IMAGE_UPLOAD_MAX_BYTES; },
+    get path() { return path; },
+    get writePrivateExportFile() { return writePrivateExportFile; },
+    get os() { return os; },
+    get backupManager() { return backupManager; },
+    get getBackupRootFromSettings() { return getBackupRootFromSettings; },
+    get shell() { return shell; },
+    get clearSafeCacheTargets() { return clearSafeCacheTargets; },
+    get isAdminSession() { return isAdminSession; },
+    get adminBrokerManager() { return adminBrokerManager; },
+    get latestUpdateCheck() { return latestUpdateCheck; },
+    get safeReadRecentLogLines() { return safeReadRecentLogLines; },
+    get redactDiagnosticValue() { return redactDiagnosticValue; },
+    get buildTweakActionLogCsv() { return buildTweakActionLogCsv; }
   });
 
   registerTweakExecutionIpcHandlers({
@@ -2714,368 +2228,19 @@ function registerIpcHandlers() {
     { ok: false, code: 'MAINTENANCE_NOT_READY', message: 'Scheduled maintenance is unavailable.' }
   ));
 
-  ipcMain.handle('backup:list', async () => {
-    if (!backupManager) {
-      return {
-        ok: false,
-        code: 'BACKUPS_NOT_READY',
-        message: 'Backup manager is not initialized.',
-        details: {},
-        backups: [],
-        windowsRestorePoints: []
-      };
-    }
-
-    try {
-      return {
-        ok: true,
-        ...(await backupManager.listBackups())
-      };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      backupsLogger.error('Failed to list backups.', ipcError);
-      return {
-        ok: false,
-        ...ipcError,
-        backups: [],
-        windowsRestorePoints: []
-      };
-    }
-  });
-
-  ipcMain.handle('backup:create', async (_event, payload = {}) => {
-    if (!backupManager) {
-      return {
-        ok: false,
-        code: 'BACKUPS_NOT_READY',
-        message: 'Backup manager is not initialized.',
-        details: {},
-        backup: null,
-        backups: [],
-        windowsRestorePoints: []
-      };
-    }
-
-    try {
-      return {
-        ok: true,
-        ...(await backupManager.createBackup(payload.type === 'beforeApply' && payload.engine !== 'windows' ? {
-          ...payload,
-          snapshot: {
-            ...payload.snapshot,
-            tweakStates: await captureAutomaticTweakSnapshot(
-              (payload.snapshot?.tweakStates?.data || []).map((entry) => {
-                const tweak = backendTweakCatalog.getConfigById(String(entry.id));
-                if (!tweak || isBlockedSecurityTweakId(tweak.id)) {
-                  throw new Error(`Cannot capture unavailable tweak: ${entry.id}`);
-                }
-                return tweak;
-              }), tweakRunner, { strict: true }
-            )
-          }
-        } : payload, {
-          createWindowsProvider: String(payload?.engine || '').trim().toLowerCase() === 'windows' && !isAdminSession
-            ? (name) => adminBrokerManager.execute(
-                'systemRestore.create',
-                { name },
-                { reason: 'system-restore-point', timeoutMs: 120000 }
-              )
-            : null
-        }))
-      };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      backupsLogger.error('Failed to create backup.', ipcError);
-      return {
-        ok: false,
-        ...ipcError,
-        backup: null,
-        backups: [],
-        windowsRestorePoints: []
-      };
-    }
-  });
-
-  ipcMain.handle('backup:rename', async (_event, payload = {}) => {
-    if (!backupManager) {
-      return {
-        ok: false,
-        code: 'BACKUPS_NOT_READY',
-        message: 'Backup manager is not initialized.',
-        details: {},
-        backup: null,
-        backups: [],
-        windowsRestorePoints: []
-      };
-    }
-
-    try {
-      return {
-        ok: true,
-        ...(await backupManager.renameBackup(payload))
-      };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      backupsLogger.error('Failed to rename backup.', ipcError);
-      return {
-        ok: false,
-        ...ipcError,
-        backup: null,
-        backups: [],
-        windowsRestorePoints: []
-      };
-    }
-  });
-
-  ipcMain.handle('backup:delete', async (_event, payload = {}) => {
-    if (!backupManager) {
-      return {
-        ok: false,
-        code: 'BACKUPS_NOT_READY',
-        message: 'Backup manager is not initialized.',
-        details: {},
-        backups: [],
-        windowsRestorePoints: []
-      };
-    }
-
-    try {
-      return {
-        ok: true,
-        ...(await backupManager.deleteBackup(payload))
-      };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      backupsLogger.error('Failed to delete backup.', ipcError);
-      return {
-        ok: false,
-        ...ipcError,
-        backups: [],
-        windowsRestorePoints: []
-      };
-    }
-  });
-
-  ipcMain.handle('backup:export', async (_event, payload = {}) => {
-    if (!backupManager) {
-      return {
-        ok: false,
-        code: 'BACKUPS_NOT_READY',
-        message: 'Backup manager is not initialized.',
-        details: {},
-        backup: null,
-        filePath: '',
-        canceled: false
-      };
-    }
-
-    try {
-      return {
-        ok: true,
-        ...(await backupManager.exportBackup(payload))
-      };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      backupsLogger.error('Failed to export backup.', ipcError);
-      return {
-        ok: false,
-        ...ipcError,
-        backup: null,
-        filePath: '',
-        canceled: false
-      };
-    }
-  });
-
-  ipcMain.handle('backup:import', async () => {
-    if (!backupManager) {
-      return {
-        ok: false,
-        code: 'BACKUPS_NOT_READY',
-        message: 'Backup manager is not initialized.',
-        details: {},
-        backup: null,
-        backups: [],
-        windowsRestorePoints: []
-      };
-    }
-
-    try {
-      return {
-        ok: true,
-        ...(await backupManager.importBackup())
-      };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      backupsLogger.error('Failed to import backup.', ipcError);
-      return {
-        ok: false,
-        ...ipcError,
-        backup: null,
-        backups: [],
-        windowsRestorePoints: []
-      };
-    }
-  });
-
-  ipcMain.handle('backup:restore', async (_event, payload = {}) => {
-    if (!backupManager) {
-      return {
-        ok: false,
-        code: 'BACKUPS_NOT_READY',
-        message: 'Backup manager is not initialized.',
-        details: {},
-        backup: null,
-        restorePlan: null
-      };
-    }
-
-    try {
-      return {
-        ok: true,
-        ...(await backupManager.restoreBackup(payload, {
-          restoreWindowsProvider: (sequenceNumber) => (
-            isAdminSession
-              ? backupManager.restoreWindowsRestorePoint(sequenceNumber)
-              : adminBrokerManager.execute(
-                  'systemRestore.restore',
-                  { sequenceNumber },
-                  { reason: 'system-restore', timeoutMs: 120000 }
-                )
-          )
-        }))
-      };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      backupsLogger.error('Failed to prepare backup restore.', ipcError);
-      return {
-        ok: false,
-        ...ipcError,
-        backup: null,
-        restorePlan: null
-      };
-    }
-  });
-
-  ipcMain.handle('backup:open-folder', async () => {
-    if (!backupManager) {
-      return {
-        ok: false,
-        code: 'BACKUPS_NOT_READY',
-        message: 'Backup manager is not initialized.',
-        details: {}
-      };
-    }
-
-    try {
-      const { backupsRoot } = backupManager.getStoragePaths();
-      fs.mkdirSync(backupsRoot, { recursive: true });
-      const openError = await shell.openPath(backupsRoot);
-      if (openError) {
-        return {
-          ok: false,
-          code: 'OPEN_BACKUP_FOLDER_FAILED',
-          message: openError
-        };
-      }
-
-      return {
-        ok: true,
-        path: backupsRoot
-      };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      backupsLogger.error('Failed to open backup folder.', ipcError);
-      return {
-        ok: false,
-        ...ipcError
-      };
-    }
-  });
-
-  ipcMain.handle('backup:clean-old', async (_event, payload = {}) => {
-    if (!backupManager) {
-      return {
-        ok: false,
-        code: 'BACKUPS_NOT_READY',
-        message: 'Backup manager is not initialized.',
-        details: {},
-        deletedCount: 0,
-        backups: [],
-        windowsRestorePoints: []
-      };
-    }
-
-    try {
-      return {
-        ok: true,
-        ...(await backupManager.cleanOldBackups(payload))
-      };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      backupsLogger.error('Failed to clean old backups.', ipcError);
-      return {
-        ok: false,
-        ...ipcError,
-        deletedCount: 0,
-        backups: [],
-        windowsRestorePoints: []
-      };
-    }
-  });
-
-  ipcMain.handle('backup:settings:get', async () => {
-    if (!backupManager) {
-      return {
-        ok: false,
-        code: 'BACKUPS_NOT_READY',
-        message: 'Backup manager is not initialized.',
-        details: {},
-        settings: null
-      };
-    }
-
-    try {
-      return {
-        ok: true,
-        ...(await backupManager.getBackupSettings())
-      };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      backupsLogger.error('Failed to load backup settings.', ipcError);
-      return {
-        ok: false,
-        ...ipcError,
-        settings: null
-      };
-    }
-  });
-
-  ipcMain.handle('backup:settings:update', async (_event, payload = {}) => {
-    if (!backupManager) {
-      return {
-        ok: false,
-        code: 'BACKUPS_NOT_READY',
-        message: 'Backup manager is not initialized.',
-        details: {},
-        settings: null
-      };
-    }
-
-    try {
-      return {
-        ok: true,
-        ...(await backupManager.updateBackupSettings(payload))
-      };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      backupsLogger.error('Failed to update backup settings.', ipcError);
-      return {
-        ok: false,
-        ...ipcError,
-        settings: null
-      };
-    }
+  registerBackupHandlers({
+    get ipcMain() { return ipcMain; },
+    get backupManager() { return backupManager; },
+    get toIpcError() { return toIpcError; },
+    get backupsLogger() { return backupsLogger; },
+    get captureAutomaticTweakSnapshot() { return captureAutomaticTweakSnapshot; },
+    get backendTweakCatalog() { return backendTweakCatalog; },
+    get isBlockedSecurityTweakId() { return isBlockedSecurityTweakId; },
+    get tweakRunner() { return tweakRunner; },
+    get isAdminSession() { return isAdminSession; },
+    get adminBrokerManager() { return adminBrokerManager; },
+    get fs() { return fs; },
+    get shell() { return shell; }
   });
 
   ipcMain.handle('game-detection:scan', async () => {
@@ -3636,816 +2801,61 @@ function registerIpcHandlers() {
     };
   });
 
-  ipcMain.handle('apps:list', async (_event, payload = {}) => {
-    const session = { authenticated: true };
-    if (!session.authenticated) {
-      return {
-        ok: false,
-        code: 'AUTH_REQUIRED',
-        message: 'Authentication required.',
-        details: {},
-        apps: []
-      };
-    }
-
-    if (!appsManager) {
-      return {
-        ok: false,
-        code: 'APPS_NOT_READY',
-        message: 'Apps manager is not initialized.',
-        details: {},
-        apps: []
-      };
-    }
-
-    const detailLevel = payload?.detailLevel === 'summary' ? 'summary' : 'full';
-    const startedAt = Date.now();
-    try {
-      const apps = await appsManager.listInstalledApps({ detailLevel });
-      warnIfSlow(appsLogger, 'apps:list', startedAt, IPC_SLOW_CALL_THRESHOLD_MS, {
-        detailLevel,
-        appCount: apps.length
-      });
-      return {
-        ok: true,
-        detailLevel,
-        apps
-      };
-    } catch (error) {
-      warnIfSlow(appsLogger, 'apps:list', startedAt, IPC_SLOW_CALL_THRESHOLD_MS, {
-        detailLevel,
-        failed: true
-      });
-      const ipcError = toIpcError(error);
-      appsLogger.error('Failed to list installed apps.', ipcError);
-      return {
-        ok: false,
-        ...ipcError,
-        apps: []
-      };
-    }
+  registerAppsHandlers({
+    get ipcMain() { return ipcMain; },
+    get appsManager() { return appsManager; },
+    get warnIfSlow() { return warnIfSlow; },
+    get appsLogger() { return appsLogger; },
+    get IPC_SLOW_CALL_THRESHOLD_MS() { return IPC_SLOW_CALL_THRESHOLD_MS; },
+    get toIpcError() { return toIpcError; },
+    get isAdminSession() { return isAdminSession; },
+    get adminBrokerManager() { return adminBrokerManager; }
   });
 
-  ipcMain.handle('apps:startup:list', async () => {
-    const session = { authenticated: true };
-    if (!session.authenticated) {
-      return {
-        ok: false,
-        code: 'AUTH_REQUIRED',
-        message: 'Authentication required.',
-        details: {},
-        entries: []
-      };
-    }
-
-    if (!appsManager) {
-      return {
-        ok: false,
-        code: 'APPS_NOT_READY',
-        message: 'Apps manager is not initialized.',
-        details: {},
-        entries: []
-      };
-    }
-
-    const startedAt = Date.now();
-    try {
-      const entries = await appsManager.listStartupApps();
-      warnIfSlow(appsLogger, 'apps:startup:list', startedAt, IPC_SLOW_CALL_THRESHOLD_MS, {
-        entryCount: entries.length
-      });
-      return {
-        ok: true,
-        entries
-      };
-    } catch (error) {
-      warnIfSlow(appsLogger, 'apps:startup:list', startedAt, IPC_SLOW_CALL_THRESHOLD_MS, {
-        failed: true
-      });
-      const ipcError = toIpcError(error);
-      appsLogger.error('Failed to list startup entries.', ipcError);
-      return {
-        ok: false,
-        ...ipcError,
-        entries: []
-      };
-    }
+  registerMonitoringHandlers({
+    get ipcMain() { return ipcMain; },
+    get monitoringManager() { return monitoringManager; },
+    get metricsSubscriberIds() { return metricsSubscriberIds; },
+    get syncMonitoringSubscriptionState() { return syncMonitoringSubscriptionState; },
+    get toIpcError() { return toIpcError; },
+    get metricsLogger() { return metricsLogger; },
+    get extendedNetworkTestService() { return extendedNetworkTestService; },
+    get advancedSensorMonitoringEnabled() { return advancedSensorMonitoringEnabled; },
+    set advancedSensorMonitoringEnabled(value) { advancedSensorMonitoringEnabled = value; },
+    get settingsService() { return settingsService; }
   });
 
-  ipcMain.handle('apps:startup:set-enabled', async (_event, payload = {}) => {
-    const session = { authenticated: true };
-    if (!session.authenticated) {
-      return {
-        ok: false,
-        code: 'AUTH_REQUIRED',
-        message: 'Authentication required.',
-        details: {},
-        result: null
-      };
-    }
-
-    if (!appsManager) {
-      return {
-        ok: false,
-        code: 'APPS_NOT_READY',
-        message: 'Apps manager is not initialized.',
-        details: {},
-        result: null
-      };
-    }
-
-    const entryId = typeof payload?.id === 'string' ? payload.id.trim() : '';
-    if (!entryId || typeof payload?.enabled !== 'boolean') {
-      return {
-        ok: false,
-        code: 'INVALID_PAYLOAD',
-        message: 'A valid startup entry id and enabled flag are required.',
-        details: {},
-        result: null
-      };
-    }
-
-    try {
-      const result = await appsManager.setStartupEntryEnabled({
-        entryId,
-        enabled: payload.enabled
-      });
-      return {
-        ok: true,
-        result
-      };
-    } catch (error) {
-      if (error?.code === 'ADMIN_REQUIRED' && !isAdminSession && error?.details?.startupScope === 'machine') {
-        try {
-          const result = await adminBrokerManager.execute(
-            'startup.setEnabled',
-            { entryId, enabled: payload.enabled, expectedScope: 'machine' },
-            { reason: 'startup-entry', timeoutMs: 60000 }
-          );
-          return { ok: true, result };
-        } catch (brokerError) {
-          error = brokerError;
-        }
-      } else if (error?.code === 'ADMIN_REQUIRED' && !isAdminSession) {
-        error.code = 'ADMIN_BROKER_USER_SCOPE_UNSUPPORTED';
-        error.message = 'This protected per-user startup entry cannot be changed through administrator credentials for another account.';
-      }
-      const ipcError = toIpcError(error);
-      appsLogger.error('Failed to update startup entry state.', {
-        ...ipcError,
-        entryId,
-        enabled: payload.enabled
-      });
-      return {
-        ok: false,
-        ...ipcError,
-        result: null
-      };
-    }
+  registerTweakHandlers({
+    get ipcMain() { return ipcMain; },
+    get scriptRunner() { return scriptRunner; },
+    get isBlockedSecurityTweakScriptName() { return isBlockedSecurityTweakScriptName; },
+    get toIpcError() { return toIpcError; },
+    get logger() { return logger; },
+    get backendTweakCatalog() { return backendTweakCatalog; },
+    get isBlockedSecurityTweakId() { return isBlockedSecurityTweakId; },
+    get mapWithConcurrency() { return mapWithConcurrency; },
+    get requiresTweakStateCheck() { return requiresTweakStateCheck; },
+    get tweakRunner() { return tweakRunner; },
+    get mergeTweakDetails() { return mergeTweakDetails; }
   });
 
-  ipcMain.handle('apps:startup:set-type', async (_event, payload = {}) => {
-    const session = { authenticated: true };
-    if (!session.authenticated) {
-      return {
-        ok: false,
-        code: 'AUTH_REQUIRED',
-        message: 'Authentication required.',
-        details: {},
-        result: null
-      };
-    }
-
-    if (!appsManager) {
-      return {
-        ok: false,
-        code: 'APPS_NOT_READY',
-        message: 'Apps manager is not initialized.',
-        details: {},
-        result: null
-      };
-    }
-
-    const entryId = typeof payload?.id === 'string' ? payload.id.trim() : '';
-    const startupType = typeof payload?.startupType === 'string' ? payload.startupType.trim() : '';
-    if (!entryId || !startupType) {
-      return {
-        ok: false,
-        code: 'INVALID_PAYLOAD',
-        message: 'A valid startup entry id and startupType are required.',
-        details: {},
-        result: null
-      };
-    }
-
-    try {
-      const result = await appsManager.setStartupEntryType({
-        entryId,
-        startupType
-      });
-      return {
-        ok: true,
-        result
-      };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      appsLogger.error('Failed to change startup entry type.', {
-        ...ipcError,
-        entryId,
-        startupType
-      });
-      return {
-        ok: false,
-        ...ipcError,
-        result: null
-      };
-    }
-  });
-
-  ipcMain.handle('apps:uninstall', async (_event, payload = {}) => {
-    const session = { authenticated: true };
-    if (!session.authenticated) {
-      return {
-        ok: false,
-        code: 'AUTH_REQUIRED',
-        message: 'Authentication required.',
-        details: {},
-        result: null
-      };
-    }
-
-    if (!appsManager) {
-      return {
-        ok: false,
-        code: 'APPS_NOT_READY',
-        message: 'Apps manager is not initialized.',
-        details: {},
-        result: null
-      };
-    }
-
-    const appId = typeof payload?.id === 'string' ? payload.id.trim() : '';
-    if (!appId) {
-      return {
-        ok: false,
-        code: 'INVALID_PAYLOAD',
-        message: 'A valid app id is required.',
-        details: {},
-        result: null
-      };
-    }
-
-    try {
-      const installedApps = await appsManager.listInstalledApps({ detailLevel: 'summary' });
-      const targetApp = installedApps.find((entry) => entry.id === appId);
-      const requiresBroker = !isAdminSession && targetApp?.source === 'win32' && targetApp.installScope === 'machine';
-      const result = requiresBroker
-        ? await adminBrokerManager.execute('apps.uninstall', { appId, expectedScope: 'machine' }, { reason: 'app-uninstall', timeoutMs: 300000 })
-        : await appsManager.uninstallApp({ appId });
-      return {
-        ok: true,
-        result
-      };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      appsLogger.error('Failed to uninstall app.', {
-        ...ipcError,
-        appId
-      });
-      return {
-        ok: false,
-        ...ipcError,
-        result: null
-      };
-    }
-  });
-
-  ipcMain.handle('apps:optimize', async (_event, payload = {}) => {
-    const session = { authenticated: true };
-    if (!session.authenticated) {
-      return {
-        ok: false,
-        code: 'AUTH_REQUIRED',
-        message: 'Authentication required.',
-        details: {},
-        result: null
-      };
-    }
-
-    if (!appsManager) {
-      return {
-        ok: false,
-        code: 'APPS_NOT_READY',
-        message: 'Apps manager is not initialized.',
-        details: {},
-        result: null
-      };
-    }
-
-    const appId = typeof payload?.id === 'string' ? payload.id.trim() : '';
-    if (!appId) {
-      return {
-        ok: false,
-        code: 'INVALID_PAYLOAD',
-        message: 'A valid app id is required.',
-        details: {},
-        result: null
-      };
-    }
-
-    try {
-      const result = await appsManager.optimizeApp({
-        appId,
-        actionIds: Array.isArray(payload?.actionIds) ? payload.actionIds : null
-      });
-      return {
-        ok: true,
-        result
-      };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      appsLogger.error('Failed to optimize app.', {
-        ...ipcError,
-        appId
-      });
-      return {
-        ok: false,
-        ...ipcError,
-        result: null
-      };
-    }
-  });
-
-  ipcMain.handle('apps:optimization:analyze', async (_event, payload = {}) => {
-    const session = { authenticated: true };
-    if (!session.authenticated) {
-      return { ok: false, code: 'AUTH_REQUIRED', message: 'Authentication required.', details: {}, result: null };
-    }
-    if (!appsManager) {
-      return { ok: false, code: 'APPS_NOT_READY', message: 'Apps manager is not initialized.', details: {}, result: null };
-    }
-    const appId = typeof payload?.id === 'string' ? payload.id.trim() : '';
-    if (!appId) {
-      return { ok: false, code: 'INVALID_PAYLOAD', message: 'A valid app id is required.', details: {}, result: null };
-    }
-    try {
-      return {
-        ok: true,
-        result: await appsManager.analyzeAppOptimization({
-          appId,
-          includeCacheSize: payload?.includeCacheSize !== false
-        })
-      };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      appsLogger.error('Failed to analyze app optimization.', { ...ipcError, appId });
-      return { ok: false, ...ipcError, result: null };
-    }
-  });
-
-  ipcMain.handle('apps:optimization:confirm-close', async (_event, payload = {}) => {
-    const session = { authenticated: true };
-    if (!session.authenticated) {
-      return { ok: false, code: 'AUTH_REQUIRED', message: 'Authentication required.', details: {}, result: null };
-    }
-    try {
-      return { ok: true, result: await appsManager.confirmAppOptimizationClose(payload) };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      return { ok: false, ...ipcError, result: null };
-    }
-  });
-
-  ipcMain.handle('apps:optimization:cancel', async (_event, payload = {}) => {
-    const session = { authenticated: true };
-    if (!session.authenticated) {
-      return { ok: false, code: 'AUTH_REQUIRED', message: 'Authentication required.', details: {}, result: null };
-    }
-    try {
-      return { ok: true, result: appsManager.cancelAppOptimization(payload) };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      return { ok: false, ...ipcError, result: null };
-    }
-  });
-
-  ipcMain.handle('apps:optimization:reset', async (_event, payload = {}) => {
-    const session = { authenticated: true };
-    if (!session.authenticated) {
-      return { ok: false, code: 'AUTH_REQUIRED', message: 'Authentication required.', details: {}, result: null };
-    }
-    try {
-      return { ok: true, result: await appsManager.resetAppOptimizations({ appId: payload?.id }) };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      return { ok: false, ...ipcError, result: null };
-    }
-  });
-
-  ipcMain.handle('apps:optimization:get-state', async () => {
-    const session = { authenticated: true };
-    if (!session.authenticated) {
-      return { ok: false, code: 'AUTH_REQUIRED', message: 'Authentication required.', details: {}, result: null };
-    }
-    return {
-      ok: true,
-      result: appsManager?.getAppOptimizationState?.() || null
-    };
-  });
-
-  ipcMain.handle('metrics:get-latest', async () => {
-    if (!monitoringManager) {
-      return {
-        ok: false,
-        code: 'METRICS_NOT_READY',
-        message: 'Metrics service is not initialized.',
-        metrics: null
-      };
-    }
-
-    return {
-      ok: true,
-      metrics: monitoringManager.getLatest()
-    };
-  });
-
-  ipcMain.handle('metrics:subscribe', async (event) => {
-    if (!monitoringManager) {
-      return {
-        ok: false,
-        code: 'METRICS_NOT_READY',
-        message: 'Metrics service is not initialized.',
-        metrics: null
-      };
-    }
-
-    metricsSubscriberIds.add(event.sender.id);
-    const latestMetrics = monitoringManager.getLatest();
-    if (latestMetrics) {
-      event.sender.send('metrics:update', latestMetrics);
-    }
-
-    try {
-      await syncMonitoringSubscriptionState();
-      return {
-        ok: true,
-        metrics: latestMetrics
-      };
-    } catch (error) {
-      metricsSubscriberIds.delete(event.sender.id);
-      const ipcError = toIpcError(error);
-      metricsLogger.error('Failed to subscribe to metrics updates.', ipcError);
-      return {
-        ok: false,
-        ...ipcError,
-        metrics: null
-      };
-    }
-  });
-
-  ipcMain.handle('metrics:unsubscribe', async (event) => {
-    metricsSubscriberIds.delete(event.sender.id);
-    await syncMonitoringSubscriptionState();
-    return {
-      ok: true
-    };
-  });
-
-  ipcMain.handle('network-test:get-state', async () => ({
-    ok: Boolean(extendedNetworkTestService),
-    state: extendedNetworkTestService?.getState?.() || null
-  }));
-
-  ipcMain.handle('network-test:start', async () => (
-    extendedNetworkTestService?.start?.() ||
-    { ok: false, code: 'NETWORK_TEST_NOT_READY', message: 'Network test service is unavailable.' }
-  ));
-
-  ipcMain.handle('network-test:cancel', async () => (
-    extendedNetworkTestService?.cancel?.() ||
-    { ok: false, code: 'NETWORK_TEST_NOT_READY', message: 'Network test service is unavailable.' }
-  ));
-
-  ipcMain.handle('network-test:mtu:apply', async () => (
-    extendedNetworkTestService?.applyMtu?.() ||
-    { ok: false, code: 'NETWORK_TEST_NOT_READY', message: 'Network test service is unavailable.' }
-  ));
-
-  ipcMain.handle('network-test:mtu:reset', async () => (
-    extendedNetworkTestService?.resetMtu?.() ||
-    { ok: false, code: 'NETWORK_TEST_NOT_READY', message: 'Network test service is unavailable.' }
-  ));
-
-  ipcMain.handle('monitoring:getSnapshot', async () => {
-    if (!monitoringManager) {
-      return {
-        ok: false,
-        code: 'MONITORING_NOT_READY',
-        message: 'Monitoring service is not initialized.',
-        snapshot: null
-      };
-    }
-
-    const latestMetrics = monitoringManager.getLatest();
-    return {
-      ok: true,
-      snapshot: latestMetrics?.overview || null
-    };
-  });
-
-  ipcMain.handle('monitoring:getAdvancedSensorState', async () => ({
-    ok: true,
-    enabled: advancedSensorMonitoringEnabled
-  }));
-
-  ipcMain.handle('monitoring:setAdvancedSensorsEnabled', async (event, payload = {}) => {
-    if (!monitoringManager) {
-      return {
-        ok: false,
-        code: 'MONITORING_NOT_READY',
-        message: 'Monitoring service is not initialized.',
-        enabled: advancedSensorMonitoringEnabled,
-        settings: settingsService?.getSettings?.() || null
-      };
-    }
-
-    const enabled = payload?.enabled === true;
-    if (!enabled) {
-      try {
-        advancedSensorMonitoringEnabled = false;
-        const shutdownResult = await monitoringManager.shutdown({
-          ensureProcessStopped: true
-        });
-        const settings = settingsService.updateSettings({
-          monitoring: {
-            advancedSensorsEnabled: false
-          }
-        });
-        return {
-          ok: shutdownResult.sidecarStopped,
-          code: shutdownResult.sidecarStopped ? undefined : 'LHM_PROCESS_STILL_RUNNING',
-          message: shutdownResult.sidecarStopped
-            ? ''
-            : 'LibreHardwareMonitor is still running. Stop it in Task Manager if needed.',
-          enabled: false,
-          settings,
-          sidecarStopped: shutdownResult.sidecarStopped
-        };
-      } catch (error) {
-        const ipcError = toIpcError(error);
-        metricsLogger.error('Failed to disable advanced sensor monitoring.', ipcError);
-        return {
-          ok: false,
-          ...ipcError,
-          enabled: false,
-          settings: settingsService.getSettings()
-        };
-      }
-    }
-
-    metricsSubscriberIds.add(event.sender.id);
-    advancedSensorMonitoringEnabled = true;
-    try {
-      const started = await monitoringManager.start();
-      if (!started) {
-        const activationError = new Error(
-          monitoringManager.getLatest()?.message || 'LibreHardwareMonitor could not be started.'
-        );
-        activationError.code = 'ADVANCED_SENSOR_MONITORING_UNAVAILABLE';
-        throw activationError;
-      }
-      const settings = settingsService.updateSettings({
-        monitoring: {
-          advancedSensorsEnabled: true
-        }
-      });
-      return {
-        ok: true,
-        enabled: true,
-        settings
-      };
-    } catch (error) {
-      advancedSensorMonitoringEnabled = false;
-      metricsSubscriberIds.delete(event.sender.id);
-      await monitoringManager.shutdown({ ensureProcessStopped: true });
-      const ipcError = toIpcError(error);
-      metricsLogger.error('Failed to enable advanced sensor monitoring.', ipcError);
-      return {
-        ok: false,
-        ...ipcError,
-        enabled: false,
-        settings: settingsService.getSettings()
-      };
-    }
-  });
-
-  ipcMain.handle('monitoring:start', async (event) => {
-    if (!monitoringManager) {
-      return {
-        ok: false,
-        code: 'MONITORING_NOT_READY',
-        message: 'Monitoring service is not initialized.',
-        snapshot: null
-      };
-    }
-
-    metricsSubscriberIds.add(event.sender.id);
-    try {
-      await syncMonitoringSubscriptionState();
-      const latestMetrics = monitoringManager.getLatest();
-      if (latestMetrics?.overview) {
-        event.sender.send('monitoring:update', latestMetrics.overview);
-      }
-      return {
-        ok: true,
-        snapshot: latestMetrics?.overview || null
-      };
-    } catch (error) {
-      metricsSubscriberIds.delete(event.sender.id);
-      const ipcError = toIpcError(error);
-      metricsLogger.error('Failed to start monitoring updates.', ipcError);
-      return {
-        ok: false,
-        ...ipcError,
-        snapshot: null
-      };
-    }
-  });
-
-  ipcMain.handle('monitoring:stop', async (event) => {
-    metricsSubscriberIds.delete(event.sender.id);
-    await syncMonitoringSubscriptionState();
-    return {
-      ok: true
-    };
-  });
-
-  ipcMain.handle('monitoring:setRefreshRate', async (_event, payload = {}) => {
-    if (!monitoringManager) {
-      return {
-        ok: false,
-        code: 'MONITORING_NOT_READY',
-        message: 'Monitoring service is not initialized.',
-        refreshRateMs: null
-      };
-    }
-
-    const refreshRateMs = monitoringManager.setRefreshRate(payload?.refreshRateMs);
-    return {
-      ok: true,
-      refreshRateMs
-    };
-  });
-
-  ipcMain.handle('scripts:list', async () => {
-    try {
-      return {
-        ok: true,
-        scripts: scriptRunner.listScripts()
-          .filter((scriptName) => !isBlockedSecurityTweakScriptName(scriptName))
-      };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      logger.error('Failed to list scripts.', ipcError);
-      return {
-        ok: false,
-        ...ipcError,
-        scripts: []
-      };
-    }
-  });
-
-  ipcMain.handle('scripts:run', async (_event, payload = {}) => {
-    return {
-      ok: false,
-      code: 'DIRECT_SCRIPT_IPC_DISABLED',
-      message: 'Direct script execution is disabled. Use a catalog-backed remote tweak action instead.',
-      details: {},
-      stdout: '',
-      stderr: ''
-    };
-  });
-
-  ipcMain.handle('tweaks:list', async (_event, options = {}) => {
-    try {
-      const catalogTweaks = backendTweakCatalog.listTweaks()
-        .filter((tweak) => !isBlockedSecurityTweakId(tweak?.id));
-      const includeState = options?.includeState !== false;
-      const tweaks = includeState
-        ? await mapWithConcurrency(catalogTweaks, 3, async (tweak) => {
-            if (!requiresTweakStateCheck(tweak)) {
-              return tweak;
-            }
-            try {
-              const state = await tweakRunner.getCurrentState({ tweakId: tweak.id });
-              return mergeTweakDetails(tweak, state);
-            } catch (_error) {
-              return tweak;
-            }
-          })
-        : catalogTweaks;
-
-      return {
-        ok: true,
-        tweaks
-      };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      logger.error('Failed to list tweaks.', ipcError);
-      return {
-        ok: false,
-        ...ipcError,
-        tweaks: []
-      };
-    }
-  });
-
-  ipcMain.handle('tweaks:reload', async () => {
-    try {
-      backendTweakCatalog.reload();
-      const catalogTweaks = backendTweakCatalog.listTweaks()
-        .filter((tweak) => !isBlockedSecurityTweakId(tweak?.id));
-      const tweaks = await mapWithConcurrency(catalogTweaks, 3, async (tweak) => {
-        if (!requiresTweakStateCheck(tweak)) {
-          return tweak;
-        }
-        try {
-          const state = await tweakRunner.getCurrentState({ tweakId: tweak.id });
-          return mergeTweakDetails(tweak, state);
-        } catch (_error) {
-          return tweak;
-        }
-      });
-      return {
-        ok: true,
-        tweaks
-      };
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      logger.error('Failed to reload tweaks.', ipcError);
-      return {
-        ok: false,
-        ...ipcError,
-        tweaks: []
-      };
-    }
-  });
-
-  ipcMain.handle('tweaks:execute', async (_event, payload = {}) => {
-    const session = { authenticated: true };
-    if (!session.authenticated) {
-      return {
-        ok: false,
-        code: 'AUTH_REQUIRED',
-        message: 'Authentication required.',
-        details: {},
-        stdout: '',
-        stderr: ''
-      };
-    }
-
-    const tweakId = typeof payload.id === 'string' ? payload.id : '';
-    const targetState = typeof payload.targetState === 'string' ? payload.targetState : 'enabled';
-    const params = payload.params && typeof payload.params === 'object' ? payload.params : {};
-    const timeoutMs = Number.isFinite(payload.timeoutMs) ? payload.timeoutMs : undefined;
-
-    if (!tweakId) {
-      return {
-        ok: false,
-        code: 'INVALID_PAYLOAD',
-        message: 'Payload must include a valid tweak id.',
-        details: {}
-      };
-    }
-
-    try {
-      return await tweakRunner.runTweak({ tweakId, targetState, params, timeoutMs });
-    } catch (error) {
-      const ipcError = toIpcError(error);
-      return {
-        ok: false,
-        ...ipcError,
-        stdout: error?.details?.stdout || '',
-        stderr: error?.details?.stderr || ''
-      };
-    }
-  });
-
-  ipcMain.handle('tweaks:run-example', async () => {
-    return {
-      ok: false,
-      code: 'DIRECT_SCRIPT_IPC_DISABLED',
-      message: 'Example script execution is disabled. Use a catalog-backed remote tweak action instead.',
-      details: {},
-      stdout: '',
-      stderr: ''
-    };
-  });
 }
 
 const isAdminBrokerWorkerProcess = process.argv.includes('--nova-admin-broker-worker');
 
-if (isAdminBrokerWorkerProcess) {
+if (isPackagedSmoke) {
+  app.whenReady().then(async () => {
+    const timer = setTimeout(() => app.exit(2), 30000);
+    try {
+      await require('./services/security/packagedSmoke').runPackagedSmoke({ app, BrowserWindow, protocol, net, ipcMain });
+      clearTimeout(timer);
+      app.exit(0);
+    } catch (error) {
+      console.error(error);
+      app.exit(2);
+    }
+  });
+} else if (isAdminBrokerWorkerProcess) {
   app.whenReady()
     .then(() => {
       if (process.platform === 'win32' && !checkWindowsAdmin()) {
@@ -4494,6 +2904,7 @@ if (!initializePrivilegeState()) {
       logger: adminBrokerLogger,
       isAdminProvider: () => isAdminSession,
       powerShellPath: TRUSTED_POWERSHELL,
+      requireExplicitApproval: true,
       onStateChange: handleAdminBrokerStateChange
     });
 
@@ -4539,6 +2950,7 @@ if (!initializePrivilegeState()) {
     logger.info('Local-only runtime initialized; Nova API client is disabled.');
 
     tweakRunner = createTweakRunner({
+      executionGate,
       remoteScriptRunner: bundledScriptRunner,
       remoteScriptsPath: bundledScriptsPath,
       logger: apiLogger,
@@ -4584,6 +2996,22 @@ if (!initializePrivilegeState()) {
       getBackupRoot: getBackupRootFromSettings
     });
 
+    restoreService = createRestoreService({
+      backupManager, tweakRunner, settingsService, executionGate,
+      journalDirectory: path.join(app.getPath('userData'), 'restore-journal'),
+      logger: backupsLogger,
+      ensureAdmin: async () => {
+        if (isAdminSession) return { ok: true };
+        await adminBrokerManager.ensureReady({ reason: 'backup-restore' });
+        return { ok: true };
+      },
+      onSettings: applySettingsRuntimeEffects,
+      onUpdate: (job) => {
+        for (const window of BrowserWindow.getAllWindows()) {
+          if (!window.isDestroyed()) window.webContents.send('backup:restore:update', job);
+        }
+      }
+    });
     logger.info('Backup manager initialized.', backupManager.getStoragePaths());
     automaticBackupTimer = setInterval(() => { void runScheduledBackup(); }, 60000);
     automaticBackupTimer.unref?.();
@@ -4754,6 +3182,12 @@ if (!initializePrivilegeState()) {
 
     registerIpcHandlers();
     createMainWindow();
+    if (settingsService.getSettings()?.startupWindow?.requestAdminOnStartup === true && !isAdminSession) {
+      mainWindow.once('ready-to-show', () => {
+        void adminBrokerManager.ensureReady({ reason: 'startup', explicitApproval: true })
+          .catch((error) => adminBrokerLogger.warn('Startup administrator approval was not granted.', { code: error?.code }));
+      });
+    }
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {

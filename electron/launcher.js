@@ -1,5 +1,8 @@
 const { spawn } = require('child_process');
 
+// Refresh local tweak hashes before Electron and its administrator worker load them.
+require('../scripts/generate-bundled-tweak-manifest');
+
 const electronBinary = require('electron');
 const env = { ...process.env };
 

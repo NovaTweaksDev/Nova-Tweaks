@@ -1673,6 +1673,23 @@
     }
   },
   "backup": {
+    "recovery": {
+      "restartRequired": "A restart may be required.",
+      "title": "Backup restore progress",
+      "resuming": "Checking state before continuing...",
+      "completed": "Restore completed.",
+      "prepared": "Preparing",
+      "running": "Restoring",
+      "failed": "Stopped after an error",
+      "interrupted": "Interrupted",
+      "resume": "Check state and continue",
+      "step": {
+        "pending": "Pending",
+        "started": "Started",
+        "completed": "Completed",
+        "failed": "Failed"
+      }
+    },
     "title": "Backup & Restore",
     "description": "Create restore points, save tweak states and recover previous configurations before applying major changes.",
     "previewBadge": "System integration",
@@ -2133,6 +2150,8 @@
       "mascotAnimationDescription": "Shows the mascot animation when enabling tweaks."
     },
     "startup": {
+      "requestAdminOnStartupTitle": "Request administrator access on startup",
+      "requestAdminOnStartupDescription": "Requests administrator access each time the app starts. When disabled, enable it for each session using the bottom-left button.",
       "startWithWindowsTitle": "Start with Windows",
       "startWithWindowsDescription": "Registers Nova-Tweaks to start automatically when Windows starts.",
       "startMinimizedTitle": "Start Minimized",

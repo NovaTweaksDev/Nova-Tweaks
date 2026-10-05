@@ -4,7 +4,39 @@ This file records changes described by the project's public Git tags and GitHub 
 
 ## Unreleased
 
-No release notes have been published for changes after `v1.0.2`.
+No changes recorded yet.
+
+## 1.0.3 - 2026-10-05
+
+### Added
+
+- Added Classic Context Menu, Clipboard Cloud Sync, SSD TRIM, and Windowed Game Optimizations tweaks with catalog-backed execution and status detection.
+- Added an opt-in setting to request administrator access when the app starts; the default remains manual approval using the sidebar button for each app session.
+- Added journaled Nova backup restoration with progress reporting, explicit continuation of interrupted restores, and validation against changed backups or tweak scripts.
+- Added source linting, desktop interface type checks, and a packaged application smoke test to CI and Windows releases.
+
+### Changed
+
+- Split main-process IPC registration and renderer action hooks into focused modules while retaining the Electron and React architecture.
+- Centralized tweak timeout validation and metadata normalization.
+- Refined notification and backup restore presentation and improved responsive monitoring rows for multiple GPUs and network adapters.
+- Updated development dependencies and generated release notes directly from the matching changelog version.
+
+### Fixed
+
+- Prevented background operations from initiating administrator approval before explicit session approval.
+- Fixed the Classic Context Menu parameter contract and status output.
+- Regenerated bundled tweak integrity metadata before local Electron startup so newly added tweak files are included.
+- Removed an unsupported profile assignment from Clipboard Cloud Sync.
+- Coordinated development process shutdown to avoid leaving a renderer running after Electron exits or fails.
+- Blocked competing tweak execution during restoration and rejected restore continuation when execution fingerprints no longer match.
+
+### Validation and limitations
+
+- Automated source checks and Windows packaging smoke validation cover the release pipeline; real UAC, registry changes, and interrupted restoration still require the documented disposable Windows VM checks.
+- Administrator detection is unchanged. An application explicitly launched with elevated Windows credentials remains elevated.
+- The installer is unsigned; Windows can display an unknown-publisher warning.
+- Performance-related tweaks depend on Windows version, hardware, and workload; no universal FPS improvement is claimed.
 
 ## 1.0.2 - 2026-09-20
 

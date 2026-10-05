@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "allowJs": true, "checkJs": true, "noEmit": true, "strict": true,
+    "target": "ES2022", "module": "CommonJS", "moduleResolution": "node",
+    "skipLibCheck": true, "types": ["node"], "esModuleInterop": true
+  },
+  "files": ["shared/desktopContracts.d.ts", "electron/services/tweaks/executionTimeout.js", "electron/services/tweaks/executionGate.js", "electron/ipc/restoreHandlers.js", "src/hooks/useBackupRestore.js", "src/hooks/useRestoreJobs.js"]
+}

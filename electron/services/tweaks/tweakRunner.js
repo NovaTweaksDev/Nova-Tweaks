@@ -1,3 +1,5 @@
+const { normalizeRiskLevel, normalizeContainerType, normalizeBulletpoints, normalizeCompactDescription, normalizeStatusLabels, normalizeCtaLabels, normalizeUiConfig, normalizeMetrics, normalizeSelections, normalizeRangeConfig, normalizeSelectedOption, normalizeResolutionValue } = require('./metadataNormalization');
+const { resolveExecutionTimeout } = require('./executionTimeout');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -124,91 +126,14 @@ function normalizeExecutionConfig(value) {
         : typeof value.requiresAdmin === 'boolean'
           ? value.requiresAdmin
           : false,
-    timeoutMs: Number.isFinite(Number(value.timeout_ms ?? value.timeoutMs))
-      ? Number(value.timeout_ms ?? value.timeoutMs)
-      : 0,
+    timeoutMs: value.timeout_ms !== undefined ? value.timeout_ms : value.timeoutMs,
     supportsStatusDetection: Boolean(value.supports_status_detection ?? value.supportsStatusDetection),
     scriptExists: typeof value.script_exists === 'boolean' ? value.script_exists : undefined,
     actions
   };
 }
 
-function normalizeRiskLevel(value) {
-  const normalized = String(value || '').trim().toLowerCase();
-  if (normalized === 'low' || normalized === 'medium' || normalized === 'high') {
-    return normalized;
-  }
-  return '';
-}
 
-function normalizeContainerType(value) {
-  const normalized = String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[\s-]+/g, '_');
-
-  if (normalized === 'powerplan' || normalized === 'power_plans') {
-    return 'power_plan';
-  }
-
-  if (normalized === 'timerresolution' || normalized === 'timer_resolutions') {
-    return 'timer_resolution';
-  }
-
-  if (normalized === 'oneshotselection' || normalized === 'one_shot' || normalized === 'one_shot_selections') {
-    return 'one_shot_selection';
-  }
-
-  if (normalized === 'oneshotaction' || normalized === 'one_shot_action' || normalized === 'one_shot_actions') {
-    return 'one_shot_action';
-  }
-
-  if (normalized === 'fix' || normalized === 'fixes') {
-    return 'fix';
-  }
-
-  if (normalized === 'normal' || normalized === 'normaltweak' || normalized === 'normal_tweaks') {
-    return 'normal_tweak';
-  }
-
-  return normalized || 'normal_tweak';
-}
-
-function normalizeBulletpoints(value) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((entry) => {
-      if (typeof entry === 'string') {
-        const text = entry.trim();
-        return text ? { icon: '', text } : null;
-      }
-
-      if (!entry || typeof entry !== 'object') {
-        return null;
-      }
-
-      const text = typeof entry.text === 'string'
-        ? entry.text.trim()
-        : typeof entry.label === 'string'
-          ? entry.label.trim()
-          : typeof entry.title === 'string'
-            ? entry.title.trim()
-            : '';
-      if (!text) {
-        return null;
-      }
-
-      const icon = typeof entry.icon === 'string' ? entry.icon.trim().toLowerCase() : '';
-      return {
-        icon,
-        text
-      };
-    })
-    .filter(Boolean);
-}
 
 function normalizeTradeoffs(value) {
   if (!Array.isArray(value)) {
@@ -254,174 +179,10 @@ function normalizeUseCase(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function normalizeCompactDescription(value) {
-  return typeof value === 'string' ? value.trim() : '';
-}
 
-function normalizeStatusLabels(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
 
-  const active = typeof value.active === 'string' ? value.active.trim() : '';
-  const inactive = typeof value.inactive === 'string' ? value.inactive.trim() : '';
-  if (!active && !inactive) {
-    return null;
-  }
 
-  return {
-    ...(active ? { active } : {}),
-    ...(inactive ? { inactive } : {})
-  };
-}
 
-function normalizeCtaLabels(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-
-  const defaultLabel = typeof value.default === 'string' ? value.default.trim() : '';
-  const active = typeof value.active === 'string' ? value.active.trim() : '';
-  if (!defaultLabel && !active) {
-    return null;
-  }
-
-  return {
-    ...(defaultLabel ? { default: defaultLabel } : {}),
-    ...(active ? { active } : {})
-  };
-}
-
-function normalizeUiConfig(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-
-  const variant = typeof value.variant === 'string' ? value.variant.trim().toLowerCase() : '';
-  const size = typeof value.size === 'string' ? value.size.trim().toLowerCase() : '';
-  const showProfileBadgeSource = value.showProfileBadge ?? value.show_profile_badge;
-  const showTargetSystemSource = value.showTargetSystem ?? value.show_target_system;
-  const showTradeoffsSource = value.showTradeoffs ?? value.show_tradeoffs;
-  const showBulletpointsSource = value.showBulletpoints ?? value.show_bulletpoints;
-  const maxMetricsSource = value.maxMetrics ?? value.max_metrics;
-  const maxMetricsNumber = Number(maxMetricsSource);
-  const maxMetrics = Number.isFinite(maxMetricsNumber) && maxMetricsNumber > 0
-    ? Math.max(1, Math.trunc(maxMetricsNumber))
-    : null;
-
-  const normalized = {
-    ...(variant ? { variant } : {}),
-    ...(size ? { size } : {}),
-    ...(typeof showProfileBadgeSource === 'boolean' ? { showProfileBadge: showProfileBadgeSource } : {}),
-    ...(typeof showTargetSystemSource === 'boolean' ? { showTargetSystem: showTargetSystemSource } : {}),
-    ...(typeof showTradeoffsSource === 'boolean' ? { showTradeoffs: showTradeoffsSource } : {}),
-    ...(typeof showBulletpointsSource === 'boolean' ? { showBulletpoints: showBulletpointsSource } : {}),
-    ...(maxMetrics ? { maxMetrics } : {})
-  };
-
-  return Object.keys(normalized).length ? normalized : null;
-}
-
-function normalizeMetricDirection(value) {
-  const normalized = String(value || '').trim().toLowerCase();
-  if (normalized === 'positive' || normalized === 'negative' || normalized === 'neutral') {
-    return normalized;
-  }
-  return '';
-}
-
-function normalizeMetrics(value) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((entry) => {
-      if (!entry || typeof entry !== 'object') {
-        return null;
-      }
-
-      const label = typeof entry.label === 'string'
-        ? entry.label.trim()
-        : typeof entry.text === 'string'
-          ? entry.text.trim()
-          : '';
-      if (!label) {
-        return null;
-      }
-
-      const maxSource = Number(entry.max);
-      const max = Number.isFinite(maxSource) && maxSource > 0 ? Math.min(5, Math.max(1, Math.trunc(maxSource))) : 5;
-      const valueSource = Number(entry.value);
-      const rawValue = Number.isFinite(valueSource) ? Math.trunc(valueSource) : 0;
-      const boundedValue = Math.max(0, Math.min(max, rawValue));
-
-      return {
-        icon: typeof entry.icon === 'string' ? entry.icon.trim().toLowerCase() : '',
-        label,
-        value: boundedValue,
-        max,
-        direction: normalizeMetricDirection(entry.direction)
-      };
-    })
-    .filter(Boolean);
-}
-
-function normalizeSelections(value) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((entry) => {
-      if (typeof entry === 'string' || typeof entry === 'number') {
-        const label = String(entry).trim();
-        return label ? { label, value: label } : null;
-      }
-
-      if (!entry || typeof entry !== 'object') {
-        return null;
-      }
-
-      const label = String(entry.label || entry.name || entry.value || entry.id || '').trim();
-      const optionValue = String(entry.value || entry.id || label).trim();
-      if (!label || !optionValue) {
-        return null;
-      }
-
-      return {
-        ...entry,
-        label,
-        value: optionValue
-      };
-    })
-    .filter(Boolean);
-}
-
-function normalizeRangeConfig(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-
-  const minimum = Number(value.min ?? value.minimum);
-  const maximum = Number(value.max ?? value.maximum);
-  const step = Number(value.step);
-  const recommendedValue = Number(value.recommendedValue ?? value.recommended_value);
-  if (!Number.isFinite(minimum) || !Number.isFinite(maximum) || maximum <= minimum) {
-    return null;
-  }
-
-  return {
-    parameter: typeof value.parameter === 'string' && value.parameter.trim() ? value.parameter.trim() : 'Value',
-    min: minimum,
-    max: maximum,
-    step: Number.isFinite(step) && step > 0 ? step : 1,
-    unit: typeof value.unit === 'string' ? value.unit.trim() : '',
-    recommendedValue: Number.isFinite(recommendedValue)
-      ? Math.min(maximum, Math.max(minimum, recommendedValue))
-      : minimum + ((maximum - minimum) / 2)
-  };
-}
 
 function normalizeRangeValue(value) {
   if (value === null || value === undefined || value === '') {
@@ -431,22 +192,6 @@ function normalizeRangeValue(value) {
   return Number.isFinite(normalized) ? normalized : null;
 }
 
-function normalizeSelectedOption(value) {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function normalizeResolutionValue(value) {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return String(value);
-  }
-
-  if (typeof value !== 'string') {
-    return '';
-  }
-
-  const normalized = value.trim().replace(',', '.');
-  return normalized || '';
-}
 
 function normalizeFallbackApplied(value) {
   if (typeof value === 'boolean') {
@@ -698,6 +443,7 @@ function createTweakRunner({
   allowUnsignedDevelopmentArtifacts = false,
   isPackaged = false,
   waitProvider = (durationMs) => new Promise((resolve) => setTimeout(resolve, durationMs)),
+  executionGate,
   timerVerificationDelayMs = 2500
 }) {
   if (!novaApi && !localOnly) {
@@ -1096,9 +842,7 @@ function createTweakRunner({
       artifactVersion: artifact.artifactVersion,
       script: artifact.scriptFileName,
       scriptRelativePath: artifact.scriptRelativePath,
-      timeoutMs: Number.isFinite(Number(config?.execution?.timeoutMs)) && Number(config.execution.timeoutMs) > 0
-        ? Number(config.execution.timeoutMs)
-        : 30000,
+      timeoutMs: resolveExecutionTimeout(undefined, config?.execution?.timeoutMs),
       requiresAdmin: normalizedAction === 'detect'
         ? Boolean(actionConfig.requiresAdmin)
         : Boolean(artifact.requiresAdmin || actionConfig.requiresAdmin || config?.execution?.requiresAdmin),
@@ -1119,6 +863,7 @@ function createTweakRunner({
       tweakCatalog.assertExecutionIntegrity?.(execution);
       return {
         ...execution,
+        timeoutMs: resolveExecutionTimeout(undefined, configResult.execution?.timeoutMs),
         artifactAction: ARTIFACT_ACTION_BY_EXECUTION_ACTION[action],
         runner: remoteScriptRunner,
         verifyBeforeRun: null,
@@ -1407,6 +1152,13 @@ function createTweakRunner({
     };
   }
 
+  function executionFingerprint(plan) {
+    const scriptHash = plan.artifact?.sha256 || crypto.createHash('sha256').update(fs.readFileSync(plan.scriptPath)).digest('hex');
+    return crypto.createHash('sha256').update(JSON.stringify({ scriptHash, params: plan.params,
+      requiresAdmin: plan.requiresAdmin, timeoutMs: plan.timeoutMs, artifactVersion: plan.artifact?.artifactVersion
+    })).digest('hex');
+  }
+
   async function getExecutionRequirements({ tweakId, targetState = 'enabled', params = {} }) {
     if (typeof tweakId === 'undefined' || tweakId === null || tweakId === '') {
       throw new TweakRunnerError('Payload must include a valid tweak id.', 'INVALID_TWEAK_ID', { tweakId });
@@ -1415,15 +1167,16 @@ function createTweakRunner({
     const nextState = normalizeTargetState(targetState);
     const actionName = nextState === 'enabled' ? 'apply' : 'restore';
     const executionPlan = await resolveExecutablePlan({ configResult, action: actionName, params });
-    return { requiresAdmin: executionPlan.requiresAdmin, tweakId: String(tweakId), targetState: nextState };
+    return { requiresAdmin: executionPlan.requiresAdmin, tweakId: String(tweakId), targetState: nextState, executionFingerprint: executionFingerprint(executionPlan) };
   }
 
-  async function runTweak({ tweakId, targetState = 'enabled', params = {}, timeoutMs = 60000, executionContext = {} }) {
+  async function executeTweak({ tweakId, targetState = 'enabled', params = {}, timeoutMs, executionContext = {} }) {
     if (typeof tweakId === 'undefined' || tweakId === null || tweakId === '') {
       throw new TweakRunnerError('Payload must include a valid tweak id.', 'INVALID_TWEAK_ID', { tweakId });
     }
 
     const configResult = await getConfig(tweakId);
+    const resolvedTimeout = resolveExecutionTimeout(timeoutMs, configResult.execution?.timeoutMs);
     const nextState = normalizeTargetState(targetState);
     const actionName = nextState === 'enabled' ? 'apply' : 'restore';
     const executionPlan = await resolveExecutablePlan({
@@ -1431,6 +1184,10 @@ function createTweakRunner({
       action: actionName,
       params
     });
+
+    if (executionContext.expectedFingerprint && executionContext.expectedFingerprint !== executionFingerprint(executionPlan)) {
+      throw new TweakRunnerError('Restore execution source changed after preflight.', 'RESTORE_SOURCE_CHANGED');
+    }
 
     logger?.info?.('Executing tweak script.', {
       tweakId: String(tweakId),
@@ -1456,7 +1213,7 @@ function createTweakRunner({
           {
             allowPrompt: executionContext.allowPrompt !== false,
             reason: executionContext.reason || executionContext.source || 'tweak',
-            timeoutMs: Number.isFinite(timeoutMs) ? timeoutMs : executionPlan.timeoutMs
+            timeoutMs: resolvedTimeout
           }
         );
       } else {
@@ -1464,7 +1221,7 @@ function createTweakRunner({
           scriptName: executionPlan.scriptRelativePath,
           includeMode: false,
           params: executionPlan.params,
-          timeoutMs: Number.isFinite(timeoutMs) ? timeoutMs : executionPlan.timeoutMs,
+          timeoutMs: resolvedTimeout,
           verifyBeforeRun: executionPlan.verifyBeforeRun
         });
       }
@@ -1566,6 +1323,12 @@ function createTweakRunner({
       stdout: sanitizeScriptOutput(scriptResult?.stdout || ''),
       stderr: sanitizeScriptOutput(scriptResult?.stderr || '')
     };
+  }
+
+  async function runTweak(request) {
+    const release = executionGate?.enter(request.executionContext?.restoreToken);
+    try { return await executeTweak(request); }
+    finally { release?.(); }
   }
 
   return {

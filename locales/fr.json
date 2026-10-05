@@ -1673,6 +1673,23 @@
     }
   },
   "backup": {
+    "recovery": {
+      "restartRequired": "Un redémarrage peut être nécessaire.",
+      "title": "Progression de la restauration",
+      "resuming": "Vérification avant de continuer...",
+      "completed": "Restauration terminée.",
+      "prepared": "Préparation",
+      "running": "Restauration",
+      "failed": "Arrêt après une erreur",
+      "interrupted": "Interrompue",
+      "resume": "Vérifier et continuer",
+      "step": {
+        "pending": "En attente",
+        "started": "Commencée",
+        "completed": "Terminée",
+        "failed": "Échec"
+      }
+    },
     "title": "Sauvegarde et restauration",
     "description": "Créez des points de restauration, enregistrez les états de réglage et récupérez les configurations précédentes avant d'appliquer des modifications majeures.",
     "previewBadge": "Intégration du système",
@@ -2133,6 +2150,8 @@
       "mascotAnimationDescription": "Anime la mascotte lors de l'activation des tweaks."
     },
     "startup": {
+      "requestAdminOnStartupTitle": "Demander l’accès administrateur au démarrage",
+      "requestAdminOnStartupDescription": "Demande l’accès administrateur à chaque démarrage. Sinon, activez-le pour chaque session avec le bouton en bas à gauche.",
       "startWithWindowsTitle": "Démarrer avec Windows",
       "startWithWindowsDescription": "Enregistre Nova-Tweaks pour démarrer automatiquement avec Windows.",
       "startMinimizedTitle": "Démarrer réduit",

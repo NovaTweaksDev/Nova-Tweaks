@@ -1,0 +1,96 @@
+{
+  "id": "enable_ssd_trim",
+  "name": "Enable SSD TRIM",
+  "description": "Enables Windows delete notifications, commonly known as TRIM or UNMAP, so supported solid-state drives can be informed when storage blocks are no longer in use. This helps SSDs manage free space efficiently and maintain write performance over time.",
+  "description_i18n": {
+    "en": "Enables Windows delete notifications, commonly known as TRIM or UNMAP, so supported solid-state drives can be informed when storage blocks are no longer in use. This helps SSDs manage free space efficiently and maintain write performance over time.",
+    "de": "Aktiviert die Windows-Löschbenachrichtigungen, auch als TRIM oder UNMAP bezeichnet. Dadurch können unterstützte SSDs darüber informiert werden, welche Speicherblöcke nicht mehr verwendet werden. Das hilft dem Laufwerk, freien Speicher effizient zu verwalten und die Schreibleistung langfristig aufrechtzuerhalten.",
+    "fr": "Active les notifications de suppression de Windows, également appelées TRIM ou UNMAP, afin que les SSD compatibles puissent être informés des blocs de stockage qui ne sont plus utilisés. Cela permet au SSD de gérer efficacement l'espace libre et de maintenir ses performances d'écriture dans le temps."
+  },
+  "script": "enable_ssd_trim.ps1",
+  "requires_admin": true,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 1,
+  "recommended": false,
+  "premium": false,
+  "last_updated": "2026-10-05",
+  "container_type": "normal_tweak",
+  "tags": [
+    "ssd",
+    "performance",
+    "storage"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Storage Device Support",
+      "message": "Windows only sends TRIM or UNMAP notifications when the underlying storage device and storage stack support them. Enabling this setting does not add TRIM support to hardware that does not provide it.",
+      "icon": "information-circle",
+      "source": "Windows Storage"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 10",
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Applicable to supported Windows storage configurations. TRIM is normally enabled by default for NTFS unless it has been explicitly disabled by an administrator."
+  },
+  "technical_details": "Uses the supported Windows fsutil behavior interface to control file-delete notifications through the DisableDeleteNotify setting. Setting DisableDeleteNotify to 0 enables TRIM or UNMAP notifications, while setting it to 1 disables them. The setting controls whether Windows notifies compatible storage devices about clusters that have been released after file deletion. No reboot or service restart is required for this change.",
+  "profiles": [],
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "enable_ssd_trim.ps1",
+    "requires_admin": true,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": true
+      }
+    }
+  },
+  "category": "Hardware",
+  "subcategory": "Storage"
+}

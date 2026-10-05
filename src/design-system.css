@@ -96,9 +96,7 @@ samp,
 .app-grid-bg::after,
 .app-main-content::before,
 .ui-page-orbit,
-.ui-page-heading-signal,
-.app-sidebar::before,
-.app-sidebar-logo-shell::after {
+.ui-page-heading-signal {
   display: none !important;
 }
 
@@ -118,310 +116,7 @@ samp,
   background-color: var(--surface-elevated) !important;
 }
 
-.app-titlebar {
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--titlebar-bg) !important;
-  box-shadow: none;
-}
-
-/* Sidebar: compact glass navigation with one clear active state. */
-.app-sidebar {
-  isolation: isolate;
-  overflow: hidden;
-  border-color: var(--nova-line) !important;
-  background: var(--nova-sidebar) !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-html[data-theme='dark'] .app-sidebar {
-  border-color: rgba(255, 255, 255, 0.075) !important;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.026), rgba(255, 255, 255, 0.006) 35%, rgba(0, 0, 0, 0.08)),
-    rgba(16, 19, 25, 0.78) !important;
-  box-shadow:
-    inset -1px 0 0 rgba(255, 255, 255, 0.035),
-    20px 0 58px -42px rgba(0, 0, 0, 0.92) !important;
-}
-
-.app-sidebar::before {
-  display: block !important;
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  width: auto;
-  content: '';
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 18% 2%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 18rem),
-    linear-gradient(112deg, rgba(255, 255, 255, 0.07), transparent 38% 72%, rgba(255, 255, 255, 0.025));
-  opacity: 0.72;
-}
-
-html[data-theme='dark'] .app-sidebar::before {
-  background:
-    radial-gradient(circle at 18% 2%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 19rem),
-    linear-gradient(112deg, rgba(255, 255, 255, 0.025), transparent 40% 74%, rgba(255, 255, 255, 0.012));
-  opacity: 0.8;
-}
-
-.app-sidebar-header {
-  min-height: 42px;
-}
-
-.app-sidebar-logo-shell {
-  width: 36px;
-  height: 36px;
-}
-
-.app-sidebar-logo-title {
-  font-size: 1.25rem !important;
-  font-weight: 650 !important;
-  letter-spacing: -0.025em !important;
-}
-
-.app-sidebar-nav {
-  margin-top: 14px !important;
-}
-
-.app-sidebar-feature-group,
-.app-sidebar-main-list {
-  gap: 3px;
-}
-
-.app-sidebar-nav-divider {
-  margin: 12px 0 10px;
-  background: var(--border-subtle);
-}
-
-.app-sidebar-section-label {
-  margin: 0 0 6px 10px;
-  color: var(--text-muted);
-  font-size: 0.82rem;
-  font-weight: 650;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.app-sidebar-nav-button,
-.app-sidebar-feature-button {
-  min-height: 42px;
-  border: 1px solid transparent !important;
-  border-radius: 8px !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  transform: none !important;
-}
-
-.app-sidebar-nav-button::before {
-  display: none;
-}
-
-.app-sidebar-nav-button:hover {
-  border-color: var(--nova-line) !important;
-  background: var(--nova-surface-hover) !important;
-  color: var(--text-primary);
-}
-
-html[data-theme='dark'] .app-sidebar-nav-button:hover {
-  border-color: rgba(255, 255, 255, 0.05) !important;
-  background: rgba(255, 255, 255, 0.035) !important;
-}
-
-.app-sidebar .app-sidebar-nav-button.is-active,
-.app-shell.is-tweaks-section .app-sidebar-nav-button.is-active {
-  border-color: color-mix(in srgb, var(--accent) 32%, var(--nova-line)) !important;
-  background: color-mix(in srgb, var(--accent) 8%, var(--nova-sidebar)) !important;
-  color: var(--text-primary);
-  box-shadow: var(--card-shadow-base) !important;
-}
-
-html[data-theme='dark'] .app-sidebar .app-sidebar-nav-button.is-active,
-html[data-theme='dark'] .app-shell.is-tweaks-section .app-sidebar-nav-button.is-active {
-  border-color: rgba(255, 255, 255, 0.055) !important;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.072), rgba(255, 255, 255, 0.042)),
-    color-mix(in srgb, var(--accent) 3%, rgba(255, 255, 255, 0.028)) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 10px 26px -21px rgba(0, 0, 0, 0.92) !important;
-}
-
-.app-sidebar-icon-shell,
-.app-sidebar-nav-button.is-active .app-sidebar-icon-shell {
-  border: 0 !important;
-  border-radius: 6px !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-.app-sidebar-nav-button.is-active .app-sidebar-icon-shell {
-  color: var(--accent) !important;
-}
-
-.app-sidebar-nav-label {
-  font-size: 0.94rem;
-  font-weight: 580;
-}
-
-.app-sidebar-nav-button.is-active .app-sidebar-nav-label {
-  font-size: 0.94rem;
-}
-
-.app-sidebar-feature-detail {
-  margin-top: 1px;
-  font-size: 0.86rem;
-  line-height: 1.25;
-}
-
-.app-sidebar-command-button {
-  border-color: var(--nova-line) !important;
-  background: var(--nova-surface-1) !important;
-  box-shadow: var(--card-shadow-base) !important;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-.app-sidebar-command-button:hover {
-  background: var(--nova-surface-hover) !important;
-}
-
-html[data-theme='dark'] .app-sidebar-command-button {
-  border-color: rgba(255, 255, 255, 0.065) !important;
-  background: rgba(255, 255, 255, 0.028) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
-}
-
-html[data-theme='dark'] .app-sidebar-command-button:hover {
-  background: rgba(255, 255, 255, 0.05) !important;
-}
-
-.app-sidebar-status-card,
-.app-sidebar-account-button,
-.app-sidebar-account-menu {
-  border-color: var(--nova-line) !important;
-  background: var(--nova-surface-1) !important;
-  box-shadow: var(--card-shadow-base) !important;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-html[data-theme='dark'] .app-sidebar-status-card,
-html[data-theme='dark'] .app-sidebar-account-button,
-html[data-theme='dark'] .app-sidebar-account-menu {
-  border-color: rgba(255, 255, 255, 0.06) !important;
-  background: rgba(255, 255, 255, 0.026) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
-}
-
-.app-sidebar-account-button {
-  transition:
-    transform 200ms var(--motion-ease-emphasized),
-    border-color 180ms ease,
-    background-color 180ms ease,
-    box-shadow 200ms ease;
-}
-
-.app-sidebar-account-button:hover {
-  border-color: color-mix(in srgb, #c98de5 38%, var(--border)) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    0 9px 20px -14px rgba(191, 112, 224, 0.55),
-    0 0 16px rgba(222, 132, 218, 0.12) !important;
-  transform: translateY(-2px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .app-sidebar-account-button {
-    transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
-  }
-
-  .app-sidebar-account-button:hover {
-    transform: none;
-  }
-}
-
 /* Nova Instrument — compact, calm, instrument-like refinement. */
-.app-titlebar {
-  height: 38px !important;
-  min-height: 38px !important;
-  border-bottom: 1px solid var(--nova-line-subtle) !important;
-  background: color-mix(in srgb, var(--nova-bg) 92%, var(--nova-surface-1)) !important;
-  box-shadow: none !important;
-}
-
-.app-sidebar {
-  width: 240px !important;
-  border-right: 1px solid var(--nova-line) !important;
-  background: var(--nova-surface-0) !important;
-  box-shadow: none !important;
-}
-
-.app-sidebar-header {
-  min-height: 66px !important;
-  padding: 14px 16px 10px !important;
-}
-
-.app-sidebar-nav {
-  padding: 8px 10px !important;
-}
-
-.app-sidebar-section-label {
-  margin: 14px 10px 6px !important;
-  color: var(--nova-text-tertiary) !important;
-  font-size: 10px !important;
-  font-weight: 650 !important;
-  letter-spacing: .12em !important;
-}
-
-.app-sidebar-nav-button,
-.app-sidebar-feature-button {
-  min-height: 40px !important;
-  border: 0 !important;
-  border-radius: var(--radius-control) !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-.app-sidebar-nav-button:hover,
-.app-sidebar-feature-button:hover {
-  background: var(--nova-surface-2) !important;
-  transform: translateX(1px);
-}
-
-.app-sidebar .app-sidebar-nav-button.is-active,
-.app-shell.is-tweaks-section .app-sidebar-nav-button.is-active {
-  border-color: color-mix(in srgb, var(--nova-selection) 42%, var(--nova-line)) !important;
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--nova-selection) 17%, var(--nova-surface-1)),
-      color-mix(in srgb, var(--nova-selection) 8%, var(--nova-surface-1)) 68%,
-      color-mix(in srgb, var(--nova-selection) 5%, var(--nova-surface-1))
-    ) !important;
-  color: var(--nova-text-primary) !important;
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 4%, transparent),
-    0 8px 22px -18px color-mix(in srgb, var(--nova-selection) 56%, transparent) !important;
-}
-
-.app-sidebar-icon-shell {
-  border: 1px solid transparent !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-.app-sidebar-nav-button.is-active .app-sidebar-icon-shell {
-  border-color: color-mix(in srgb, var(--accent) 42%, transparent) !important;
-  background: color-mix(in srgb, var(--accent) 20%, transparent) !important;
-  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 11%, transparent) !important;
-}
-
-.app-sidebar-nav-button.is-active .app-sidebar-nav-label {
-  font-weight: 680;
-}
-
 .ui-page-title,
 .dashboard-title {
   color: var(--nova-text-primary) !important;
@@ -535,18 +230,6 @@ html[data-theme='dark'] .app-sidebar-account-menu {
   border-radius: var(--radius-modal) !important;
   background: var(--nova-surface-1) !important;
   box-shadow: 0 28px 80px rgba(0, 0, 0, .38) !important;
-}
-
-@media (min-width: 768px) and (max-width: 1180px) {
-  .app-sidebar {
-    width: 5.25rem !important;
-  }
-}
-
-@media (min-width: 1181px) and (max-width: 1279px) {
-  .app-sidebar {
-    width: 232px !important;
-  }
 }
 
 @media (max-width: 1023px) {
@@ -979,29 +662,6 @@ html[data-compact='true'] .ui-page-header {
 }
 
 /* Second polish pass: readability, inspector hierarchy and monitoring focus. */
-.app-sidebar-nav-label {
-  overflow: visible !important;
-  color: var(--text-primary) !important;
-  font-size: 14px !important;
-  line-height: 1.25 !important;
-  text-overflow: clip !important;
-  white-space: nowrap !important;
-}
-
-.app-sidebar-feature-detail {
-  display: none !important;
-  overflow: hidden !important;
-  color: var(--text-muted) !important;
-  font-size: 12px !important;
-  line-height: 1.25 !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-}
-
-.app-sidebar-nav-text {
-  min-width: 0;
-}
-
 .tweak-detail-panel {
   padding: 0 !important;
   background: color-mix(in srgb, var(--surface-elevated) 82%, var(--surface) 18%) !important;
@@ -1329,154 +989,7 @@ html[data-compact='true'] .ui-page-header {
   }
 }
 
-@media (min-width: 1181px) {
-  .app-content-shell {
-    padding-left: 240px !important;
-  }
-}
-
-@media (min-width: 1181px) and (max-width: 1279px) {
-  .app-content-shell {
-    padding-left: 232px !important;
-  }
-}
-
-@media (min-width: 1181px) and (max-width: 1439px) {
-  .app-shell.is-tweaks-section .app-content-shell {
-    padding-left: 5.25rem !important;
-  }
-
-  .app-shell.is-tweaks-section .app-sidebar {
-    width: 5.25rem !important;
-  }
-}
-
 /* Dark theme polish: one cool hierarchy shared by chrome, sidebar and content. */
-html[data-theme='dark'] .app-titlebar {
-  border-bottom-color: var(--nova-line-subtle) !important;
-  background: var(--nova-chrome) !important;
-}
-
-html[data-theme='dark'] .app-sidebar {
-  --sidebar-bg: var(--nova-sidebar);
-  --sidebar-bg-strong: var(--nova-sidebar);
-  --sidebar-bg-end: var(--nova-sidebar);
-  --sidebar-panel: var(--nova-surface-1);
-  --sidebar-panel-strong: var(--nova-surface-2);
-  --sidebar-border: var(--nova-line-subtle);
-  --sidebar-border-strong: var(--nova-line);
-  --sidebar-muted: var(--nova-text-muted);
-  --sidebar-text: var(--nova-text-secondary);
-  --sidebar-label-muted: var(--nova-text-secondary);
-  --sidebar-section-label: var(--nova-text-muted);
-  --sidebar-hover-border: transparent;
-  --sidebar-hover-bg: var(--nova-surface-hover);
-  --sidebar-icon-bg: transparent;
-  --sidebar-icon-hover-bg: transparent;
-  --sidebar-feature-border: transparent;
-  --sidebar-feature-bg-base: transparent;
-  --sidebar-feature-icon-bg: transparent;
-  --sidebar-feature-icon-color: var(--nova-text-muted);
-  --sidebar-active-border: transparent;
-  --sidebar-active-bg-base: color-mix(in srgb, var(--accent) 8%, var(--nova-sidebar));
-  --sidebar-active-text: var(--nova-text-primary);
-  --sidebar-active-icon-color: var(--accent);
-  --sidebar-active-shadow: inset 2px 0 0 var(--accent);
-  --sidebar-divider-start: transparent;
-  --sidebar-divider-mid: var(--nova-line-subtle);
-  --sidebar-divider-end: transparent;
-  --sidebar-panel-highlight-a: transparent;
-  --sidebar-panel-highlight-b: transparent;
-  --sidebar-panel-shadow: none;
-  --sidebar-menu-bg: var(--nova-surface-2);
-  --sidebar-shell-shadow: none;
-  border-right: 1px solid var(--nova-line-subtle) !important;
-  background: var(--nova-sidebar) !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-html[data-theme='dark'] .app-sidebar::before {
-  background: radial-gradient(
-    circle at 20% 4%,
-    color-mix(in srgb, var(--accent) 5%, transparent),
-    transparent 220px
-  ) !important;
-  opacity: 1;
-}
-
-html[data-theme='dark'] .app-sidebar-nav-button,
-html[data-theme='dark'] .app-sidebar-feature-button {
-  border-color: transparent !important;
-  background: transparent !important;
-  color: var(--nova-text-secondary) !important;
-}
-
-html[data-theme='dark'] .app-sidebar-nav-button:not(.is-active) .app-sidebar-nav-label {
-  color: var(--nova-text-secondary) !important;
-}
-
-html[data-theme='dark'] .app-sidebar-nav-button:not(.is-active) .app-sidebar-icon-shell {
-  color: var(--nova-text-muted) !important;
-}
-
-html[data-theme='dark'] .app-sidebar-nav-button:not(.is-active):hover,
-html[data-theme='dark'] .app-sidebar-feature-button:not(.is-active):hover {
-  border-color: transparent !important;
-  background: var(--nova-surface-hover) !important;
-  color: var(--nova-text-primary) !important;
-}
-
-html[data-theme='dark'] .app-sidebar .app-sidebar-nav-button.is-active,
-html[data-theme='dark'] .app-shell.is-tweaks-section .app-sidebar-nav-button.is-active,
-html[data-theme='dark'] .app-sidebar .app-sidebar-nav-button.is-active:hover,
-html[data-theme='dark'] .app-shell.is-tweaks-section .app-sidebar-nav-button.is-active:hover {
-  border-color: color-mix(in srgb, var(--accent) 42%, var(--nova-line)) !important;
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--accent) 18%, var(--nova-sidebar)),
-      color-mix(in srgb, var(--accent) 9%, var(--nova-sidebar)) 68%,
-      color-mix(in srgb, var(--accent) 5%, var(--nova-sidebar))
-    ) !important;
-  color: var(--nova-text-primary) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.045),
-    0 8px 22px -18px color-mix(in srgb, var(--accent) 52%, transparent) !important;
-  transform: none !important;
-}
-
-html[data-theme='dark'] .app-sidebar-nav-button.is-active .app-sidebar-icon-shell {
-  border-color: color-mix(in srgb, var(--accent) 44%, transparent) !important;
-  background: color-mix(in srgb, var(--accent) 22%, transparent) !important;
-  color: var(--accent) !important;
-  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 13%, transparent) !important;
-}
-
-html[data-theme='dark'] .app-sidebar-command-button,
-html[data-theme='dark'] .app-sidebar-status-card,
-html[data-theme='dark'] .app-sidebar-account-button {
-  border-color: var(--nova-line-subtle) !important;
-  background: var(--nova-surface-1) !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-html[data-theme='dark'] .app-sidebar-command-button:hover,
-html[data-theme='dark'] .app-sidebar-account-button:hover {
-  border-color: var(--nova-line) !important;
-  background: var(--nova-surface-2) !important;
-  box-shadow: none !important;
-  transform: none !important;
-}
-
-html[data-theme='dark'] .app-sidebar-account-menu {
-  border-color: var(--nova-line) !important;
-  background: var(--nova-surface-2) !important;
-}
-
 html[data-theme='dark'] .ui-card,
 html[data-theme='dark'] .ui-panel,
 html[data-theme='dark'] .ui-card-muted,
@@ -1514,8 +1027,7 @@ html[data-theme='dark'] .ui-select-shell:focus-within,
 html[data-theme='dark'] .ui-select-trigger:focus-visible,
 html[data-theme='dark'] .nova-dropdown-trigger:focus-visible,
 html[data-theme='dark'] .ui-btn:focus-visible,
-html[data-theme='dark'] .ui-switch:focus-visible,
-html[data-theme='dark'] .app-sidebar-nav-button:focus-visible {
+html[data-theme='dark'] .ui-switch:focus-visible {
   outline: none !important;
   box-shadow: var(--nova-focus-ring) !important;
 }
@@ -1539,4 +1051,339 @@ html[data-theme='dark'] .ui-btn-primary {
   box-shadow: none !important;
   color: var(--nova-bg) !important;
   text-shadow: none;
+}
+
+/* Shell and sidebar: canonical computed design after the instrument migration. */
+.app-titlebar {
+  height: 38px;
+  min-height: 38px;
+  border-bottom: 1px solid var(--nova-line-subtle);
+  background: color-mix(in srgb, var(--nova-bg) 92%, var(--nova-surface-1));
+  box-shadow: none;
+}
+
+.app-sidebar {
+  isolation: isolate;
+  overflow: hidden;
+  width: 240px;
+  border-right: 1px solid var(--nova-line);
+  background: var(--nova-surface-0);
+  box-shadow: none;
+  color: var(--nova-text-primary);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.app-sidebar::before {
+  display: block;
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  width: auto;
+  content: '';
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 2%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 18rem),
+    linear-gradient(112deg, rgba(255, 255, 255, 0.07), transparent 38% 72%, rgba(255, 255, 255, 0.025));
+  opacity: 0.72;
+}
+
+.app-sidebar-logo-shell::after {
+  display: none;
+}
+
+.app-sidebar-header {
+  min-height: 66px;
+  padding: 14px 16px 10px;
+}
+
+.app-sidebar-logo-shell {
+  width: 36px;
+  height: 36px;
+}
+
+.app-sidebar-logo-title {
+  font-size: 1.25rem;
+  letter-spacing: -0.025em;
+}
+
+.app-sidebar-nav {
+  margin-top: 14px;
+  padding: 8px 10px;
+}
+
+.app-sidebar-feature-group,
+.app-sidebar-main-list {
+  gap: 3px;
+}
+
+.app-sidebar-nav-divider {
+  margin: 12px 0 10px;
+  background: var(--border-subtle);
+}
+
+.app-sidebar-section-label {
+  margin: 14px 10px 6px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.app-sidebar-nav-button,
+.app-sidebar-feature-button {
+  min-height: 40px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.app-sidebar-nav-button::before {
+  display: none;
+}
+
+.app-sidebar-nav-button:hover,
+.app-sidebar-feature-button:hover {
+  background: var(--nova-surface-2);
+  color: var(--text-primary);
+  transform: none;
+}
+
+.app-sidebar .app-sidebar-nav-button.is-active,
+.app-shell.is-tweaks-section .app-sidebar-nav-button.is-active {
+  border-color: color-mix(in srgb, var(--nova-selection) 42%, var(--nova-line));
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--nova-selection) 17%, var(--nova-surface-1)),
+      color-mix(in srgb, var(--nova-selection) 8%, var(--nova-surface-1)) 68%,
+      color-mix(in srgb, var(--nova-selection) 5%, var(--nova-surface-1))
+    );
+  color: var(--nova-text-primary);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 4%, transparent),
+    0 8px 22px -18px color-mix(in srgb, var(--nova-selection) 56%, transparent);
+}
+
+.app-sidebar-icon-shell {
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.app-sidebar-nav-button:hover .app-sidebar-icon-shell,
+.app-sidebar-feature-button:hover .app-sidebar-icon-shell {
+  border-color: transparent;
+  background: transparent;
+}
+
+.app-sidebar-nav-button.is-active .app-sidebar-icon-shell {
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 11%, transparent);
+}
+
+.app-sidebar-nav-text {
+  min-width: 0;
+}
+
+.app-sidebar-nav-label {
+  overflow: visible;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 580;
+  line-height: 1.25;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.app-sidebar-nav-button.is-active .app-sidebar-nav-label {
+  color: var(--nova-text-primary);
+  font-weight: 680;
+}
+
+.app-sidebar-feature-detail {
+  display: none;
+}
+
+.app-sidebar-command-button {
+  border-color: var(--nova-line);
+  background: var(--nova-surface-1);
+  box-shadow: var(--card-shadow-base);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.app-sidebar-command-button:hover {
+  background: var(--nova-surface-hover);
+}
+
+.app-sidebar-status-card,
+.app-sidebar-account-button,
+.app-sidebar-account-menu {
+  border-color: var(--nova-line) !important;
+  background: var(--nova-surface-1) !important;
+  box-shadow: var(--card-shadow-base) !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.app-sidebar-account-button {
+  transition:
+    transform 200ms var(--motion-ease-emphasized),
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 200ms ease;
+}
+
+.app-sidebar-account-button:hover {
+  border-color: color-mix(in srgb, #c98de5 38%, var(--border)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 9px 20px -14px rgba(191, 112, 224, 0.55),
+    0 0 16px rgba(222, 132, 218, 0.12) !important;
+  transform: translateY(-2px);
+}
+
+.app-sidebar-nav-button:focus-visible {
+  outline: none;
+  box-shadow: var(--nova-focus-ring);
+}
+
+html[data-theme='dark'] .app-titlebar {
+  border-bottom-color: var(--nova-line-subtle);
+  background: var(--nova-chrome);
+}
+
+html[data-theme='dark'] .app-sidebar {
+  border-right-color: var(--nova-line-subtle);
+  background: var(--nova-sidebar);
+  color: var(--nova-text-secondary);
+}
+
+html[data-theme='dark'] .app-sidebar::before {
+  background: radial-gradient(
+    circle at 20% 4%,
+    color-mix(in srgb, var(--accent) 5%, transparent),
+    transparent 220px
+  );
+  opacity: 1;
+}
+
+html[data-theme='dark'] .app-sidebar-nav-button,
+html[data-theme='dark'] .app-sidebar-feature-button {
+  border-color: transparent;
+  background: transparent;
+  color: var(--nova-text-secondary);
+}
+
+html[data-theme='dark'] .app-sidebar-nav-button:not(.is-active) .app-sidebar-nav-label {
+  color: var(--nova-text-secondary);
+}
+
+html[data-theme='dark'] .app-sidebar-nav-button:not(.is-active) .app-sidebar-icon-shell {
+  color: var(--nova-text-muted);
+}
+
+html[data-theme='dark'] .app-sidebar-nav-button:not(.is-active):hover,
+html[data-theme='dark'] .app-sidebar-feature-button:not(.is-active):hover {
+  border-color: transparent;
+  background: var(--nova-surface-hover);
+  color: var(--nova-text-primary);
+}
+
+html[data-theme='dark'] .app-sidebar .app-sidebar-nav-button.is-active,
+html[data-theme='dark'] .app-shell.is-tweaks-section .app-sidebar-nav-button.is-active,
+html[data-theme='dark'] .app-sidebar .app-sidebar-nav-button.is-active:hover,
+html[data-theme='dark'] .app-shell.is-tweaks-section .app-sidebar-nav-button.is-active:hover {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--nova-line));
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--accent) 18%, var(--nova-sidebar)),
+      color-mix(in srgb, var(--accent) 9%, var(--nova-sidebar)) 68%,
+      color-mix(in srgb, var(--accent) 5%, var(--nova-sidebar))
+    );
+  color: var(--nova-text-primary);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.045),
+    0 8px 22px -18px color-mix(in srgb, var(--accent) 52%, transparent);
+  transform: none;
+}
+
+html[data-theme='dark'] .app-sidebar-nav-button.is-active .app-sidebar-icon-shell {
+  border-color: color-mix(in srgb, var(--accent) 44%, transparent);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--accent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 13%, transparent);
+}
+
+html[data-theme='dark'] .app-sidebar-command-button,
+html[data-theme='dark'] .app-sidebar-status-card,
+html[data-theme='dark'] .app-sidebar-account-button {
+  border-color: var(--nova-line-subtle) !important;
+  background: var(--nova-surface-1) !important;
+  box-shadow: none !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-theme='dark'] .app-sidebar-command-button:hover,
+html[data-theme='dark'] .app-sidebar-account-button:hover {
+  border-color: var(--nova-line) !important;
+  background: var(--nova-surface-2) !important;
+  box-shadow: none !important;
+  transform: none;
+}
+
+html[data-theme='dark'] .app-sidebar-account-menu {
+  border-color: var(--nova-line) !important;
+  background: var(--nova-surface-2) !important;
+}
+
+@media (min-width: 768px) and (max-width: 1180px) {
+  .app-sidebar {
+    width: 5.25rem;
+  }
+}
+
+@media (min-width: 1181px) {
+  .app-content-shell {
+    padding-left: 240px;
+  }
+}
+
+@media (min-width: 1181px) and (max-width: 1279px) {
+  .app-content-shell {
+    padding-left: 232px;
+  }
+
+  .app-sidebar {
+    width: 232px;
+  }
+}
+
+@media (min-width: 1181px) and (max-width: 1439px) {
+  .app-shell.is-tweaks-section .app-content-shell {
+    padding-left: 5.25rem;
+  }
+
+  .app-shell.is-tweaks-section .app-sidebar {
+    width: 5.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-sidebar-account-button {
+    transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+  }
+
+  .app-sidebar-account-button:hover {
+    transform: none;
+  }
 }

@@ -502,7 +502,7 @@ function dedupeName(name, existingNames) {
   return `${base} (${counter})`;
 }
 
-async function readJsonFile(filePath) {
+async function readJsonFile(filePath, includeRaw = false) {
   const stat = await fs.stat(filePath);
   if (!stat.isFile() || stat.size <= 0 || stat.size > MAX_BACKUP_FILE_BYTES) {
     throw new BackupManagerError(
@@ -511,7 +511,8 @@ async function readJsonFile(filePath) {
     );
   }
   const raw = await fs.readFile(filePath, 'utf8');
-  return JSON.parse(raw);
+  const document = JSON.parse(raw);
+  return includeRaw ? { document, raw } : document;
 }
 
 async function writeJsonAtomic(filePath, value) {
@@ -980,8 +981,11 @@ function createBackupManager({ app, dialog, logger, getAppVersion, getBackupRoot
     return pendingWrite;
   }
 
-  async function readBackupDocumentByPath(filePath) {
-    return validateBackupDocument(await readJsonFile(filePath));
+  async function readBackupDocumentByPath(filePath, includeHash = false) {
+    const result = await readJsonFile(filePath, includeHash);
+    if (!includeHash) return validateBackupDocument(result);
+    return { document: validateBackupDocument(result.document),
+      backupHash: crypto.createHash('sha256').update(result.raw).digest('hex') };
   }
 
   async function resolveBackupFilePath(backupId) {
@@ -1384,7 +1388,7 @@ function createBackupManager({ app, dialog, logger, getAppVersion, getBackupRoot
 
     const { filePath } = await resolveBackupFilePath(backupId);
 
-    const document = await readBackupDocumentByPath(filePath);
+    const { document, backupHash } = await readBackupDocumentByPath(filePath, true);
     const restoreScope = resolveRestoreScope(document.scope, payload.scope);
     if (!restoreScope.length) {
       throw new BackupManagerError(
@@ -1401,6 +1405,7 @@ function createBackupManager({ app, dialog, logger, getAppVersion, getBackupRoot
       backup: createMetadataFromDocument(document),
       restorePlan: {
         backupId: document.id,
+        backupHash,
         name: document.name,
         createdAt: document.createdAt,
         updatedAt: document.updatedAt,

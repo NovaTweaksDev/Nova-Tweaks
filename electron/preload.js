@@ -72,7 +72,7 @@ contextBridge.exposeInMainWorld('desktopApi', {
   clearAppCache: () => ipcRenderer.invoke('settings:clear-cache'),
   exportDiagnosticReport: () => ipcRenderer.invoke('settings:export-diagnostics'),
   exportTweakActionLogCsv: (payload) => ipcRenderer.invoke('tweak-actions:export-log-csv', payload),
-  apiExecuteTweak: (payload) => ipcRenderer.invoke('api:tweaks:execute', payload),
+  apiExecuteTweak: /** @param {import('../shared/desktopContracts').TweakRequest} payload */ (payload) => ipcRenderer.invoke('api:tweaks:execute', payload),
   apiPreflightTweaks: (payload) => ipcRenderer.invoke('api:tweaks:preflight', payload),
   listInstalledApps: (payload) => ipcRenderer.invoke('apps:list', payload),
   listStartupApps: () => ipcRenderer.invoke('apps:startup:list'),
@@ -155,12 +155,21 @@ contextBridge.exposeInMainWorld('desktopApi', {
   exportBackup: (payload) => ipcRenderer.invoke('backup:export', payload),
   importBackup: () => ipcRenderer.invoke('backup:import'),
   restoreBackup: (payload) => ipcRenderer.invoke('backup:restore', payload),
+  startBackupRestore: /** @param {import('../shared/desktopContracts').RestoreRequest} payload */ (payload) => ipcRenderer.invoke('backup:restore:start', payload),
+  resumeBackupRestore: (payload) => ipcRenderer.invoke('backup:restore:resume', payload),
+  getBackupRestoreStatus: (payload) => ipcRenderer.invoke('backup:restore:status', payload),
+  listBackupRestores: () => ipcRenderer.invoke('backup:restore:list'),
+  onBackupRestoreUpdate: (callback) => {
+    const listener = (_event, job) => callback(job);
+    ipcRenderer.on('backup:restore:update', listener);
+    return () => ipcRenderer.removeListener('backup:restore:update', listener);
+  },
   openBackupFolder: () => ipcRenderer.invoke('backup:open-folder'),
   cleanOldBackups: (payload) => ipcRenderer.invoke('backup:clean-old', payload),
   getBackupSettings: () => ipcRenderer.invoke('backup:settings:get'),
   updateBackupSettings: (payload) => ipcRenderer.invoke('backup:settings:update', payload),
   getTweakConfig: (payload) => ipcRenderer.invoke('get-tweak-config', payload),
-  runTweak: (payload) => ipcRenderer.invoke('run-tweak', payload),
+  runTweak: /** @param {import('../shared/desktopContracts').TweakRequest} payload */ (payload) => ipcRenderer.invoke('run-tweak', payload),
   apiCheckUpdate: () => ipcRenderer.invoke('api:update:check'),
   apiGetUpdateNotes: () => ipcRenderer.invoke('api:update:notes'),
   chooseProfileImage: () => ipcRenderer.invoke('profile:choose-image'),
@@ -213,6 +222,6 @@ contextBridge.exposeInMainWorld('desktopApi', {
   runExampleTweak: () => ipcRenderer.invoke('tweaks:run-example'),
   listTweaks: (options = {}) => ipcRenderer.invoke('tweaks:list', options),
   reloadTweaks: () => ipcRenderer.invoke('tweaks:reload'),
-  executeTweak: (payload) => ipcRenderer.invoke('tweaks:execute', payload),
+  executeTweak: /** @param {import('../shared/desktopContracts').TweakRequest} payload */ (payload) => ipcRenderer.invoke('tweaks:execute', payload),
   listScripts: () => ipcRenderer.invoke('scripts:list'),
 });

@@ -86,3 +86,8 @@ Thumbs.db
 .codex-*
 /AGENTS.md
 /.gitkeep
+.cptr
+
+# Local administrator backups and generated release notes
+/.nova-local-admin/
+/release-notes.md

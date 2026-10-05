@@ -1,0 +1,95 @@
+{
+  "id": "enable_windowed_game_optimizations",
+  "name": "Enable Windowed Game Optimizations",
+  "description": "Enables Windows optimizations for compatible DirectX 10 and DirectX 11 games running in windowed or borderless windowed mode. Windows can use the newer flip presentation model instead of the legacy blt model, which can reduce presentation latency and enable features such as Variable Refresh Rate (VRR) and Auto HDR on supported systems.",
+  "description_i18n": {
+    "en": "Enables Windows optimizations for compatible DirectX 10 and DirectX 11 games running in windowed or borderless windowed mode. Windows can use the newer flip presentation model instead of the legacy blt model, which can reduce presentation latency and enable features such as Variable Refresh Rate (VRR) and Auto HDR on supported systems.",
+    "de": "Aktiviert die Windows-Optimierungen für kompatible DirectX-10- und DirectX-11-Spiele im Fenster- oder randlosen Fenstermodus. Windows kann dabei das modernere Flip-Präsentationsmodell anstelle des älteren Blt-Modells verwenden. Dadurch kann die Darstellungslatenz sinken und Funktionen wie Variable Refresh Rate (VRR) und Auto HDR können auf unterstützten Systemen genutzt werden.",
+    "fr": "Active les optimisations Windows pour les jeux DirectX 10 et DirectX 11 compatibles exécutés en mode fenêtré ou fenêtré sans bordure. Windows peut alors utiliser le modèle de présentation Flip plus récent à la place de l'ancien modèle Blt, ce qui peut réduire la latence d'affichage et permettre l'utilisation de fonctions telles que le taux de rafraîchissement variable (VRR) et Auto HDR sur les systèmes compatibles."
+  },
+  "script": "enable_windowed_game_optimizations.ps1",
+  "requires_admin": false,
+  "reboot_required": false,
+  "risk_level": "low",
+  "impact": 1,
+  "recommended": true,
+  "premium": false,
+  "last_updated": "2026-10-05",
+  "container_type": "normal_tweak",
+  "tags": [
+    "gaming",
+    "performance",
+    "windowed-mode"
+  ],
+  "warnings": [
+    {
+      "severity": "info",
+      "title": "Game Restart Required",
+      "message": "Running games must be restarted before the change takes effect. The optimization primarily affects compatible DirectX 10 and DirectX 11 games using windowed or borderless windowed presentation modes and does not guarantee higher FPS.",
+      "icon": "information-circle",
+      "source": "Windows Graphics Settings"
+    }
+  ],
+  "compatibility": {
+    "os": [
+      "Windows 11"
+    ],
+    "devices": [
+      "desktop",
+      "laptop"
+    ],
+    "notes": "Intended for Windows 11 systems. The optimization applies to compatible DirectX 10 and DirectX 11 games running in windowed or borderless windowed mode."
+  },
+  "technical_details": "Modifies the current user's HKEY_CURRENT_USER\\Software\\Microsoft\\DirectX\\UserGpuPreferences registry key. The DirectXUserGlobalSettings REG_SZ value contains multiple semicolon-separated graphics settings. This tweak changes only SwapEffectUpgradeEnable to 1 when enabled or 0 when disabled while preserving any unrelated settings already stored in the same value. No administrator privileges are required because the setting is stored under HKEY_CURRENT_USER.",
+  "profiles": [],
+  "supports_status_detection": true,
+  "execution": {
+    "type": "powershell",
+    "script": "enable_windowed_game_optimizations.ps1",
+    "requires_admin": false,
+    "timeout_ms": 30000,
+    "supports_status_detection": true,
+    "actions": {
+      "apply": {
+        "args": [
+          "-State",
+          "On",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      },
+      "detect": {
+        "args": [
+          "-State",
+          "Check",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false,
+        "expected_output": {
+          "enabled": "ENABLED",
+          "disabled": "DISABLED",
+          "unknown": "UNKNOWN"
+        }
+      },
+      "restore": {
+        "args": [
+          "-State",
+          "Off",
+          "-Silent"
+        ],
+        "success_exit_codes": [
+          0
+        ],
+        "requires_admin": false
+      }
+    }
+  },
+  "category": "General",
+  "subcategory": "System"
+}

@@ -165,8 +165,7 @@ function buildDefaultExecution(config, tweakId) {
     const supportsStatusDetection = detectSupportsStatus(config);
     const requiresAdmin = toBoolean(config.requires_admin ?? config.requiresAdmin, false);
     const allowedParams = detectAllowedParams(config);
-    const timeoutMs = toInteger(config.timeout_ms ?? config.timeoutMs, 30000);
-    const actionTimeoutMs = timeoutMs > 0 ? timeoutMs : 30000;
+    const actionTimeoutMs = config.timeout_ms !== undefined ? config.timeout_ms : config.timeoutMs;
     const detectArgs = ["-State", "Check", "-Silent"];
     const applyArgs = ["-State", "On", "-Silent"];
     const restoreArgs = ["-State", "Off", "-Silent"];
@@ -331,7 +330,7 @@ function normalizeExecution(config, tweakId, scriptsDir) {
     }
 
     const requiresAdmin = toBoolean(executionSource.requires_admin, toBoolean(config.requires_admin ?? config.requiresAdmin, false));
-    const timeoutMs = toInteger(executionSource.timeout_ms, 30000);
+    const timeoutMs = executionSource.timeout_ms !== undefined ? executionSource.timeout_ms : executionSource.timeoutMs;
     const actionsSource = isPlainObject(executionSource.actions) ? executionSource.actions : {};
     const script = validateScriptName(executionSource.script, context);
 
@@ -339,7 +338,7 @@ function normalizeExecution(config, tweakId, scriptsDir) {
         type,
         script,
         requires_admin: requiresAdmin,
-        timeout_ms: timeoutMs > 0 ? timeoutMs : 30000,
+        timeout_ms: timeoutMs,
         supports_status_detection: toBoolean(executionSource.supports_status_detection, detectSupportsStatus(config)),
         actions: {}
     };

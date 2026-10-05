@@ -1,3 +1,8 @@
+import { useTweakCatalogActions } from './hooks/useTweakCatalogActions';
+import { useMonitoringActions } from './hooks/useMonitoringActions';
+import { useAppManagementActions } from './hooks/useAppManagementActions';
+import { useAppSettingsActions } from './hooks/useAppSettingsActions';
+import { useBackupRestore } from './hooks/useBackupRestore';
 import i18n from './i18n';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -105,6 +110,7 @@ function createDefaultAppSettings() {
       mascotAnimationEnabled: false
     },
     startupWindow: {
+      requestAdminOnStartup: false,
       startWithWindows: false,
       startMinimized: false,
       minimizeToTray: false,
@@ -509,14 +515,6 @@ function resolveThemeMode(theme) {
 }
 
 const SUPPORTED_BACKUP_LANGUAGES = new Set(['en', 'de', 'fr']);
-const RESTORE_TWEAK_SCOPE_IDS = new Set([
-  'tweakStates',
-  'powerPlans',
-  'timerProfiles',
-  'bootBcd',
-  'registryChanges',
-  'serviceTweaks'
-]);
 const QUICKSTART_STEP_KEYS = [
   'createBackup',
   'createRestorePoint',
@@ -701,69 +699,6 @@ function normalizeResolutionString(value) {
 function normalizeBackupLanguage(language) {
   const normalized = typeof language === 'string' ? language.trim().toLowerCase().split('-')[0] : '';
   return SUPPORTED_BACKUP_LANGUAGES.has(normalized) ? normalized : '';
-}
-
-function mergeRestoreEntry(existingEntry, incomingEntry) {
-  if (!existingEntry) {
-    return incomingEntry;
-  }
-
-  return {
-    ...existingEntry,
-    name: existingEntry.name || incomingEntry.name,
-    category: existingEntry.category || incomingEntry.category,
-    subcategory: existingEntry.subcategory || incomingEntry.subcategory,
-    containerType: existingEntry.containerType || incomingEntry.containerType,
-    selectedResolution: existingEntry.selectedResolution || incomingEntry.selectedResolution,
-    selectedOption: existingEntry.selectedOption || incomingEntry.selectedOption,
-    currentValue: Number.isFinite(existingEntry.currentValue) ? existingEntry.currentValue : incomingEntry.currentValue,
-    profileLabel: existingEntry.profileLabel || incomingEntry.profileLabel,
-    requiresAdmin: Boolean(existingEntry.requiresAdmin || incomingEntry.requiresAdmin),
-    rebootRequired: Boolean(existingEntry.rebootRequired || incomingEntry.rebootRequired),
-    sourceScopeIds: Array.from(new Set([...(existingEntry.sourceScopeIds || []), ...(incomingEntry.sourceScopeIds || [])]))
-  };
-}
-
-function collectRestoreEntryMap(snapshot, scopeIds) {
-  const restoreEntries = new Map();
-
-  for (const scopeId of Array.isArray(scopeIds) ? scopeIds : []) {
-    if (!RESTORE_TWEAK_SCOPE_IDS.has(scopeId)) {
-      continue;
-    }
-
-    const entries = Array.isArray(snapshot?.[scopeId]?.data) ? snapshot[scopeId].data : [];
-    for (const entry of entries) {
-      const id = String(entry?.id || '').trim();
-      if (!id) {
-        continue;
-      }
-
-      const normalizedEntry = {
-        id,
-        name: String(entry?.name || '').trim(),
-        category: String(entry?.category || '').trim(),
-        subcategory: String(entry?.subcategory || '').trim(),
-        containerType: String(entry?.containerType || '').trim().toLowerCase(),
-        currentState: normalizeTweakState(entry?.currentState),
-        selectedResolution: typeof entry?.selectedResolution === 'string' && entry.selectedResolution.trim()
-          ? entry.selectedResolution.trim()
-          : '',
-        selectedOption: typeof entry?.selectedOption === 'string' && entry.selectedOption.trim()
-          ? entry.selectedOption.trim()
-          : '',
-        currentValue: normalizeOptionalNumber(entry?.currentValue),
-        profileLabel: String(entry?.profileLabel || '').trim(),
-        requiresAdmin: Boolean(entry?.requiresAdmin),
-        rebootRequired: Boolean(entry?.rebootRequired),
-        sourceScopeIds: [scopeId]
-      };
-
-      restoreEntries.set(id, mergeRestoreEntry(restoreEntries.get(id), normalizedEntry));
-    }
-  }
-
-  return restoreEntries;
 }
 
 function toBackupTweakEntry(tweak) {
@@ -1637,97 +1572,13 @@ function App() {
     }
   }
 
-  function applyLoadedSettings(settings) {
-    const nextSettings = settings && typeof settings === 'object' ? settings : createDefaultAppSettings();
-    setAppSettings({
-      ...createDefaultAppSettings(),
-      ...nextSettings,
-      userProfile: normalizeProfileSettings(nextSettings.userProfile)
-    });
+  const { applyLoadedSettings, loadAppSettings, updateAppSettings, resetAppSettings, chooseBackupLocation } = useAppSettingsActions({
+    createDefaultAppSettings, setAppSettings, normalizeProfileSettings, i18n, resolveThemeMode, setTheme, setSettingsError, t, appSettings, startGlobalOperation, setSettingsLoading, finishGlobalOperation
+  });
 
-    const language = String(nextSettings?.preferences?.language || '').trim();
-    if (language && i18n.language?.split('-')?.[0] !== language) {
-      void i18n.changeLanguage(language);
-    }
-
-    const resolvedTheme = resolveThemeMode(nextSettings?.preferences?.theme || 'dark');
-    setTheme(resolvedTheme);
-  }
-
-  async function loadAppSettings(options = {}) {
-    const notify = Boolean(options.notify);
-    if (!window.desktopApi?.getSettings) {
-      setSettingsError(t('settingsPanel.messages.settingsUnavailable'));
-      return { ok: false, settings: appSettings };
-    }
-
-    const operationId = notify
-      ? startGlobalOperation('settings:reload', i18n.t('interfaceText.reload_settings_035e3'), t('tweaks.running', { defaultValue: 'Action is still running...' }))
-      : '';
-    setSettingsLoading(true);
-    setSettingsError('');
-    try {
-      const result = await window.desktopApi.getSettings();
-      if (result?.ok && result.settings) {
-        applyLoadedSettings(result.settings);
-        if (result.warning?.message) {
-          setSettingsError(result.warning.message);
-        }
-        if (notify) {
-          finishGlobalOperation(operationId, "success", t('settingsPanel.messages.settingsReloaded'));
-        }
-        return { ok: true, settings: result.settings };
-      }
-
-      const message = result?.message || t('settingsPanel.messages.settingsLoadFailed');
-      setSettingsError(message);
-      if (notify) finishGlobalOperation(operationId, "error", message);
-      return { ok: false, settings: appSettings };
-    } catch (error) {
-      const message = error?.message || t('settingsPanel.messages.settingsLoadFailed');
-      setSettingsError(message);
-      if (notify) finishGlobalOperation(operationId, "error", message);
-      return { ok: false, settings: appSettings };
-    } finally {
-      setSettingsLoading(false);
-    }
-  }
-
-  async function updateAppSettings(patch) {
-    if (!window.desktopApi?.updateSettings) {
-      return { ok: false, message: t('settingsPanel.messages.settingsUnavailable') };
-    }
-
-    const result = await window.desktopApi.updateSettings(patch);
-    if (result?.ok && result.settings) {
-      applyLoadedSettings(result.settings);
-      setSettingsError('');
-    }
-    return result;
-  }
-
-  async function setAdvancedSensorMonitoring(enabled) {
-    if (!window.desktopApi?.setAdvancedSensorMonitoringEnabled) {
-      return { ok: false, message: t('advancedSensors.unavailable') };
-    }
-
-    const result = await window.desktopApi.setAdvancedSensorMonitoringEnabled({
-      enabled: Boolean(enabled)
-    });
-    if (result?.settings) {
-      applyLoadedSettings(result.settings);
-    }
-    if (result?.ok) {
-      setSettingsError('');
-    }
-    if (result?.code === 'LHM_PROCESS_STILL_RUNNING') {
-      return {
-        ...result,
-        message: t('settingsPanel.monitoring.stopFailedMessage')
-      };
-    }
-    return result;
-  }
+  const { setAdvancedSensorMonitoring } = useMonitoringActions({
+    t, applyLoadedSettings, setSettingsError
+  });
 
   async function handleThemeChange(nextTheme) {
     const normalizedTheme = nextTheme === 'light' || nextTheme === 'system' ? nextTheme : 'dark';
@@ -1738,29 +1589,6 @@ function App() {
     });
     if (!result?.ok) {
       setTheme(resolveThemeMode(normalizedTheme));
-    }
-    return result;
-  }
-
-  async function resetAppSettings() {
-    if (!window.desktopApi?.resetSettings) {
-      return { ok: false, message: t('settingsPanel.messages.settingsUnavailable') };
-    }
-    const result = await window.desktopApi.resetSettings();
-    if (result?.ok && result.settings) {
-      applyLoadedSettings(result.settings);
-      setSettingsError('');
-    }
-    return result;
-  }
-
-  async function chooseBackupLocation() {
-    if (!window.desktopApi?.chooseBackupLocation) {
-      return { ok: false, message: t('settingsPanel.messages.backupPickerUnavailable') };
-    }
-    const result = await window.desktopApi.chooseBackupLocation();
-    if (result?.ok && result.settings) {
-      applyLoadedSettings(result.settings);
     }
     return result;
   }
@@ -1863,326 +1691,13 @@ function App() {
     });
   }, []);
 
-  async function loadInstalledApps(options = {}) {
-    const notify = Boolean(options.notify);
-    const requestId = activeAppsLoadRequestRef.current + 1;
-    activeAppsLoadRequestRef.current = requestId;
+  const { loadInstalledApps, loadStartupEntries } = useAppManagementActions({
+    activeAppsLoadRequestRef, setAppsError, setInstalledApps, setIsLoadingApps, setIsLoadingAppDetails, didBootstrapRef, pushToast, t, hasLoadedAppsRef, installedApps, setStartupEntriesError, setStartupEntries, setIsLoadingStartupEntries, hasLoadedStartupEntriesRef
+  });
 
-    if (!window.desktopApi?.listInstalledApps) {
-      setAppsError('API_NOT_AVAILABLE');
-      setInstalledApps([]);
-      setIsLoadingApps(false);
-      setIsLoadingAppDetails(false);
-      if (notify || didBootstrapRef.current) {
-        pushToast(t('errors.apiUnavailable'), "error");
-      }
-      return { ok: false, apps: [] };
-    }
-
-    setIsLoadingApps(true);
-    setIsLoadingAppDetails(false);
-    setAppsError('');
-
-    try {
-      const summaryResult = await window.desktopApi.listInstalledApps({ detailLevel: 'summary' });
-      if (activeAppsLoadRequestRef.current !== requestId) {
-        return { ok: false, apps: [] };
-      }
-
-      if (!summaryResult?.ok) {
-        setInstalledApps([]);
-        setAppsError(summaryResult?.code || 'LOAD_FAILED');
-        if (notify || didBootstrapRef.current) {
-          pushToast(`${t('apps.loadError')} (${summaryResult?.code || 'LOAD_FAILED'})`, "error");
-        }
-        return { ok: false, apps: [] };
-      }
-
-      const summaryApps = Array.isArray(summaryResult.apps) ? summaryResult.apps : [];
-      setInstalledApps(summaryApps);
-      hasLoadedAppsRef.current = true;
-      setIsLoadingApps(false);
-      setIsLoadingAppDetails(true);
-
-      const detailResult = await window.desktopApi.listInstalledApps({ detailLevel: 'full' });
-      if (activeAppsLoadRequestRef.current !== requestId) {
-        return { ok: false, apps: [] };
-      }
-
-      if (detailResult?.ok) {
-        const detailedApps = Array.isArray(detailResult.apps) ? detailResult.apps : [];
-        setInstalledApps(detailedApps);
-        if (notify) {
-          pushToast(t('toasts.appsReloaded', { count: detailedApps.length }), 'info');
-        }
-        return { ok: true, apps: detailedApps };
-      }
-
-      if (notify || didBootstrapRef.current) {
-        pushToast(`${t('apps.detailsLoadError')} (${detailResult?.code || 'LOAD_FAILED'})`, "error");
-      }
-      return { ok: true, apps: summaryApps, detailsLoaded: false };
-    } catch (_error) {
-      if (activeAppsLoadRequestRef.current !== requestId) {
-        return { ok: false, apps: [] };
-      }
-
-      if (!hasLoadedAppsRef.current) {
-        setInstalledApps([]);
-        setAppsError('LOAD_FAILED');
-        if (notify || didBootstrapRef.current) {
-          pushToast(`${t('apps.loadError')} (LOAD_FAILED)`, "error");
-        }
-        return { ok: false, apps: [] };
-      }
-
-      if (notify || didBootstrapRef.current) {
-        pushToast(`${t('apps.detailsLoadError')} (LOAD_FAILED)`, "error");
-      }
-    } finally {
-      if (activeAppsLoadRequestRef.current === requestId) {
-        setIsLoadingApps(false);
-        setIsLoadingAppDetails(false);
-      }
-    }
-
-    return { ok: true, apps: installedApps, detailsLoaded: false };
-  }
-
-  async function loadStartupEntries(options = {}) {
-    const notify = Boolean(options.notify);
-
-    if (!window.desktopApi?.listStartupApps) {
-      setStartupEntriesError('API_NOT_AVAILABLE');
-      setStartupEntries([]);
-      setIsLoadingStartupEntries(false);
-      if (notify || didBootstrapRef.current) {
-        pushToast(t('errors.apiUnavailable'), "error");
-      }
-      return { ok: false, entries: [] };
-    }
-
-    setIsLoadingStartupEntries(true);
-    setStartupEntriesError('');
-
-    try {
-      const result = await window.desktopApi.listStartupApps();
-      if (result?.ok) {
-        const incomingEntries = Array.isArray(result.entries) ? result.entries : [];
-        setStartupEntries(incomingEntries);
-        hasLoadedStartupEntriesRef.current = true;
-        if (notify) {
-          pushToast(t('toasts.startupReloaded', { count: incomingEntries.length }), 'info');
-        }
-        return { ok: true, entries: incomingEntries };
-      }
-
-      setStartupEntries([]);
-      setStartupEntriesError(result?.code || 'LOAD_FAILED');
-      if (notify || didBootstrapRef.current) {
-        pushToast(`${t('apps.startup.loadError')} (${result?.code || 'LOAD_FAILED'})`, "error");
-      }
-    } catch (_error) {
-      setStartupEntries([]);
-      setStartupEntriesError('LOAD_FAILED');
-      if (notify || didBootstrapRef.current) {
-        pushToast(`${t('apps.startup.loadError')} (LOAD_FAILED)`, "error");
-      }
-    } finally {
-      setIsLoadingStartupEntries(false);
-    }
-
-    return { ok: false, entries: [] };
-  }
-
-  async function loadTweaks(options = {}) {
-    const notify = Boolean(options.notify);
-    const includeState = Boolean(options.includeState);
-    const background = Boolean(options.background);
-    const isBackgroundStateRefresh = background && includeState;
-    const cooldownRemainingMs = tweakReloadBlockedUntilRef.current - Date.now();
-
-    if (cooldownRemainingMs > 0) {
-      if (notify) {
-        pushToast(t('errors.tweakReloadRateLimited', {
-          seconds: Math.max(1, Math.ceil(cooldownRemainingMs / 1000))
-        }), 'warning');
-      }
-      return {
-        ok: false,
-        code: 'API_RATE_LIMITED',
-        details: { retryAfterMs: cooldownRemainingMs },
-        tweaks: []
-      };
-    }
-
-    const requestId = !background ? activeTweaksLoadRequestRef.current + 1 : activeTweaksLoadRequestRef.current;
-
-    if (!background) {
-      activeTweaksLoadRequestRef.current = requestId;
-    }
-
-    if (isBackgroundStateRefresh) {
-      stateRefreshCounterRef.current += 1;
-      setIsRefreshingTweakStates(true);
-    }
-
-    if (!background) {
-      setIsLoadingTweaks(true);
-      setTweaksError('');
-    }
-
-    const listTweaks = window.desktopApi?.listTweaks;
-
-    if (!listTweaks) {
-      setTweaksError('API_NOT_AVAILABLE');
-      if (!background) {
-        setTweaks([]);
-        setIsLoadingTweaks(false);
-      }
-      if (!background && (notify || didBootstrapRef.current)) {
-        pushToast(t('errors.apiUnavailable'), "error");
-      }
-      return { ok: false, tweaks: [] };
-    }
-
-    try {
-      const result = await listTweaks({ includeState });
-      if (result?.ok) {
-        const incomingTweaks = Array.isArray(result.tweaks) ? result.tweaks : [];
-        if (!background && activeTweaksLoadRequestRef.current !== requestId) {
-          return { ok: false, tweaks: [] };
-        }
-
-        const rebootPendingSet = new Set(getStoredRebootPendingIds().map((id) => String(id)));
-        const normalizedTweaks = incomingTweaks.map((tweak) => {
-          const normalized = normalizeTweakForUi({ ...tweak, premium: false });
-          return {
-            ...normalized,
-            rebootPending: rebootPendingSet.has(String(normalized.id))
-          };
-        });
-        setTweaks((previous) => {
-          const previousById = new Map(previous.map((item) => [String(item.id), item]));
-          return normalizedTweaks.map((tweak) =>
-            mergeTweakRuntimeState(tweak, previousById.get(String(tweak.id)), includeState)
-          );
-        });
-        hasLoadedTweaksRef.current = true;
-        if (includeState) {
-          hasLoadedTweakStatesRef.current = true;
-        }
-
-        if (!background && notify) {
-          pushToast(t('toasts.tweaksReloaded', { count: incomingTweaks.length }), 'info');
-        }
-        return { ok: true, tweaks: incomingTweaks };
-      }
-
-      const rateLimitDelay = getTweakRateLimitDelay(result);
-      const rateLimited = rateLimitDelay > 0;
-      if (rateLimited) {
-        const blockedUntil = Date.now() + rateLimitDelay;
-        tweakReloadBlockedUntilRef.current = blockedUntil;
-        setTweakReloadBlockedUntil(blockedUntil);
-      }
-
-      if (!background) {
-        if (activeTweaksLoadRequestRef.current !== requestId) {
-          return { ok: false, tweaks: [] };
-        }
-        setTweaksError(result?.code || 'LOAD_FAILED');
-        if (!rateLimited) {
-          setTweaks([]);
-        }
-      }
-      if (!background && (notify || didBootstrapRef.current)) {
-        if (rateLimited) {
-          pushToast(t('errors.tweakReloadRateLimited', {
-            seconds: Math.max(1, Math.ceil(rateLimitDelay / 1000))
-          }), 'warning');
-        } else {
-          pushToast(`${t('errors.failedToLoadTweaksApi')} (${result?.code || 'LOAD_FAILED'})`, "error");
-        }
-      }
-    } catch (_error) {
-      if (!background) {
-        if (activeTweaksLoadRequestRef.current !== requestId) {
-          return { ok: false, tweaks: [] };
-        }
-        setTweaksError('LOAD_FAILED');
-        setTweaks([]);
-      }
-      if (!background && (notify || didBootstrapRef.current)) {
-        pushToast(`${t('errors.failedToLoadTweaksApi')} (LOAD_FAILED)`, "error");
-      }
-    } finally {
-      if (isBackgroundStateRefresh) {
-        stateRefreshCounterRef.current = Math.max(0, stateRefreshCounterRef.current - 1);
-        if (stateRefreshCounterRef.current === 0) {
-          setIsRefreshingTweakStates(false);
-        }
-      }
-      if (!background) {
-        if (activeTweaksLoadRequestRef.current === requestId) {
-          setIsLoadingTweaks(false);
-        }
-      }
-    }
-
-    return { ok: false, tweaks: [] };
-  }
-
-  async function refreshTweaksTwoPhase(options = {}) {
-    if (activeTweaksRefreshPromiseRef.current) {
-      return activeTweaksRefreshPromiseRef.current;
-    }
-
-    const notify = Boolean(options.notify);
-    const refreshStates = options.refreshStates !== false;
-    const refreshPromise = (async () => {
-      const quickLoad = await loadTweaks({ notify, includeState: false });
-      const tweakIds = Array.isArray(quickLoad?.tweaks)
-        ? quickLoad.tweaks
-            .filter(requiresRendererTweakStateCheck)
-            .map((tweak) => String(tweak?.id || ''))
-            .filter(Boolean)
-        : [];
-
-      if (!quickLoad?.ok || !refreshStates || !tweakIds.length) {
-        if (!tweakIds.length) {
-          setCheckingStateTweakIds([]);
-        }
-        return quickLoad;
-      }
-
-      const runId = activeStateRefreshRunRef.current + 1;
-      activeStateRefreshRunRef.current = runId;
-      hasLoadedTweakStatesRef.current = false;
-      setCheckingStateTweakIds(tweakIds);
-
-      void (async () => {
-        try {
-          await loadTweaks({ notify: false, includeState: true, background: true });
-        } finally {
-          if (activeStateRefreshRunRef.current === runId) {
-            setCheckingStateTweakIds([]);
-          }
-        }
-      })();
-
-      return quickLoad;
-    })();
-
-    activeTweaksRefreshPromiseRef.current = refreshPromise;
-    try {
-      return await refreshPromise;
-    } finally {
-      if (activeTweaksRefreshPromiseRef.current === refreshPromise) {
-        activeTweaksRefreshPromiseRef.current = null;
-      }
-    }
-  }
+  const { loadTweaks, refreshTweaksTwoPhase } = useTweakCatalogActions({
+    tweakReloadBlockedUntilRef, pushToast, t, activeTweaksLoadRequestRef, stateRefreshCounterRef, setIsRefreshingTweakStates, setIsLoadingTweaks, setTweaksError, setTweaks, didBootstrapRef, getStoredRebootPendingIds, normalizeTweakForUi, mergeTweakRuntimeState, hasLoadedTweaksRef, hasLoadedTweakStatesRef, getTweakRateLimitDelay, setTweakReloadBlockedUntil, activeTweaksRefreshPromiseRef, requiresRendererTweakStateCheck, setCheckingStateTweakIds, activeStateRefreshRunRef
+  });
 
   useEffect(() => {
     if (!didBootstrapRef.current || isBootstrapLoading) {
@@ -3630,21 +3145,18 @@ function App() {
         ? await window.desktopApi.runTweak({
             id: tweak.id,
             targetState,
-            params: scriptParams,
-            timeoutMs: 60000
+            params: scriptParams
           })
         : window.desktopApi?.apiExecuteTweak
         ? await window.desktopApi.apiExecuteTweak({
             id: tweak.id,
             targetState,
-            params: scriptParams,
-            timeoutMs: 60000
+            params: scriptParams
           })
         : await window.desktopApi.executeTweak({
             id: tweak.id,
             targetState,
-            params: scriptParams,
-            timeoutMs: 60000
+            params: scriptParams
           });
 
       const adminAccessDenied = result?.ok !== true && result?.code === 'ADMIN_BROKER_CANCELLED';
@@ -4266,434 +3778,19 @@ function App() {
     setOneClickOptimization(createOneClickOptimizationState());
   }
 
-  async function loadRestoreTweakCatalog(requiredIds = []) {
-    const normalizedIds = Array.from(
-      new Set(
-        (Array.isArray(requiredIds) ? requiredIds : [])
-          .map((entry) => String(entry || '').trim())
-          .filter(Boolean)
-      )
-    );
-    const currentCatalog = Array.isArray(tweaks) ? tweaks : [];
-    const currentIds = new Set(currentCatalog.map((entry) => String(entry?.id || '').trim()).filter(Boolean));
-    const hasRequiredEntries = currentCatalog.length > 0 && normalizedIds.every((id) => currentIds.has(id));
-
-    if (hasRequiredEntries) {
-      return {
-        ok: true,
-        tweaks: currentCatalog
-      };
-    }
-
-    if (!window.desktopApi?.listTweaks) {
-      return {
-        ok: false,
-        code: 'API_NOT_AVAILABLE',
-        message: t('errors.apiUnavailable'),
-        tweaks: currentCatalog
-      };
-    }
-
-    try {
-      const result = await window.desktopApi.listTweaks();
-
-      if (!result?.ok) {
-        return {
-          ok: false,
-          code: result?.code || 'LOAD_FAILED',
-          message: result?.message || t('errors.failedToLoadTweaksApi'),
-          tweaks: currentCatalog
-        };
+  const handleRestoreBackup = useBackupRestore(async (job) => {
+    await loadAppSettings();
+    const result = await window.desktopApi.listTweaks();
+    if (result?.ok && Array.isArray(result.tweaks)) {
+      for (const step of job.steps.filter((entry) => entry.changed && entry.requiresRestart)) {
+        const tweak = result.tweaks.find((entry) => entry.id === step.id);
+        if (tweak) await rememberRebootPendingTweak(tweak);
       }
-
-      const incomingTweaks = Array.isArray(result.tweaks) ? result.tweaks : [];
-      const normalizedTweaks = incomingTweaks.map((tweak) => normalizeTweakForUi(tweak));
-
-      setTweaks(normalizedTweaks);
+      const rebootPendingIds = new Set(getStoredRebootPendingIds());
+      setTweaks(result.tweaks.map((tweak) => ({ ...normalizeTweakForUi(tweak), rebootPending: rebootPendingIds.has(String(tweak.id)) })));
       hasLoadedTweaksRef.current = true;
-
-      return {
-        ok: true,
-        tweaks: normalizedTweaks
-      };
-    } catch (_error) {
-      return {
-        ok: false,
-        code: 'LOAD_FAILED',
-        message: t('errors.failedToLoadTweaksApi'),
-        tweaks: currentCatalog
-      };
     }
-  }
-
-  async function handleRestoreBackup(restorePlan) {
-    const plan = restorePlan && typeof restorePlan === 'object' ? restorePlan : null;
-    const selectedScopeIds = Array.isArray(plan?.scope)
-      ? Array.from(new Set(plan.scope.map((scopeId) => String(scopeId || '').trim()).filter(Boolean)))
-      : [];
-
-    if (!plan || plan.origin !== 'nova' || !selectedScopeIds.length) {
-      return {
-        ok: false,
-        partial: false,
-        appliedScopes: [],
-        errorCount: 1,
-        errors: [
-          {
-            code: 'INVALID_RESTORE_PLAN',
-            message: t('backup.notifications.restoreFailed')
-          }
-        ],
-        requiresRestart: false,
-        adminRequired: false
-      };
-    }
-
-    const snapshot = plan.snapshot && typeof plan.snapshot === 'object' ? plan.snapshot : {};
-    const tweakRestoreScopeIds = selectedScopeIds.filter((scopeId) => RESTORE_TWEAK_SCOPE_IDS.has(scopeId));
-    const restoreEntryMap = collectRestoreEntryMap(snapshot, tweakRestoreScopeIds);
-    let preflightRequiresAdmin = false;
-    if (restoreEntryMap.size) {
-      const jobs = Array.from(restoreEntryMap.values()).flatMap((entry) => {
-        const containerType = String(entry.containerType || '').trim().toLowerCase();
-        if (containerType === 'one_shot_action' || containerType === 'fix') return [];
-        if (containerType === 'power_plan' && entry.currentState !== 'enabled') return [];
-        let params = {};
-        if (containerType === 'timer_resolution' && entry.currentState === 'enabled') {
-          params = { Resolution: entry.selectedResolution || '0.5' };
-        } else if (containerType === 'one_shot_selection') {
-          if (!entry.selectedOption) return [];
-          params = { Selection: entry.selectedOption };
-        } else if (containerType === 'range_selection') {
-          if (!Number.isFinite(entry.currentValue)) return [];
-          params = { Value: entry.currentValue };
-        }
-        return [{ id: entry.id, targetState: entry.currentState, params }];
-      });
-      if (jobs.length) {
-        const preflight = await window.desktopApi?.apiPreflightTweaks?.({ jobs });
-        if (!preflight?.ok) {
-          return {
-            ok: false,
-            partial: false,
-            appliedScopes: [],
-            errorCount: 1,
-            errors: [{ code: preflight?.code || 'TWEAK_BATCH_PREFLIGHT_FAILED', message: preflight?.message || t('backup.notifications.restoreFailed') }],
-            requiresRestart: false,
-            adminRequired: Boolean(plan.adminRequired)
-          };
-        }
-        preflightRequiresAdmin = Boolean(preflight.requiresAdmin);
-      }
-    }
-
-    if ((plan.adminRequired || preflightRequiresAdmin) && !isAdmin) {
-      const adminResult = await handleRequestAdminRelaunch();
-      if (!adminResult?.ok) {
-        return {
-          ok: false,
-          partial: false,
-          appliedScopes: [],
-          errorCount: 1,
-          errors: [{
-            code: adminResult?.code || 'ADMIN_BROKER_CANCELLED',
-            message: t('status.elevationFailed')
-          }]
-        };
-      }
-    }
-
-    const appliedScopeSet = new Set();
-    const restoreErrors = [];
-    let requiresRestart = false;
-
-    if (selectedScopeIds.includes('appSettings')) {
-      try {
-        const appSettingsData = snapshot?.appSettings?.data && typeof snapshot.appSettings.data === 'object'
-          ? snapshot.appSettings.data
-          : {};
-        const restoredTheme = appSettingsData.theme === 'light' || appSettingsData.theme === 'dark'
-          ? appSettingsData.theme
-          : '';
-        const restoredLanguage = normalizeBackupLanguage(appSettingsData.language);
-
-        if (appSettingsData.settings && typeof appSettingsData.settings === 'object') {
-          const result = await updateAppSettings(appSettingsData.settings);
-          if (!result?.ok) throw new Error(result?.message || i18n.t('interfaceText.unable_to_restore_app_settings_f476b'));
-        }
-
-        if (restoredTheme) {
-          setTheme(restoredTheme);
-        }
-
-        if (restoredLanguage) {
-          await i18n.changeLanguage(restoredLanguage);
-        }
-
-        appliedScopeSet.add('appSettings');
-      } catch (error) {
-        restoreErrors.push({
-          scopeId: 'appSettings',
-          code: 'APP_SETTINGS_RESTORE_FAILED',
-          message: error?.message || t('backup.notifications.restoreFailed')
-        });
-      }
-    }
-
-    tweakRestoreScopeIds
-      .filter((scopeId) => !Array.isArray(snapshot?.[scopeId]?.data) || snapshot[scopeId].data.length === 0)
-      .forEach((scopeId) => appliedScopeSet.add(scopeId));
-
-    if (tweakRestoreScopeIds.length && restoreEntryMap.size) {
-        const catalogResult = await loadRestoreTweakCatalog(Array.from(restoreEntryMap.keys()));
-        if (!catalogResult.ok) {
-          restoreErrors.push({
-            scopeId: tweakRestoreScopeIds[0],
-            code: catalogResult.code || 'LOAD_FAILED',
-            message: catalogResult.message || t('errors.failedToLoadTweaksApi')
-          });
-        } else {
-          const tweakCatalog = Array.isArray(catalogResult.tweaks) ? catalogResult.tweaks : [];
-          const tweakCatalogMap = new Map(
-            tweakCatalog
-              .map((entry) => [String(entry?.id || '').trim(), entry])
-              .filter(([id]) => id)
-          );
-          const standardEntries = [];
-          const timerEntries = [];
-          const rangeEntries = [];
-          const powerPlanEntries = [];
-          const oneShotEntries = [];
-
-          for (const restoreEntry of restoreEntryMap.values()) {
-            const liveTweak = tweakCatalogMap.get(restoreEntry.id);
-            if (!liveTweak) {
-              restoreErrors.push({
-                scopeId: restoreEntry.sourceScopeIds?.[0] || tweakRestoreScopeIds[0],
-                code: 'RESTORE_TWEAK_NOT_FOUND',
-                message: t('backup.notifications.restoreMissingTweak', {
-                  name: restoreEntry.name || restoreEntry.id
-                })
-              });
-              continue;
-            }
-
-            const effectiveTweak = {
-              ...liveTweak,
-              name: liveTweak.name || restoreEntry.name,
-              currentState: normalizeTweakState(liveTweak.currentState),
-              status: liveTweak.status || normalizeTweakState(liveTweak.currentState),
-              containerType: String(liveTweak.containerType || restoreEntry.containerType || '').trim().toLowerCase(),
-              selectedResolution:
-                (typeof liveTweak.selectedResolution === 'string' && liveTweak.selectedResolution.trim())
-                  ? liveTweak.selectedResolution.trim()
-                  : restoreEntry.selectedResolution,
-              selectedOption:
-                (typeof liveTweak.selectedOption === 'string' && liveTweak.selectedOption.trim())
-                  ? liveTweak.selectedOption.trim()
-                  : restoreEntry.selectedOption,
-              currentValue: normalizeOptionalNumber(liveTweak.currentValue) ?? restoreEntry.currentValue,
-              requiresAdmin: Boolean(liveTweak.requiresAdmin ?? restoreEntry.requiresAdmin),
-              rebootRequired: Boolean(liveTweak.rebootRequired ?? restoreEntry.rebootRequired)
-            };
-            const payload = {
-              liveTweak: effectiveTweak,
-              restoreEntry
-            };
-
-            if (effectiveTweak.containerType === 'power_plan') {
-              powerPlanEntries.push(payload);
-              continue;
-            }
-
-            if (effectiveTweak.containerType === 'timer_resolution') {
-              timerEntries.push(payload);
-              continue;
-            }
-
-            if (effectiveTweak.containerType === 'one_shot_selection') {
-              oneShotEntries.push(payload);
-              continue;
-            }
-
-            if (effectiveTweak.containerType === 'range_selection') {
-              rangeEntries.push(payload);
-              continue;
-            }
-
-            if (effectiveTweak.containerType === 'one_shot_action') {
-              restoreEntry.sourceScopeIds.forEach((scopeId) => appliedScopeSet.add(scopeId));
-              continue;
-            }
-
-            if (effectiveTweak.containerType === 'fix') {
-              restoreEntry.sourceScopeIds.forEach((scopeId) => appliedScopeSet.add(scopeId));
-              continue;
-            }
-
-            standardEntries.push(payload);
-          }
-
-          const orderedStandardEntries = [...standardEntries].sort((left, right) => {
-            if (left.restoreEntry.currentState === right.restoreEntry.currentState) {
-              return 0;
-            }
-            return left.restoreEntry.currentState === 'disabled' ? -1 : 1;
-          });
-
-          for (const { liveTweak, restoreEntry } of orderedStandardEntries) {
-            const desiredEnabled = restoreEntry.currentState === 'enabled';
-            const currentEnabled = liveTweak.currentState === 'enabled';
-
-            if (currentEnabled === desiredEnabled) {
-              restoreEntry.sourceScopeIds.forEach((scopeId) => appliedScopeSet.add(scopeId));
-              continue;
-            }
-
-            const result = await toggleTweak(liveTweak, desiredEnabled, {
-              suppressNotifications: true
-            });
-
-            if (result?.ok) {
-              restoreEntry.sourceScopeIds.forEach((scopeId) => appliedScopeSet.add(scopeId));
-              if (restoreEntry.rebootRequired || restoreEntry.sourceScopeIds.includes('bootBcd')) {
-                requiresRestart = true;
-              }
-            } else {
-              restoreErrors.push({
-                scopeId: restoreEntry.sourceScopeIds?.[0] || tweakRestoreScopeIds[0],
-                code: result?.code || 'RESTORE_TWEAK_FAILED',
-                message: result?.message || t('toasts.tweakFailed', { name: liveTweak.name })
-              });
-            }
-          }
-
-          const desiredPowerPlan = powerPlanEntries.find(({ restoreEntry }) => restoreEntry.currentState === 'enabled');
-          if (desiredPowerPlan) {
-            const isAlreadySelected = desiredPowerPlan.liveTweak.currentState === 'enabled';
-            if (isAlreadySelected) {
-              desiredPowerPlan.restoreEntry.sourceScopeIds.forEach((scopeId) => appliedScopeSet.add(scopeId));
-            } else {
-              const result = await applyPowerPlan(desiredPowerPlan.liveTweak, {
-                suppressNotifications: true
-              });
-
-              if (result?.ok) {
-                desiredPowerPlan.restoreEntry.sourceScopeIds.forEach((scopeId) => appliedScopeSet.add(scopeId));
-                if (desiredPowerPlan.restoreEntry.rebootRequired || desiredPowerPlan.restoreEntry.sourceScopeIds.includes('bootBcd')) {
-                  requiresRestart = true;
-                }
-              } else {
-                restoreErrors.push({
-                  scopeId: desiredPowerPlan.restoreEntry.sourceScopeIds?.[0] || tweakRestoreScopeIds[0],
-                  code: result?.code || 'RESTORE_POWER_PLAN_FAILED',
-                  message: result?.message || t('toasts.tweakFailed', { name: desiredPowerPlan.liveTweak.name })
-                });
-              }
-            }
-          } else {
-            powerPlanEntries.forEach(({ restoreEntry }) => {
-              restoreEntry.sourceScopeIds.forEach((scopeId) => appliedScopeSet.add(scopeId));
-            });
-          }
-
-          for (const { liveTweak, restoreEntry } of timerEntries) {
-            const desiredEnabled = restoreEntry.currentState === 'enabled';
-            const desiredResolution = restoreEntry.selectedResolution || liveTweak.selectedResolution || '0.5';
-            const currentEnabled = liveTweak.currentState === 'enabled';
-            const currentResolution = typeof liveTweak.selectedResolution === 'string' ? liveTweak.selectedResolution.trim() : '';
-            const needsApply = desiredEnabled
-              ? !currentEnabled || currentResolution !== desiredResolution
-              : currentEnabled;
-
-            if (!needsApply) {
-              restoreEntry.sourceScopeIds.forEach((scopeId) => appliedScopeSet.add(scopeId));
-              continue;
-            }
-
-            const result = desiredEnabled
-              ? await applyTimerResolution(liveTweak, desiredResolution, { suppressNotifications: true })
-              : await toggleTweak(liveTweak, false, { suppressNotifications: true });
-
-            if (result?.ok) {
-              restoreEntry.sourceScopeIds.forEach((scopeId) => appliedScopeSet.add(scopeId));
-              if (restoreEntry.rebootRequired || restoreEntry.sourceScopeIds.includes('bootBcd')) {
-                requiresRestart = true;
-              }
-            } else {
-              restoreErrors.push({
-                scopeId: restoreEntry.sourceScopeIds?.[0] || tweakRestoreScopeIds[0],
-                code: result?.code || 'RESTORE_TIMER_PROFILE_FAILED',
-                message: result?.message || t('toasts.tweakFailed', { name: liveTweak.name })
-              });
-            }
-          }
-
-          for (const { liveTweak, restoreEntry } of oneShotEntries) {
-            const desiredOption = String(restoreEntry.selectedOption || liveTweak.selectedOption || '').trim();
-            const currentOption = String(liveTweak.selectedOption || '').trim();
-
-            if (!desiredOption || desiredOption === currentOption) {
-              restoreEntry.sourceScopeIds.forEach((scopeId) => appliedScopeSet.add(scopeId));
-              continue;
-            }
-
-            const result = await applyOneShotSelection(liveTweak, desiredOption, {
-              suppressNotifications: true
-            });
-
-            if (result?.ok) {
-              restoreEntry.sourceScopeIds.forEach((scopeId) => appliedScopeSet.add(scopeId));
-              if (restoreEntry.rebootRequired || restoreEntry.sourceScopeIds.includes('bootBcd')) {
-                requiresRestart = true;
-              }
-            } else {
-              restoreErrors.push({
-                scopeId: restoreEntry.sourceScopeIds?.[0] || tweakRestoreScopeIds[0],
-                code: result?.code || 'RESTORE_ONE_SHOT_SELECTION_FAILED',
-                message: result?.message || t('toasts.tweakFailed', { name: liveTweak.name })
-              });
-            }
-          }
-
-          for (const { liveTweak, restoreEntry } of rangeEntries) {
-            const desiredValue = normalizeOptionalNumber(restoreEntry.currentValue);
-            const currentValue = normalizeOptionalNumber(liveTweak.currentValue);
-
-            if (desiredValue === null || (currentValue !== null && currentValue === desiredValue)) {
-              restoreEntry.sourceScopeIds.forEach((scopeId) => appliedScopeSet.add(scopeId));
-              continue;
-            }
-
-            const result = await applyRangeSelection(liveTweak, desiredValue, {
-              suppressNotifications: true
-            });
-
-            if (result?.ok) {
-              restoreEntry.sourceScopeIds.forEach((scopeId) => appliedScopeSet.add(scopeId));
-            } else {
-              restoreErrors.push({
-                scopeId: restoreEntry.sourceScopeIds?.[0] || tweakRestoreScopeIds[0],
-                code: result?.code || 'RESTORE_RANGE_SELECTION_FAILED',
-                message: result?.message || t('toasts.tweakFailed', { name: liveTweak.name })
-              });
-            }
-          }
-        }
-    } else if (tweakRestoreScopeIds.length) {
-      tweakRestoreScopeIds.forEach((scopeId) => appliedScopeSet.add(scopeId));
-    }
-
-    return {
-      ok: restoreErrors.length === 0,
-      partial: restoreErrors.length > 0 && appliedScopeSet.size > 0,
-      appliedScopes: Array.from(appliedScopeSet),
-      errorCount: restoreErrors.length,
-      errors: restoreErrors,
-      requiresRestart,
-      adminRequired: Boolean(plan.adminRequired)
-    };
-  }
+  });
 
   const backupStateSnapshot = useMemo(() => {
     if (activeSection !== 'backup') {

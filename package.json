@@ -1,13 +1,13 @@
 {
   "name": "nova-tweaks",
   "productName": "Nova Tweaks",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Windows optimization and control app for gamers and power users",
   "author": "Nova Tweaks",
   "main": "electron/main.js",
   "scripts": {
     "predev": "npm run ensure:presentmon",
-    "dev": "concurrently \"npm:dev:renderer\" \"npm:dev:electron\"",
+    "dev": "concurrently --kill-others \"npm:dev:renderer\" \"npm:dev:electron\"",
     "dev:debug": "cross-env NOVA_OPEN_DEVTOOLS=true npm run dev",
     "dev:renderer": "vite --host 127.0.0.1 --port 5183 --strictPort",
     "dev:electron": "wait-on tcp:5183 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5183 node electron/launcher.js",
@@ -37,7 +37,10 @@
     "build:nvidia-display-helper": "powershell -ExecutionPolicy Bypass -File tools/nvidia-display-helper/build.ps1 -Configuration Release",
     "preview": "vite preview",
     "pretest": "node scripts/generate-desktop-signing-config.js && node scripts/generate-bundled-tweak-manifest.js",
-    "test": "node --test"
+    "test": "node --test",
+    "lint": "eslint electron scripts src",
+    "typecheck": "tsc -p tsconfig.contracts.json",
+    "test:packaged": "node scripts/packaged-smoke.js"
   },
   "build": {
     "appId": "de.novatweaks.desktop",
@@ -187,6 +190,7 @@
       }
     ],
     "win": {
+      "requestedExecutionLevel": "asInvoker",
       "executableName": "NovaTweaks",
       "signExts": [
         "!LibreHardwareMonitor.exe",
@@ -229,14 +233,19 @@
     "recharts": "^2.15.1"
   },
   "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/react": "^18.3.31",
     "@vitejs/plugin-react": "^4.4.1",
     "autoprefixer": "^10.4.20",
     "concurrently": "^9.2.4",
     "cross-env": "^7.0.3",
     "electron": "^44.0.0",
     "electron-builder": "^26.15.3",
+    "eslint": "^10.11.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "postcss": "^8.5.26",
     "tailwindcss": "^3.4.17",
+    "typescript": "^5.9.3",
     "vite": "^6.4.3",
     "wait-on": "^8.0.3"
   }

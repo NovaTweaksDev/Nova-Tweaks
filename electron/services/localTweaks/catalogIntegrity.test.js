@@ -77,3 +77,11 @@ test('bundled tweak scripts declare every configured execution parameter', () =>
     }
   }
 });
+
+test('classic context menu resolves the administrator state contract for apply and restore', () => {
+  const catalog = createTweakCatalog({ configsDir, scriptsDir });
+  for (const [action, state] of [['apply', 'On'], ['restore', 'Off'], ['detect', 'Check']]) {
+    const plan = catalog.resolveExecution('enable_classic_context_menu', action);
+    assert.deepEqual(plan.params, { State: state, Silent: true });
+  }
+});

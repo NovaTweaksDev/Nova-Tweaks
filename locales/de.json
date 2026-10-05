@@ -1673,6 +1673,23 @@
     }
   },
   "backup": {
+    "recovery": {
+      "restartRequired": "Ein Neustart kann erforderlich sein.",
+      "title": "Fortschritt der Wiederherstellung",
+      "resuming": "Zustand vor der Fortsetzung prüfen...",
+      "completed": "Wiederherstellung abgeschlossen.",
+      "prepared": "Vorbereitung",
+      "running": "Wiederherstellung läuft",
+      "failed": "Nach einem Fehler angehalten",
+      "interrupted": "Unterbrochen",
+      "resume": "Zustand prüfen und fortsetzen",
+      "step": {
+        "pending": "Ausstehend",
+        "started": "Begonnen",
+        "completed": "Abgeschlossen",
+        "failed": "Fehlgeschlagen"
+      }
+    },
     "title": "Backup & Restore",
     "description": "Erstelle Restore Points, sichere Tweak-Status und stelle frühere Konfigurationen wieder her, bevor grössere Änderungen angewendet werden.",
     "previewBadge": "System-Integration",
@@ -2133,6 +2150,8 @@
       "mascotAnimationDescription": "Zeigt die Mascot-Animation beim Aktivieren von Tweaks."
     },
     "startup": {
+      "requestAdminOnStartupTitle": "Administratorzugriff beim Start anfragen",
+      "requestAdminOnStartupDescription": "Fragt bei jedem App-Start nach Administratorzugriff. Wenn deaktiviert, aktivierst du ihn für jede Sitzung über den Button unten links.",
       "startWithWindowsTitle": "Mit Windows starten",
       "startWithWindowsDescription": "Registriert Nova-Tweaks für den automatischen Start mit Windows.",
       "startMinimizedTitle": "Minimiert starten",

@@ -214,3 +214,19 @@ test('reports a worker startup error immediately instead of waiting for the sess
   });
   manager.shutdown();
 });
+
+test('manual approval policy blocks operation prompts and resets for a new session', async (t) => {
+  let launches = 0;
+  const manager = createAdminBrokerManager({
+    platform: 'win32', requireExplicitApproval: true, isAdminProvider: () => false,
+    launchBroker: async () => { launches += 1; throw new AdminBrokerError('Cancelled', 'ADMIN_BROKER_CANCELLED'); }
+  });
+  t.after(() => manager.shutdown());
+  await assert.rejects(manager.execute('tweak.execute'), { code: 'ADMIN_BROKER_APPROVAL_REQUIRED' });
+  await assert.rejects(manager.ensureReady({ reason: 'monitoring' }), { code: 'ADMIN_BROKER_APPROVAL_REQUIRED' });
+  assert.equal(launches, 0);
+  await assert.rejects(manager.ensureReady({ reason: 'manual', explicitApproval: true }), { code: 'ADMIN_BROKER_CANCELLED' });
+  assert.equal(launches, 1);
+  await assert.rejects(manager.execute('tweak.execute'), { code: 'ADMIN_BROKER_APPROVAL_REQUIRED' });
+  assert.equal(launches, 1);
+});

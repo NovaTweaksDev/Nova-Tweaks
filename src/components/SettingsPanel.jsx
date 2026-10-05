@@ -408,6 +408,15 @@ function SettingsPanel({
 
           <SettingsSection icon={AppWindow} title={t('settingsPanel.sections.startupTitle')} description={t('settingsPanel.sections.startupDescription')}>
             <SettingsToggleRow
+              icon={ShieldCheck}
+              title={t('settingsPanel.startup.requestAdminOnStartupTitle')}
+              description={t('settingsPanel.startup.requestAdminOnStartupDescription')}
+              value={getNested(settings, 'startupWindow', 'requestAdminOnStartup', false)}
+              onChange={(value) => update('startupWindow', 'requestAdminOnStartup', value)}
+              disabled={loading}
+              status={busyAction === 'startupWindow.requestAdminOnStartup' ? 'loading' : ''}
+            />
+            <SettingsToggleRow
               icon={AppWindow}
               title={t('settingsPanel.startup.startWithWindowsTitle')}
               description={t('settingsPanel.startup.startWithWindowsDescription')}

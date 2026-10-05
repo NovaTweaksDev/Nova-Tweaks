@@ -226,3 +226,14 @@ test('does not preserve confirmation bypass for non-tweak rule actions', () => {
 
   assert.equal(updated.automation.rules[0].action.bypassConfirmation, false);
 });
+
+test('startup administrator prompt is opt-in and persisted as a boolean', (t) => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-settings-'));
+  t.after(() => fs.rmSync(tempRoot, { recursive: true, force: true }));
+  const service = createSettingsService({ app: { getPath: (name) => path.join(tempRoot, name) } });
+  assert.equal(service.getSettings().startupWindow.requestAdminOnStartup, false);
+  service.updateSettings({ startupWindow: { requestAdminOnStartup: true } });
+  assert.equal(service.loadSettings().startupWindow.requestAdminOnStartup, true);
+  service.updateSettings({ startupWindow: { requestAdminOnStartup: 'true' } });
+  assert.equal(service.loadSettings().startupWindow.requestAdminOnStartup, false);
+});

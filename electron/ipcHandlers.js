@@ -73,7 +73,7 @@ function registerTweakExecutionIpcHandlers({ ipcMain, tweakRunner, logger, toIpc
     const tweakId = payload?.id;
     const targetState = typeof payload?.targetState === 'string' ? payload.targetState : 'enabled';
     const params = payload?.params && typeof payload.params === 'object' ? payload.params : {};
-    const timeoutMs = Number.isFinite(payload?.timeoutMs) ? payload.timeoutMs : 60000;
+    const timeoutMs = payload?.timeoutMs;
 
     if (typeof tweakId === 'undefined' || tweakId === null || tweakId === '') {
       return {

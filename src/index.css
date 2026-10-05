@@ -7508,7 +7508,10 @@ html[data-theme='dark'] .app-sidebar {
 .overview-section-content {
   display: flex;
   min-width: 0;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  container-type: inline-size;
   border-left: 1px solid var(--border-subtle);
   padding: 0.42rem 0.7rem;
   animation: content-reveal var(--motion-duration-base) var(--motion-ease-emphasized);
@@ -7657,6 +7660,7 @@ html[data-theme='dark'] .app-sidebar {
 
 .overview-device-stats {
   display: grid;
+  min-width: 0;
   grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
   gap: 0;
 }
@@ -8060,6 +8064,28 @@ html[data-theme='dark'] .app-sidebar {
   .overview-footer {
     flex-wrap: wrap;
     gap: 0.35rem 1rem;
+  }
+}
+
+@container (max-width: 640px) {
+  .overview-metric-row {
+    grid-template-columns: minmax(68px, 84px) minmax(0, 1fr);
+    gap: 0.55rem 0.82rem;
+  }
+
+  .overview-device-stats {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+
+  .overview-device-stats > :first-child {
+    border-left: 0;
+  }
+}
+
+@container (max-width: 360px) {
+  .overview-metric-row {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
