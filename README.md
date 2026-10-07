@@ -2,6 +2,10 @@
 
 Free and open-source Windows system configuration utility with documented tweaks, local monitoring, backup tools, and user-controlled changes.
 
+## Maintainer
+
+Nova Tweaks is maintained by Elia Willi Klemenz.
+
 [Download](https://github.com/NovaTweaksDev/Nova-Tweaks/releases) | [Website](https://nova-tweaks.com) | [Report a bug](https://github.com/NovaTweaksDev/Nova-Tweaks/issues/new?template=bug_report.yml) | [Request a feature](https://github.com/NovaTweaksDev/Nova-Tweaks/issues/new?template=feature_request.yml) | [Contribute](CONTRIBUTING.md)
 
 [![CI](https://github.com/NovaTweaksDev/Nova-Tweaks/actions/workflows/ci.yml/badge.svg)](https://github.com/NovaTweaksDev/Nova-Tweaks/actions/workflows/ci.yml)
