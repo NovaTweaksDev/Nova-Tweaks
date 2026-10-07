@@ -31,6 +31,7 @@ const { captureAutomaticTweakSnapshot } = require('./services/backups/automaticB
 const { createSystemDetectionService } = require('./services/systemDetection/systemDetectionService');
 const { createSettingsService, SettingsServiceError } = require('./services/settings/settingsService');
 const { migrateLegacyUserData } = require('./services/settings/userDataMigration');
+const { removeLegacyStartMenuShortcut } = require('./services/settings/startMenuShortcut');
 const { TweakEngineError } = require('./services/tweaks/errors');
 const { createTweakRunner, TweakRunnerError } = require('./services/tweaks/tweakRunner');
 const { createBackendTweakCatalog } = require('./services/tweaks/backendTweakCatalog');
@@ -66,8 +67,13 @@ if (isPackagedSmoke) {
 }
 const PRODUCT_NAME = 'Nova Tweaks';
 const LEGACY_PRODUCT_NAME = 'Nova Tweaks Local';
-const WINDOWS_APP_USER_MODEL_ID = 'de.novatweaks.desktop';
+const WINDOWS_APP_USER_MODEL_ID = app.isPackaged ? 'de.novatweaks.desktop' : 'de.novatweaks.desktop.development';
 app.setName(PRODUCT_NAME);
+// Electron 44 registers a Start Menu shortcut when native notifications initialize.
+// Development uses electron.exe, so keep native toasts confined to installed builds.
+function supportsNativeNotifications() {
+  return (process.platform !== 'win32' || app.isPackaged) && Notification.isSupported();
+}
 if (process.platform === 'win32' && process.windowsStore !== true) {
   app.setAppUserModelId(WINDOWS_APP_USER_MODEL_ID);
 }
@@ -1242,7 +1248,7 @@ async function runScheduledBackup() {
   } catch (error) {
     automaticBackupRetryAt = Date.now() + 15 * 60 * 1000;
     backupsLogger.error('Scheduled backup failed.', { code: error?.code, message: error?.message });
-    if (Notification.isSupported()) {
+    if (supportsNativeNotifications()) {
       new Notification({ title: 'Nova Backup', body: `Automatic backup failed: ${error?.message || 'Unknown error'}` }).show();
     }
   }
@@ -1657,9 +1663,11 @@ function createMainWindow() {
   if (process.platform === 'win32' && HAS_APP_ICON) {
     mainWindow.setAppDetails({
       appId: WINDOWS_APP_USER_MODEL_ID,
-      appIconPath: APP_ICON_PATH,
+      appIconPath: app.isPackaged ? process.execPath : APP_ICON_PATH,
       appIconIndex: 0,
-      relaunchCommand: `"${process.execPath}"`,
+      relaunchCommand: app.isPackaged
+        ? `"${process.execPath}"`
+        : `"${process.execPath}" "${app.getAppPath()}"`,
       relaunchDisplayName: PRODUCT_NAME
     });
   }
@@ -2892,6 +2900,9 @@ if (!initializePrivilegeState()) {
 
   app.whenReady().then(() => {
     Menu.setApplicationMenu(null);
+    if (process.platform === 'win32' && !isPackagedSmoke && process.windowsStore !== true) {
+      removeLegacyStartMenuShortcut({ app, shell, logger });
+    }
 
     registerLocalRendererProtocol({
       protocol,
@@ -3078,7 +3089,7 @@ if (!initializePrivilegeState()) {
         return { ok: true };
       },
       onAdminRequired: () => {
-        if (!Notification.isSupported()) return;
+        if (!supportsNativeNotifications()) return;
         const notification = new Notification({
           title: 'Nova Maintenance',
           body: 'Scheduled maintenance is waiting for administrator approval.'
@@ -3105,7 +3116,7 @@ if (!initializePrivilegeState()) {
       executeAutomaticAction: executeAutomaticRuleAction,
       onNotify: (execution) => {
         if (mainWindow?.isVisible?.() && !mainWindow?.isMinimized?.()) return;
-        if (!Notification.isSupported()) return;
+        if (!supportsNativeNotifications()) return;
         const notification = new Notification({
           title: 'Nova Automation',
           body: execution.automatic
@@ -3116,7 +3127,7 @@ if (!initializePrivilegeState()) {
         notification.show();
       },
       onAdminRequired: (execution) => {
-        if (!Notification.isSupported()) return;
+        if (!supportsNativeNotifications()) return;
         const pendingCount = Math.max(1, Number(execution?.pendingAdminCount) || 1);
         const notification = new Notification({
           title: 'Nova Automation',

@@ -18,9 +18,9 @@
     "build:release": "cross-env NOVA_DESKTOP_RELEASE_BUILD=true npm run build",
     "clean:release-output": "node scripts/clean-release-output.js",
     "dist:win": "npm run build:release && electron-builder --win nsis --x64 -c.win.forceCodeSigning=true && node scripts/write-release-checksum.js",
-    "dist:local": "cross-env NOVA_LOCAL_TEST_BUILD=true npm run build && cross-env NOVA_LOCAL_TEST_BUILD=true CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win nsis --x64 --publish never -c.win.signAndEditExecutable=false && node scripts/write-release-checksum.js",
-    "dist:win:dir": "npm run build:release && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win dir --x64 -c.win.signAndEditExecutable=false",
-    "dist:local:dir": "cross-env NOVA_LOCAL_TEST_BUILD=true npm run build && cross-env NOVA_LOCAL_TEST_BUILD=true CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win dir --x64 -c.win.signAndEditExecutable=false",
+    "dist:local": "cross-env NOVA_LOCAL_TEST_BUILD=true npm run build && cross-env NOVA_LOCAL_TEST_BUILD=true CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win nsis --x64 --publish never -c.win.signExecutable=false && node scripts/write-release-checksum.js",
+    "dist:win:dir": "npm run build:release && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win dir --x64 -c.win.signExecutable=false",
+    "dist:local:dir": "cross-env NOVA_LOCAL_TEST_BUILD=true npm run build && cross-env NOVA_LOCAL_TEST_BUILD=true CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win dir --x64 -c.win.signExecutable=false",
     "dist:msix:test": "npm run build:release && node scripts/verify-msix-test-prerequisites.js && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --config electron-builder.msix-test.cjs --win dir --x64 --publish never && powershell -ExecutionPolicy Bypass -File scripts/package-msix-test.ps1",
     "dist:msix:test:signed": "npm run build:release && node scripts/verify-msix-test-prerequisites.js && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --config electron-builder.msix-test.cjs --win dir --x64 --publish never && powershell -ExecutionPolicy Bypass -File scripts/package-msix-test.ps1 -LocalSigned",
     "predist:win": "npm run clean:release-output && npm run vendor:presentmon",
@@ -190,12 +190,21 @@
       }
     ],
     "win": {
+	  "signtoolOptions": {
+		"certificateSha1": "da86dbdaf373ffca4e4469475c16a894ca42cfe4",
+		"signingHashAlgorithms": ["sha256"]
+      },
       "requestedExecutionLevel": "asInvoker",
       "executableName": "NovaTweaks",
       "signExts": [
         "!LibreHardwareMonitor.exe",
         "!PresentMon.exe",
-        "!PresentMonLegacy.exe"
+        "!PresentMonLegacy.exe",
+        "!NovaPresentMonHelper.exe",
+        "!NovaGameDetector.exe",
+        "!createdump.exe",
+        "!nvidia-display-helper.exe",
+        "!nvidia-profile-helper.exe"
       ],
       "target": [
         {

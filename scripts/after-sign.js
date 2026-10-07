@@ -27,7 +27,7 @@ function assertAuthenticodeSignature(filePath) {
 }
 
 module.exports = async function afterSign(context) {
-  if (context.electronPlatformName !== 'win32' || context.packager.config?.win?.signAndEditExecutable === false) return;
+  if (context.electronPlatformName !== 'win32' || context.packager.config?.win?.signAndEditExecutable === false || context.packager.config?.win?.signExecutable === false) return;
   const thirdPartyManifest = loadThirdPartyManifest(context.packager.projectDir);
   assertThirdPartyFiles(context.appOutDir, thirdPartyManifest, 'packagedPath');
   assertThirdPartyLegalFiles(context.appOutDir, thirdPartyManifest);

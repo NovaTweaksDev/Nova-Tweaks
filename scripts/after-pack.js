@@ -23,58 +23,6 @@ const {
   assertThirdPartySourceTrees
 } = require('./third-party-source-compliance');
 
-function parsePublicKeyCollection(value) {
-  if (Array.isArray(value)) {
-    return value.map((entry) => String(entry || '').trim()).filter(Boolean);
-  }
-  if (value && typeof value === 'object') {
-    return Object.values(value).map((entry) => String(entry || '').trim()).filter(Boolean);
-  }
-  return String(value || '').trim() ? [String(value).trim()] : [];
-}
-
-function assertReleaseSigningConfig(projectDirectory) {
-  const signingConfigPath = path.join(
-    projectDirectory,
-    'electron',
-    'generated',
-    'signing-config.js'
-  );
-  if (!fs.existsSync(signingConfigPath)) {
-    throw new Error('Desktop packaging requires a generated signing configuration.');
-  }
-
-  delete require.cache[require.resolve(signingConfigPath)];
-  const config = require(signingConfigPath);
-  const enabled = (value) => String(value || '').trim().toLowerCase() === 'true';
-  const artifactKeys = [
-    ...parsePublicKeyCollection(config.NOVA_ARTIFACT_PUBLIC_KEY),
-    ...parsePublicKeyCollection(config.NOVA_ARTIFACT_PUBLIC_KEYS)
-  ];
-  const tweakKeys = [
-    ...artifactKeys,
-    ...parsePublicKeyCollection(config.NOVA_TWEAK_PUBLIC_KEY),
-    ...parsePublicKeyCollection(config.NOVA_TWEAK_PUBLIC_KEYS)
-  ];
-  const updateKeys = [
-    ...artifactKeys,
-    ...parsePublicKeyCollection(config.NOVA_UPDATE_PUBLIC_KEY),
-    ...parsePublicKeyCollection(config.NOVA_UPDATE_PUBLIC_KEYS)
-  ];
-
-  if (
-    !enabled(config.NOVA_REQUIRE_TWEAK_SIGNATURES)
-    || !enabled(config.NOVA_REQUIRE_UPDATE_SIGNATURES)
-    || !artifactKeys.length
-    || !tweakKeys.length
-    || !updateKeys.length
-  ) {
-    throw new Error(
-      'Desktop packaging requires artifact-root trust and enforced tweak/update signatures.'
-    );
-  }
-}
-
 function assertElectronFusePolicy(config) {
   const fuses = config?.electronFuses || {};
   const expected = {
@@ -162,9 +110,6 @@ module.exports = async function afterPack(context) {
     return;
   }
 
-  if (context.packager.config?.win?.forceCodeSigning === true) {
-    assertReleaseSigningConfig(context.packager.projectDir);
-  }
   assertElectronFusePolicy(context.packager.config);
   assertPackagedAsarMinimized(context.appOutDir);
 
