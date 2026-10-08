@@ -491,6 +491,8 @@ function createMonitoringManager(options = {}) {
       ? options.allowDriverProvisionProvider
       : () => false;
   const privilegedExecutor = typeof options.privilegedExecutor === 'function' ? options.privilegedExecutor : null;
+  const isAdminAccessReady = typeof options.isAdminAccessReady === 'function'
+    ? options.isAdminAccessReady : isAdminProvider;
   let executablePath = resolveLhmExecutablePath(app, logger);
   const lhmAuthentication = createLhmAuthentication(executablePath);
 
@@ -685,6 +687,11 @@ function createMonitoringManager(options = {}) {
     pollInProgress = true;
 
     try {
+      if (process.platform === 'win32' && !isAdminAccessReady()) {
+        const error = new Error('Hardware sensors are waiting for administrator access.');
+        error.code = 'ADMIN_BROKER_APPROVAL_REQUIRED';
+        throw error;
+      }
       await ensureLhmReady();
 
       const raw = await lhmClient.fetchWithRetry({
@@ -707,15 +714,20 @@ function createMonitoringManager(options = {}) {
       onMetrics?.(latest);
       return latest;
     } catch (error) {
-      consecutiveFailures += 1;
+      const waitingForAdmin = error.code === 'ADMIN_BROKER_APPROVAL_REQUIRED';
+      if (waitingForAdmin) {
+        consecutiveFailures = 0;
+        logger?.info?.('Hardware sensors are waiting for administrator access.');
+      } else {
+        consecutiveFailures += 1;
+        logger?.error?.('LHM monitoring cycle failed.', {
+          message: error.message,
+          code: error.code || 'MONITORING_ERROR',
+          consecutiveFailures
+        });
+      }
 
-      logger?.error?.('LHM monitoring cycle failed.', {
-        message: error.message,
-        code: error.code || 'MONITORING_ERROR',
-        consecutiveFailures
-      });
-
-      if (consecutiveFailures >= RESTART_THRESHOLD) {
+      if (!waitingForAdmin && consecutiveFailures >= RESTART_THRESHOLD) {
         consecutiveFailures = 0;
         await killLhmProcesses(logger, { allowElevation: true, privilegedExecutor });
         managedLhmRunning = false;
@@ -724,6 +736,7 @@ function createMonitoringManager(options = {}) {
       const offlinePayload = createOfflinePayload(error.message || 'LibreHardwareMonitor endpoint is offline.');
       latest = {
         ...offlinePayload,
+        code: error.code || 'MONITORING_ERROR',
         overview: await overviewSnapshotService.buildSnapshot({
           rawLhmPayload: null,
           metrics: offlinePayload,
@@ -749,7 +762,11 @@ function createMonitoringManager(options = {}) {
       return true;
     }
     if (startPromise) {
-      return startPromise;
+      const started = await startPromise;
+      if (!started && latest?.code === 'ADMIN_BROKER_APPROVAL_REQUIRED' && isAdminAccessReady()) {
+        return start();
+      }
+      return started;
     }
 
     startPromise = (async () => {

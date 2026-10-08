@@ -6,6 +6,9 @@
     "description": "Eine moderne Steuerzentrale für System-Tweaks, Script-Ausführung und Diagnose."
   },
   "advancedSensors": {
+    "waitingTitle": "Hardware-Sensoren warten auf Administratorzugriff",
+    "waitingDescription": "LibreHardwareMonitor ist aktiviert und startet automatisch nach der Adminfreigabe. Ein App-Neustart ist nicht nötig.",
+    "requestAdmin": "Administratorzugriff aktivieren",
     "title": "Erweiterte Sensoren sind deaktiviert",
     "description": "Aktiviere LibreHardwareMonitor für CPU- und GPU-Temperaturen, Lüfterdrehzahlen, Spannungen und weitere Hardwarewerte.",
     "uacExplanation": "Windows fragt bei der Einrichtung des Sensortreibers und beim Start von LibreHardwareMonitor nach Administratorrechten, damit geschützte CPU-Sensoren korrekt ausgelesen werden können.",

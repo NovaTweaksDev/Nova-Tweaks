@@ -6,6 +6,9 @@
     "description": "A modern control surface for system tweaks, script execution and diagnostics."
   },
   "advancedSensors": {
+    "waitingTitle": "Hardware sensors are waiting for administrator access",
+    "waitingDescription": "LibreHardwareMonitor is enabled and will start automatically after administrator access is approved. No app restart is needed.",
+    "requestAdmin": "Enable administrator access",
     "title": "Advanced sensors are disabled",
     "description": "Enable LibreHardwareMonitor for CPU and GPU temperatures, fan speeds, voltages, and additional hardware readings.",
     "uacExplanation": "Windows requests administrator access when setting up the sensor driver and starting LibreHardwareMonitor so protected CPU sensors can be read correctly.",

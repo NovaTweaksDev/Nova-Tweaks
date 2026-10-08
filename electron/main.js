@@ -1113,6 +1113,8 @@ function handleAdminBrokerStateChange(state) {
   broadcastAdminAccessState(state);
   const ready = Boolean(state?.ready);
   if (ready && !adminBrokerWasReady) {
+    void syncMonitoringSubscriptionState()
+      .catch((error) => metricsLogger.warn('Monitoring could not resume after administrator approval.', { message: error.message }));
     void ruleAutomationService?.resumePendingAutomaticActions?.({ adminApproved: true });
   }
   adminBrokerWasReady = ready;
@@ -3173,6 +3175,7 @@ if (!initializePrivilegeState()) {
       intervalMs: 2000,
       systemDetectionService,
       isAdminProvider: () => isAdminSession,
+      isAdminAccessReady: () => Boolean(isAdminSession || adminBrokerManager?.getState?.()?.ready),
       allowDriverProvisionProvider: () => false,
       privilegedExecutor: (operation, payload, options) => adminBrokerManager.execute(operation, payload, options),
       onMetrics: (metrics) => {

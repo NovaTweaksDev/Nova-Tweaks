@@ -154,7 +154,7 @@ function registerMonitoringHandlers(runtime) {
     runtime.advancedSensorMonitoringEnabled = true;
     try {
       const started = await runtime.monitoringManager.start();
-      if (!started) {
+      if (!started && runtime.monitoringManager.getLatest()?.code !== 'ADMIN_BROKER_APPROVAL_REQUIRED') {
         const activationError = new Error(
           runtime.monitoringManager.getLatest()?.message || 'LibreHardwareMonitor could not be started.'
         );

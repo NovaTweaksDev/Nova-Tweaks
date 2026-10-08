@@ -8,7 +8,7 @@ const ICON_PROPS = {
   strokeWidth: 1.8
 };
 
-function AdvancedSensorsPrompt({ className = '', onOpenSettings }) {
+function AdvancedSensorsPrompt({ className = '', onOpenSettings, waitingForAdmin = false, adminStarting = false, onRequestAdminAccess }) {
   const { t } = useTranslation();
   const [checking, setChecking] = useState(true);
   const [enabled, setEnabled] = useState(false);
@@ -42,7 +42,7 @@ function AdvancedSensorsPrompt({ className = '', onOpenSettings }) {
     };
   }, []);
 
-  if (checking || enabled) {
+  if (!waitingForAdmin && (checking || enabled)) {
     return null;
   }
 
@@ -57,26 +57,27 @@ function AdvancedSensorsPrompt({ className = '', onOpenSettings }) {
         </span>
         <div className="min-w-0">
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">
-            {t('advancedSensors.title')}
+            {t(waitingForAdmin ? 'advancedSensors.waitingTitle' : 'advancedSensors.title')}
           </h2>
           <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">
-            {t('advancedSensors.description')}
+            {t(waitingForAdmin ? 'advancedSensors.waitingDescription' : 'advancedSensors.description')}
           </p>
-          <p className="mt-1 flex items-start gap-1.5 text-[11px] leading-4 text-[var(--text-muted)]">
+          {!waitingForAdmin ? <p className="mt-1 flex items-start gap-1.5 text-[11px] leading-4 text-[var(--text-muted)]">
             <ShieldAlert className="mt-px h-3.5 w-3.5 shrink-0 text-[var(--warning)]" aria-hidden="true" />
             <span>{t('advancedSensors.uacExplanation')}</span>
-          </p>
+          </p> : null}
         </div>
       </div>
       <Button
         variant="secondary"
         size="sm"
-        onClick={onOpenSettings}
-        disabled={typeof onOpenSettings !== 'function'}
+        onClick={waitingForAdmin ? onRequestAdminAccess : onOpenSettings}
+        loading={waitingForAdmin && adminStarting}
+        disabled={typeof (waitingForAdmin ? onRequestAdminAccess : onOpenSettings) !== 'function'}
         className="shrink-0"
         leftIcon={<Settings2 className="h-3.5 w-3.5" aria-hidden="true" />}
       >
-        {t('advancedSensors.openSettings')}
+        {t(waitingForAdmin ? 'advancedSensors.requestAdmin' : 'advancedSensors.openSettings')}
       </Button>
     </PageSection>
   );

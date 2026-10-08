@@ -4027,7 +4027,7 @@ function App() {
             />
           ) : null}
 
-          {renderedSection === 'overview' ? <OverviewPanel onNavigateSettings={() => handleSelectSection('settings')} /> : null}
+          {renderedSection === 'overview' ? <OverviewPanel onNavigateSettings={() => handleSelectSection('settings')} advancedSensorsEnabled={appSettings?.monitoring?.advancedSensorsEnabled === true} adminReady={isAdmin === true} adminStarting={adminAccessState?.status === 'starting'} onRequestAdminAccess={handleRequestAdminRelaunch} /> : null}
 
           {renderedSection === 'automation' ? (
             <AutomationPanel

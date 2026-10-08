@@ -435,7 +435,7 @@ function SensorGroup({ title, items, renderItem }) {
   );
 }
 
-function OverviewPanel({ onNavigateSettings }) {
+function OverviewPanel({ onNavigateSettings, advancedSensorsEnabled, adminReady, adminStarting, onRequestAdminAccess }) {
   const { t } = useTranslation();
   const [snapshot, setSnapshot] = useState(() => overviewRuntimeCache.snapshot);
   const [loading, setLoading] = useState(() => !overviewRuntimeCache.snapshot);
@@ -526,7 +526,8 @@ function OverviewPanel({ onNavigateSettings }) {
   }, []);
 
   const primaryGpu = snapshot?.gpus?.[0] || null;
-  const initialMonitoringLoad = loading && !snapshot;
+  const waitingForAdmin = advancedSensorsEnabled && !adminReady;
+  const initialMonitoringLoad = loading && !snapshot && !waitingForAdmin;
   const networkQuality = snapshot?.networkQuality || null;
   const networkRows = snapshot?.network?.length
     ? snapshot.network
@@ -631,9 +632,9 @@ function OverviewPanel({ onNavigateSettings }) {
         }
       />
 
-      <AdvancedSensorsPrompt onOpenSettings={onNavigateSettings} />
+      <AdvancedSensorsPrompt onOpenSettings={onNavigateSettings} waitingForAdmin={waitingForAdmin} adminStarting={adminStarting} onRequestAdminAccess={onRequestAdminAccess} />
 
-      {errors.length || ipcError ? (
+      {(!waitingForAdmin && errors.length) || ipcError ? (
         <div className="overview-warning">
           <RadioTower size={15} aria-hidden="true" />
           <span>{ipcError || errors[0]}</span>

@@ -6,6 +6,26 @@ This file records changes described by the project's public Git tags and GitHub 
 
 No changes recorded yet.
 
+## 1.0.4 - 2026-10-08
+
+### Fixed
+
+- Automatically start enabled LibreHardwareMonitor sensors after administrator access is approved, including approval through the sidebar after a standard startup.
+- Preserve the enabled sensor preference while administrator approval is pending or declined, without repeated automatic UAC prompts.
+- Handle administrator approval arriving during an initial monitoring startup attempt without requiring an app restart or toggling sensors off and on.
+- Keep waiting for administrator approval separate from sensor startup failures and automatic process recovery.
+
+### Changed
+
+- Show a localized waiting message and an administrator-access action in Overview when hardware sensors are enabled but administrator access is unavailable.
+- Reuse the existing administrator broker and monitoring subscription flow; disabled sensors remain disabled and startup administrator approval remains opt-in.
+
+### Validation and limitations
+
+- Added regression coverage for deferred sensor activation, administrator approval, concurrent startup, disabled sensors, and genuine startup failures.
+- The full local test suite passed: 285 tests passed and one skipped. Source linting, interface type checks, and the production frontend build passed.
+- Real UAC approval and live hardware sensor readings still require manual verification on Windows.
+
 ## 1.0.3 - 2026-10-05
 
 ### Added
