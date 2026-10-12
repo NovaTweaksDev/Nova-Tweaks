@@ -184,7 +184,7 @@ test('worker keeps an isolated tweak artifact until script execution completes',
   });
 
   try {
-    const result = await handler.handle('tweak.execute', {
+    const request = handler.handle('tweak.execute', {
       action: 'On',
       params: { State: 'On', Silent: true },
       allowUnsignedDevelopment: true,
@@ -195,8 +195,13 @@ test('worker keeps an isolated tweak artifact until script execution completes',
         content
       }
     }, 30000);
-    assert.equal(result.ok, true);
-    assert.equal(fs.existsSync(executedPath), false);
+    if (require('../../generated/build-profile').store) {
+      await assert.rejects(request, { code: 'TWEAK_BLOCKED_BY_SECURITY_POLICY' });
+      assert.equal(executedPath, '');
+    } else {
+      assert.equal((await request).ok, true);
+      assert.equal(fs.existsSync(executedPath), false);
+    }
   } finally {
     handler.dispose();
   }

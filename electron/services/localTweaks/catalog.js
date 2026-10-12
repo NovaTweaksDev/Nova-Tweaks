@@ -1,5 +1,7 @@
 const fs = require("fs");
 const path = require("path");
+const buildProfile = require("../../generated/build-profile");
+const storePolicy = require("../tweaks/storeTweakPolicy.json");
 
 const VALID_ACTIONS = ["apply", "detect", "restore"];
 const VALID_EXECUTION_TYPES = ["powershell"];
@@ -504,6 +506,9 @@ function createTweakCatalog(options = {}) {
             }
 
             const tweakId = String(parsed.id || "").trim();
+            if (buildProfile.store && Object.hasOwn(storePolicy.exclusions, tweakId)) {
+                continue;
+            }
             if (!VALID_ID_PATTERN.test(tweakId)) {
                 throw new TweakCatalogError("Tweak config id must be stable lowercase snake_case.", "TWEAK_INVALID_ID", {
                     configFile: fileName,

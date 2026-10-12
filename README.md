@@ -75,7 +75,9 @@ See the [website privacy policy](https://nova-tweaks.com/privacy) and [Cloudflar
 
 Download the current installer from [GitHub Releases](https://github.com/NovaTweaksDev/Nova-Tweaks/releases). GitHub's automatically generated source ZIP and tarball contain source code, not the Windows installer.
 
-Current Windows installers are unsigned. Windows can therefore display an `Unknown publisher` warning. Use only releases published by `NovaTweaksDev`, compare the installer against the included `checksums.txt`, and review the release notes before installation.
+The public v1.0.4 installer, main application and administrator broker have valid Certum/SimplySign Authenticode signatures from `Open Source Developer Elia Willi Klemenz`. Its other Nova helpers were not signed. Preview and local test builds are unsigned. Use only releases published by `NovaTweaksDev`, compare the installer against `checksums.txt`, and review the release notes and signature report for the exact package.
+
+The revised Stable pipeline signs all Nova-owned PE files, validates the final installer and its payload, and blocks publication on validation failure. Reviewed upstream components retain their original signatures; some are unsigned, which currently blocks Microsoft Store submission. Valid code signatures do not guarantee SmartScreen or Edge download reputation. See [Microsoft Store readiness and release instructions](docs/MICROSOFT_STORE.md).
 
 Nova Tweaks does not currently use a SignPath Foundation certificate. See [SIGNPATH.md](SIGNPATH.md) for the current status and technical preparation record.
 
@@ -114,7 +116,9 @@ npm run build
 npm run dist:local
 ```
 
-`npm run dist:local` creates an unsigned x64 installer in `dist-release/`. It is intended for local testing and does not publish a release.
+`npm run dist:local` creates an unsigned x64 installer with the local-test broker configuration. `npm run dist:candidate` creates an unsigned review candidate without that bypass. `npm run dist:win` requires the configured Certum/SimplySign certificate and Windows SDK SignTool. `npm run dist:store:candidate` packages the independently testable Store resource set; `npm run dist:store` also enforces signing of every PE and currently blocks on unsigned upstream components. None of these commands publishes a release.
+
+Packaging and reusable caches stay under `.cache/`. Only after successful package checks is the replacement retained in `dist-release/`; the last validated output is preserved until then. See [build profiles and protected signing](docs/MICROSOFT_STORE.md#build-profiles-and-protected-signing).
 
 ## Project structure
 

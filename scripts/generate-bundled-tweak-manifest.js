@@ -5,6 +5,8 @@ const path = require('path');
 const projectRoot = path.resolve(__dirname, '..');
 const tweaksRoot = path.join(projectRoot, 'resources', 'tweaks');
 const outputPath = path.join(projectRoot, 'electron', 'generated', 'bundled-tweaks-manifest.js');
+const profile = require('./build-profile').resolveBuildProfile();
+const storePolicy = require('../electron/services/tweaks/storeTweakPolicy.json');
 
 function listFiles(directory, baseDirectory = directory) {
   return fs.readdirSync(directory, { withFileTypes: true })
@@ -21,7 +23,12 @@ function sha256(buffer) {
   return crypto.createHash('sha256').update(buffer).digest('hex');
 }
 
-const files = Object.fromEntries(listFiles(tweaksRoot).map((relativePath) => {
+const files = Object.fromEntries(listFiles(tweaksRoot).filter((relativePath) => {
+  if (!profile.store) return true;
+  return !Object.keys(storePolicy.exclusions).some((id) =>
+    relativePath === `configs/${id}.json` || relativePath.startsWith(`scripts/${id}/`)
+  );
+}).map((relativePath) => {
   const content = fs.readFileSync(path.join(tweaksRoot, ...relativePath.split('/')));
   return [relativePath, { sha256: sha256(content), size: content.length }];
 }));

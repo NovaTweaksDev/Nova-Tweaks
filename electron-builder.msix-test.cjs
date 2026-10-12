@@ -1,6 +1,6 @@
 const packageMetadata = require('./package.json');
 
-const DEFAULT_MSIX_VERSION = '0.9.0.0';
+const DEFAULT_MSIX_VERSION = `${packageMetadata.version}.0`;
 const version = String(process.env.NOVA_MSIX_VERSION || DEFAULT_MSIX_VERSION).trim();
 const parts = version.split('.').map((value) => Number.parseInt(value, 10));
 

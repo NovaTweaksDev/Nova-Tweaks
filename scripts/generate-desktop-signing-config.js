@@ -123,7 +123,7 @@ const config = {
   NOVA_UPDATE_PUBLIC_KEYS: pickPublicKeys(values, 'NOVA_UPDATE_PUBLIC_KEYS'),
   NOVA_REQUIRE_TWEAK_SIGNATURES: pick(values, 'NOVA_REQUIRE_TWEAK_SIGNATURES'),
   NOVA_REQUIRE_UPDATE_SIGNATURES: pick(values, 'NOVA_REQUIRE_UPDATE_SIGNATURES'),
-  NOVA_LOCAL_TEST_BUILD: isTrue(process.env.NOVA_LOCAL_TEST_BUILD)
+  NOVA_LOCAL_TEST_BUILD: require('./build-profile').resolveBuildProfile().localTest
 };
 
 const artifactPublicKeys = [...new Set([config.NOVA_ARTIFACT_PUBLIC_KEY, ...config.NOVA_ARTIFACT_PUBLIC_KEYS].filter(Boolean))];

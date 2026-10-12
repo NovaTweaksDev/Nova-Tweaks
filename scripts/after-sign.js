@@ -1,6 +1,7 @@
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { windowsPowerShellEnv } = require('./windows-powershell-env');
 const {
   assertThirdPartyFiles,
   assertThirdPartyLegalFiles,
@@ -20,7 +21,7 @@ function assertAuthenticodeSignature(filePath) {
     'if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) { exit 17 }'
   ].join('; ');
   execFileSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', command], {
-    env: { ...process.env, NOVA_SIGNED_FILE: filePath },
+    env: windowsPowerShellEnv({ ...process.env, NOVA_SIGNED_FILE: filePath }),
     windowsHide: true,
     stdio: 'pipe'
   });
@@ -41,4 +42,14 @@ module.exports = async function afterSign(context) {
     'nova-admin-broker',
     'NovaAdminBrokerHost.exe'
   ));
+  const profile = require('./build-profile').resolveBuildProfile();
+  if (profile.signed) {
+    execFileSync('powershell.exe', [
+      '-NoLogo', '-NoProfile', '-NonInteractive', '-File',
+      path.join(context.packager.projectDir, 'scripts', 'verify-windows-signatures.ps1'),
+      '-Root', context.appOutDir, '-Mode', profile.store ? 'Store' : 'Stable',
+      '-ExpectedThumbprint', process.env.NOVA_SIGNING_THUMBPRINT || context.packager.config.win.signtoolOptions.certificateSha1,
+      '-SignTool', process.env.NOVA_SIGNTOOL || ''
+    ], { env: windowsPowerShellEnv(), windowsHide: true, stdio: 'inherit' });
+  }
 };

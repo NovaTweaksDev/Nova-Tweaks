@@ -1,0 +1,103 @@
+name: Validate signed Windows release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing reviewed vMAJOR.MINOR.PATCH source tag
+        required: true
+        type: string
+      variant:
+        description: Distribution variant
+        type: choice
+        options: [stable, store]
+        default: stable
+      publish:
+        description: Publish a validated Stable GitHub release (never submits to Store)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nova-protected-signing
+  cancel-in-progress: false
+
+jobs:
+  sign-and-validate:
+    if: github.ref == 'refs/heads/main'
+    environment: nova-signing
+    runs-on: [self-hosted, Windows, X64, nova-signing]
+    permissions:
+      contents: write
+    timeout-minutes: 60
+    env:
+      NOVA_SIGNING_THUMBPRINT: ${{ vars.NOVA_SIGNING_THUMBPRINT }}
+      NOVA_SIGNTOOL: ${{ vars.NOVA_SIGNTOOL }}
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_VARIANT: ${{ inputs.variant }}
+    steps:
+      - name: Validate dispatch inputs before checkout
+        shell: pwsh
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^v\d+\.\d+\.\d+$') { throw 'Expected a stable version tag.' }
+          if ($env:RELEASE_VARIANT -notin @('stable','store')) { throw 'Invalid variant.' }
+          if (-not $env:NOVA_SIGNING_THUMBPRINT -or -not $env:NOVA_SIGNTOOL) { throw 'Configure reviewed public certificate selector and Windows SDK SignTool in the protected environment.' }
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          clean: true
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Check source tag and version
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          if ($env:RELEASE_TAG -ne "v$version") { throw 'Tag and package version differ.' }
+          git merge-base --is-ancestor HEAD origin/main
+          if ($LASTEXITCODE -ne 0) { throw 'Only reviewed source on main may be signed.' }
+          $commit = git rev-parse HEAD
+          "NOVA_RELEASE_COMMIT=$commit" >> $env:GITHUB_ENV
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: Build, sign Nova files, validate package and write final checksum
+        shell: pwsh
+        run: |
+          node scripts/package-windows.js $env:RELEASE_VARIANT
+          if ($LASTEXITCODE -ne 0) { throw 'Signed packaging blocked.' }
+      - name: Revalidate exact publication inputs
+        shell: pwsh
+        run: |
+          $directory = ".cache/packaging/$env:RELEASE_VARIANT"
+          node scripts/validate-release.js $directory $env:RELEASE_VARIANT
+          if ($LASTEXITCODE -ne 0) { throw 'Final package or checksum validation failed.' }
+          powershell -NoProfile -NonInteractive -File scripts/verify-windows-signatures.ps1 -Root $directory -Mode $env:RELEASE_VARIANT -ExpectedThumbprint $env:NOVA_SIGNING_THUMBPRINT -SignTool $env:NOVA_SIGNTOOL -ReportPath "$directory/signatures.json"
+          if ($LASTEXITCODE -ne 0) { throw 'Final Authenticode validation failed.' }
+          node scripts/release-notes.js $directory $env:RELEASE_VARIANT
+          if ($LASTEXITCODE -ne 0) { throw 'Release notes validation failed.' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: validated-${{ inputs.variant }}-${{ inputs.tag }}
+          path: |
+            .cache/packaging/${{ inputs.variant }}/*.exe
+            .cache/packaging/${{ inputs.variant }}/checksums.txt
+            .cache/packaging/${{ inputs.variant }}/release-build.json
+            .cache/packaging/${{ inputs.variant }}/signatures.json
+            .cache/packaging/${{ inputs.variant }}/installer-payload-signatures.json
+            release-notes.md
+          if-no-files-found: error
+      - name: Publish explicitly approved Stable release
+        if: inputs.publish && inputs.variant == 'stable'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = node -p "require('./package.json').version"
+          gh release create $env:RELEASE_TAG ".cache/packaging/stable/NovaTweaks-Setup-$version-x64.exe" .cache/packaging/stable/checksums.txt .cache/packaging/stable/signatures.json .cache/packaging/stable/release-build.json --verify-tag --title "Nova Tweaks $env:RELEASE_TAG" --notes-file release-notes.md
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub release publication failed.' }

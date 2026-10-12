@@ -1,0 +1,9 @@
+{
+  "policyVersion": 1,
+  "reference": "https://learn.microsoft.com/en-us/windows/apps/publish/store-policies#102-security",
+  "exclusions": {
+    "disable_nx_dep": "10.2: disables a platform memory-safety protection.",
+    "ignore_all_boot_failures": "10.2: disables boot failure recovery safeguards.",
+    "disable_hyper_v_hypervisor": "10.2 certification risk: can prevent virtualization-based security from running; excluded pending Microsoft review."
+  }
+}

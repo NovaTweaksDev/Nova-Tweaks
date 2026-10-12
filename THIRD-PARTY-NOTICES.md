@@ -91,9 +91,15 @@ Nova Tweaks release signing must never add, remove or replace signatures on:
 - `PresentMon.exe`
 - `PresentMonLegacy.exe`
 
-Only Nova-owned binaries may be signed with the Nova Tweaks/SignPath
-certificate. Release automation preserves the hashes recorded above and uses
+Only Nova-owned binaries may be signed with the Nova Certum/SimplySign
+certificate (or a separately approved future signing provider). Release automation preserves the hashes recorded above and uses
 explicit signing exclusions for these three executable names. The valid Intel
 signature on `PresentMon.exe` is retained; the unsigned LibreHardwareMonitor
 and PresentMonLegacy files remain unsigned. `PawnIO_setup.exe` is rejected if
 it appears in either the repository payload or a packaged application.
+
+The recursive release PE policy also pins bundled DLLs and Electron runtime
+components. Stable permits only explicitly reviewed, hash-pinned unsigned
+upstream files. The Store gate rejects every unsigned PE, including upstream
+DLLs; these files are an outstanding submission blocker rather than a signing
+exception for the Store. See [MICROSOFT_STORE.md](docs/MICROSOFT_STORE.md).

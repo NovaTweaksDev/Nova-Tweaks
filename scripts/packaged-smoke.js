@@ -7,7 +7,7 @@ async function main() {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-smoke-'));
   try {
     await new Promise((resolve, reject) => {
-      const child = spawn(path.resolve('dist-release/win-unpacked/NovaTweaks.exe'), ['--nova-packaged-smoke'], {
+      const child = spawn(path.resolve(process.argv[2] || 'dist-release/win-unpacked/NovaTweaks.exe'), ['--nova-packaged-smoke'], {
         windowsHide: true, stdio: 'inherit', env: { ...process.env, NOVA_SMOKE_USER_DATA: directory }
       });
       const timer = setTimeout(() => { child.kill(); }, 45000);

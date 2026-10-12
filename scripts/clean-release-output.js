@@ -11,5 +11,6 @@ if (
   throw new Error(`Refusing to clean unexpected release path: ${releaseDirectory}`);
 }
 
-fs.rmSync(releaseDirectory, { recursive: true, force: true });
-console.log(`Cleaned ${releaseDirectory}`);
+if (fs.existsSync(releaseDirectory)) {
+  console.log('Keeping the last validated release. Packaging stages replacements in .cache and cleans superseded releases only after validation.');
+}
