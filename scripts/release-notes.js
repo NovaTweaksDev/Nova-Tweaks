@@ -33,7 +33,7 @@ if (require.main === module) {
   if (tag && tag !== `${profile === 'preview' ? 'preview-v' : 'v'}${version}`) throw new Error('Tag does not match package version.');
   const release = validateRelease(directory, profile, { expectedCommit: process.env.NOVA_RELEASE_COMMIT, requireClean: true });
   verifyChecksum(directory, release.installer);
-  const report = JSON.parse(fs.readFileSync(path.join(directory, 'signatures.json'), 'utf8'));
+  const report = JSON.parse(fs.readFileSync(path.join(directory, 'signatures.json'), 'utf8').replace(/^\uFEFF/, ''));
   const installer = report.files.find((file) => file.path === release.installer);
   if (!installer || installer.sha256 !== release.installerSha256) throw new Error('Signature evidence does not match the final installer.');
   const notes = extractReleaseNotes(fs.readFileSync('CHANGELOG.md', 'utf8'), version);

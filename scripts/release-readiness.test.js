@@ -136,6 +136,20 @@ test('release notes cannot claim signing from absent or failed evidence', () => 
   assert.throws(() => formatDistributionNotes('Changes', 'stable', report), /incomplete/);
 });
 
+test('release notes CLI accepts the actual Windows PowerShell UTF-8 BOM signature report', async (t) => {
+  const f = await packageFixture(t, 'preview');
+  writeChecksum(f.directory, f.installer);
+  const sha256 = crypto.createHash('sha256').update(fs.readFileSync(path.join(f.directory, f.installer))).digest('hex');
+  fs.writeFileSync(path.join(f.directory, 'signatures.json'), '\uFEFF' + JSON.stringify({
+    mode: 'Audit', failures: [], files: [{ path: f.installer, sha256, owner: 'Nova', status: 'NotSigned' }]
+  }));
+  fs.writeFileSync(path.join(f.directory, 'CHANGELOG.md'), '## ' + f.metadata.version + '\n\nReviewed change.\n');
+  execFileSync(process.execPath, [path.join(root, 'scripts/release-notes.js'), f.directory, 'preview'], {
+    cwd: f.directory, env: { ...process.env, RELEASE_TAG: 'preview-v' + f.metadata.version }, stdio: 'pipe'
+  });
+  assert.match(fs.readFileSync(path.join(f.directory, 'release-notes.md'), 'utf8'), /Unsigned preview/);
+});
+
 test('stable tags cannot publish and publication requires protected signing, final signature checks and explicit intent', () => {
   const candidate = fs.readFileSync(path.join(root, '.github/workflows/release-windows.yml'), 'utf8');
   assert.doesNotMatch(candidate, /gh release create|contents: write|dist:local/);

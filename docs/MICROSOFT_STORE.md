@@ -83,6 +83,8 @@ Stable permits only exact reviewed upstream path/hash pairs from `scripts/releas
 
 Manual audit:
 
+Run these direct audit commands in Windows PowerShell 5.1. When launching Windows PowerShell from PowerShell 7, clear the inherited PSModulePath in the child environment; the packaging wrapper and protected workflow already do this.
+
 ```powershell
 powershell -NoProfile -File scripts/verify-windows-signatures.ps1 -Root .cache/packaging/stable -Mode Stable -ExpectedThumbprint $env:NOVA_SIGNING_THUMBPRINT -SignTool $env:NOVA_SIGNTOOL -ReportPath .cache/stable-signatures.json
 powershell -NoProfile -File scripts/verify-windows-signatures.ps1 -Root .cache/packaging/stable/win-unpacked -Mode Store -ExpectedThumbprint $env:NOVA_SIGNING_THUMBPRINT -SignTool $env:NOVA_SIGNTOOL -ReportPath .cache/store-blockers.json
@@ -181,7 +183,9 @@ Microsoft explicitly notes that valid certificates, including EV, do not immedia
 
 ## Validation boundaries
 
-Local and Store-candidate full suites each completed with 296 passing tests, zero failures and one optional trust-key test skipped because its separate test credentials are unavailable. Lint and interface type checks passed. Real signing of a staged Nova helper passed with the existing Certum certificate and timestamp. The Store-candidate NSIS build, physical exclusion checks, packaged smoke, extracted-byte comparison and final checksum validation passed. Package smoke tests are real entrypoint/resource tests with system operations disabled; they do not validate actual Windows changes.
+Local and Store-candidate full suites each completed with 297 passing tests, zero failures and one optional trust-key test skipped because its separate test credentials are unavailable. Lint and interface type checks passed. Real signing of a staged Nova helper passed with the existing Certum certificate and timestamp. The Store-candidate NSIS build, physical exclusion checks, packaged smoke, extracted-byte comparison and final checksum validation passed. Package smoke tests are real entrypoint/resource tests with system operations disabled; they do not validate actual Windows changes.
+
+The final signed Stable packaging run passed: application payload 256 PE files, all seven Nova PE files valid with timestamps, original signed third-party files preserved, 25 reviewed unsigned upstream exceptions. The final output audit additionally checks the signed installer. Temporary NSIS files are removed before that audit and do not enter the retained release. The supplied Store signature gate deliberately rejects those 25 upstream exceptions. Installation tests remain separate and unexecuted.
 
 Dependency updates removed the reported critical development advisories without a forced major migration. The recorded audit has no runtime dependency vulnerabilities; 16 build/development advisories (10 moderate, 6 high) remain and need separately reviewed toolchain upgrades. This is not a claim that all dependencies or Windows functionality are secure.
 

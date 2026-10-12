@@ -77,6 +77,7 @@ jobs:
           $directory = ".cache/packaging/$env:RELEASE_VARIANT"
           node scripts/validate-release.js $directory $env:RELEASE_VARIANT
           if ($LASTEXITCODE -ne 0) { throw 'Final package or checksum validation failed.' }
+          Remove-Item Env:PSModulePath -ErrorAction SilentlyContinue
           powershell -NoProfile -NonInteractive -File scripts/verify-windows-signatures.ps1 -Root $directory -Mode $env:RELEASE_VARIANT -ExpectedThumbprint $env:NOVA_SIGNING_THUMBPRINT -SignTool $env:NOVA_SIGNTOOL -ReportPath "$directory/signatures.json"
           if ($LASTEXITCODE -ne 0) { throw 'Final Authenticode validation failed.' }
           node scripts/release-notes.js $directory $env:RELEASE_VARIANT

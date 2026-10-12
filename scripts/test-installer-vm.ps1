@@ -48,8 +48,12 @@ $app = Join-Path $installRoot 'NovaTweaks.exe'
 if (-not (Test-Path -LiteralPath $app)) { throw 'Application missing at selected install path.' }
 $shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Nova Tweaks.lnk'
 if (-not (Test-Path -LiteralPath $shortcut)) { throw 'Start Menu shortcut missing.' }
-& powershell.exe -NoProfile -NonInteractive -File (Join-Path $PSScriptRoot 'verify-windows-signatures.ps1') -Root $installRoot -Mode Stable -ExpectedThumbprint $ExpectedThumbprint | Out-Null
-if ($LASTEXITCODE -ne 0) { throw 'Installed payload signature validation failed.' }
+$taskSavedModulePath = $env:PSModulePath
+try {
+  Remove-Item Env:PSModulePath -ErrorAction SilentlyContinue
+  & powershell.exe -NoProfile -NonInteractive -File (Join-Path $PSScriptRoot 'verify-windows-signatures.ps1') -Root $installRoot -Mode Stable -ExpectedThumbprint $ExpectedThumbprint | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw 'Installed payload signature validation failed.' }
+} finally { $env:PSModulePath = $taskSavedModulePath }
 $userData = Join-Path $env:APPDATA 'Nova Tweaks'
 New-Item -ItemType Directory -Path $userData -Force | Out-Null
 $sentinel = Join-Path $userData 'installer-vm-preservation-test.txt'
