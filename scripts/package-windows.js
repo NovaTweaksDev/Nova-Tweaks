@@ -53,6 +53,11 @@ async function main() {
   if (result.status !== 0) throw new Error('Application build failed.');
   if (profile.signed) prepareSignedHelpers();
   runNode('node_modules/electron-builder/cli.js', ['--config', 'electron-builder.windows.cjs', '--win', directoryOnly ? 'dir' : 'nsis', '--x64', '--publish', 'never']);
+  // NSIS leaves its temporary app.exe (uninstaller generation) in the output cache.
+  // It is neither an installed file nor a publication input.
+  const packagingCache = path.resolve(output, '.cache');
+  if (path.dirname(packagingCache) !== path.resolve(output)) throw new Error('Unexpected packaging cache.');
+  fs.rmSync(packagingCache, { recursive: true, force: true });
   const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
   fs.writeFileSync(path.join(output, 'release-build.json'), JSON.stringify({
     schemaVersion: 1, profile: profile.name, version: require('../package.json').version, commit, sourceDirty

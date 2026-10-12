@@ -39,6 +39,7 @@
     "test:packaged": "node scripts/packaged-smoke.js",
     "dist:preview": "node scripts/package-windows.js preview",
     "dist:candidate": "node scripts/package-windows.js candidate",
+    "dist:candidate:dir": "node scripts/package-windows.js candidate --dir",
     "dist:store": "node scripts/package-windows.js store",
     "dist:store:candidate": "node scripts/package-windows.js store-candidate",
     "dist:store:candidate:dir": "node scripts/package-windows.js store-candidate --dir"

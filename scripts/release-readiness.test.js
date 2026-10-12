@@ -59,6 +59,9 @@ test('Store catalog and direct privileged requests reject exclusions before any 
   try {
     for (const id of Object.keys(require('../electron/services/tweaks/storeTweakPolicy.json').exclusions)) {
       assert.ok(!catalog.listTweaks().some((item) => item.id === id));
+      assert.throws(() => catalog.getConfigById(id), { code: 'TWEAK_NOT_FOUND' });
+      assert.throws(() => catalog.getRawConfigById(id), { code: 'TWEAK_NOT_FOUND' });
+      assert.throws(() => catalog.resolveExecution(id, 'apply'), { code: 'TWEAK_NOT_FOUND' });
       await assert.rejects(handler.handle('tweak.execute', {
         artifact: { signedPayload: { tweakId: id } }, trustMode: 'bundled-integrity',
         action: 'On', params: { State: 'On', Silent: true }
@@ -167,9 +170,12 @@ test('validated replacement is retained and a failed copy preserves the previous
   assert.equal(fs.readFileSync(path.join(output, 'last-working', 'installer.exe'), 'utf8'), 'last working');
   fs.mkdirSync(source);
   fs.writeFileSync(path.join(source, 'installer.exe'), 'validated replacement');
+  fs.mkdirSync(path.join(source, '.cache'));
+  fs.writeFileSync(path.join(source, '.cache', 'temporary.exe'), 'temporary packaging output');
   const selected = promoteValidatedRelease(source, 'stable', output);
   assert.deepEqual(fs.readdirSync(output), [path.basename(selected)]);
   assert.equal(fs.readFileSync(path.join(selected, 'installer.exe'), 'utf8'), 'validated replacement');
+  assert.equal(fs.existsSync(path.join(selected, '.cache')), false);
   assert.throws(() => promoteValidatedRelease(selected, 'stable', output), /outside/);
 });
 
