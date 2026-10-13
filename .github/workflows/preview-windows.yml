@@ -25,7 +25,7 @@ jobs:
           if ($env:GITHUB_REF_NAME -ne "preview-v$version") { throw 'Preview tag and package version differ.' }
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm test
+      - run: npm test -- --test-concurrency=2
       - run: npm run dist:preview
       - name: Verify final preview and generate accurate notes
         env:

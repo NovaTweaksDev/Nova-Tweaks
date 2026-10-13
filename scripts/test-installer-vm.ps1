@@ -27,7 +27,7 @@ $uninstallRoot = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall'
 function Find-Installation {
   return @(Get-ChildItem -LiteralPath $uninstallRoot -ErrorAction SilentlyContinue | ForEach-Object {
     Get-ItemProperty -LiteralPath $_.PSPath
-  } | Where-Object { $_.PSObject.Properties['DisplayName'] -and $_.DisplayName -eq 'Nova Tweaks' })
+  } | Where-Object { $_.PSChildName -eq 'b7139bf8-d59a-5795-b95b-57eeb1dbd620' })
 }
 if (@(Find-Installation).Count -ne 0) { throw 'Use a clean VM snapshot without an existing Nova installation.' }
 function Assert-SignedInstaller([string]$File) {
@@ -70,7 +70,7 @@ Set-Content -LiteralPath $sentinel 'retain user settings and backups'
 # Simulates the Electron CurrentUser login item; verifies that uninstall removes it.
 New-Item -Path $runKey -Force | Out-Null
 New-ItemProperty -LiteralPath $runKey -Name 'Nova Tweaks' -Value ('"' + $app + '" --hidden') -PropertyType String -Force | Out-Null
-$uninstaller = Join-Path $installRoot 'Uninstall Nova Tweaks.exe'
+$uninstaller = Join-Path $installRoot 'Uninstall NovaTweaks.exe'
 Assert-SignedInstaller $uninstaller
 Run-Installer $uninstaller '/S /currentuser'
 Start-Sleep -Seconds 2

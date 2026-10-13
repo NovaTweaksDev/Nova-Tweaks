@@ -38,7 +38,7 @@ jobs:
         run: npm run typecheck
 
       - name: Run tests
-        run: npm test
+        run: npm test -- --test-concurrency=2
 
       - name: Package unsigned application
         run: node scripts/package-windows.js ${{ matrix.profile }} --dir

@@ -65,7 +65,7 @@ jobs:
           "NOVA_RELEASE_COMMIT=$commit" >> $env:GITHUB_ENV
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm test
+      - run: npm test -- --test-concurrency=2
       - name: Build, sign Nova files, validate package and write final checksum
         shell: pwsh
         run: |

@@ -53,7 +53,7 @@ function Invoke-NovaSignatureAudit {
       $relative = $item.FullName.Substring($directory.Length).TrimStart('\', '/').Replace('\', '/')
       $signature = Get-AuthenticodeSignature -LiteralPath $item.FullName
       $hash = (Get-FileHash -LiteralPath $item.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-      $novaOwned = $policy.novaFiles -contains $item.Name -or $item.Name -match '^NovaTweaks-(?:.*-)?Setup-.*\.exe$' -or $item.Name -eq 'Uninstall Nova Tweaks.exe'
+      $novaOwned = $policy.novaFiles -contains $item.Name -or $item.Name -match '^NovaTweaks-(?:.*-)?Setup-.*\.exe$' -or $item.Name -in @('Uninstall Nova Tweaks.exe', 'Uninstall NovaTweaks.exe')
       $chainSubjects = @()
       $publisher = $null
       $thumbprint = $null

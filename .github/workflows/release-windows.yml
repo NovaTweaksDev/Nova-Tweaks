@@ -27,7 +27,7 @@ jobs:
           if ($env:GITHUB_REF_NAME -ne "v$version") { throw 'Tag and package version differ.' }
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm test
+      - run: npm test -- --test-concurrency=2
       - name: Build candidate without the local unsigned broker bypass
         run: npm run dist:candidate
       - name: Validate candidate provenance and checksum
