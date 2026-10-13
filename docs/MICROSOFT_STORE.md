@@ -137,7 +137,7 @@ powershell -NoProfile -File scripts/test-installer-vm.ps1 -IsolatedVM -Installer
 
 The script rejects existing installations, checks silent process exit, selected path, Add/Remove Programs version/publisher, Start Menu shortcut, every installed PE and signed uninstaller, uninstall cleanup, user-data preservation, login-item cleanup and new Nova scheduled-task residue. The uninstall hook removes only Nova's CurrentUser login item on real removal, not upgrade. Existing user settings/backups are preserved.
 
-Run on Windows 10 and Windows 11 x64 as a standard user; snapshot and restore between scenarios. Verify no visible setup dialog, normal launch without UAC, deliberate broker approval/cancellation, backup/restore, actual older-version upgrade and Store/GitHub cross-upgrade manually using [windows-vm-validation.md](windows-vm-validation.md). A same-version reinstall is not evidence of a newer-version upgrade. VM acceptance and final installed-uninstaller validation remain unexecuted.
+Run on Windows 10 and Windows 11 x64 as a standard user; snapshot and restore between scenarios. Verify no visible setup dialog, normal launch without UAC, deliberate broker approval/cancellation, backup/restore, actual older-version upgrade and Store/GitHub cross-upgrade manually using [windows-vm-validation.md](windows-vm-validation.md). A same-version reinstall is not evidence of a newer-version upgrade. Scripted acceptance and installed-uninstaller validation passed on the Windows 11 VM; upgrade, Windows 10 and the manual scenarios remain pending.
 
 ## Partner Center and hosting steps
 
