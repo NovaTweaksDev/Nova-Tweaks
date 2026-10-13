@@ -21,6 +21,13 @@ GitHub 1.0.4-to-Store 1.0.5 upgrade with language preservation. See
 Physical hardware/driver compatibility, backup/restore, policy review and Partner
 Center preparation remain pending.
 
+The maintainer also confirmed config restore succeeds on the Windows 10 VM after
+the partial-capture fix in commit f3dad5d. This uses a newer 1.0.5 test installer
+with SHA-256 c620e8a61fc10e78e20e83d1ff906b3a033a6c37c64d8e4e6a2efb8917c24864;
+prior 1.0.5 installer tests refer to the older recorded hash. See
+[config restore confirmation](release-audits/store-1.0.5-windows10-config-restore.json).
+This does not establish full system rollback or every tweak target.
+
 ## Evidence and current decision
 
 Nova is **not ready for Store submission**. The implementation prepares a Win32 EXE distribution, separated Store resources, protected signing and validation, but cannot claim certification or warning-free downloads.

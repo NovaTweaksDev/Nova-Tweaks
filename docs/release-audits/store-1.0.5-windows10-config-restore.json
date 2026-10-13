@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "maintainer-reported manual VM check",
+  "recordedDate": "2026-10-13",
+  "vm": "nova win 10",
+  "windowsVersion": "10.0.19045.3803",
+  "installer": "NovaTweaks-store-Setup-1.0.5-x64.exe",
+  "installerSha256": "c620e8a61fc10e78e20e83d1ff906b3a033a6c37c64d8e4e6a2efb8917c24864",
+  "sourceCommit": "f3dad5d63f273803e7435325adbb213abcc167ff",
+  "confirmed": [
+    "Maintainer reports config restore succeeds after installing the backup fix"
+  ],
+  "limitations": [
+    "No automated VM restore log supplied",
+    "Exact restored tweak values and full system rollback were not independently verified",
+    "Partial capture remains reported as incomplete; unavailable values are not invented"
+  ]
+}
