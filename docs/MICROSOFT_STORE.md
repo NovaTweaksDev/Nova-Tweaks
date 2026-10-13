@@ -9,8 +9,13 @@ individually reviewed redistributable files receive Nova distributor signatures.
 Original code content and existing upstream signatures are preserved; see
 [the component review](STORE_SIGNING_REVIEW.md). Automated installer acceptance
 also passed on the Windows 11 test VM (kernel 10.0.26200.0), using this exact
-installer hash. Normal launch/UAC, actual upgrade, hardware behavior, Windows 10,
-driver/policy review and Partner Center preparation remain pending.
+installer hash. The maintainer subsequently confirmed normal launch and Tweaks
+loading, UAC cancellation/approval, VM monitoring and manual removal. The signed
+1.0.5 Store build also passed packaging and all 257 PE signature checks. A manual
+upgrade from published GitHub 1.0.4 to Store 1.0.5 starts successfully and preserves
+the selected language; see [manual evidence](release-audits/store-1.0.5-windows11-manual.json).
+Windows 10, physical hardware/driver compatibility, backup/restore, policy review
+and Partner Center preparation remain pending.
 
 ## Evidence and current decision
 
@@ -23,7 +28,7 @@ Nova is **not ready for Store submission**. The implementation prepares a Win32 
 | Teilweise behoben | Certum/SimplySign works on this Windows host. Nova helper staging is signed without changing checked-in binaries or original upstream signatures. GitHub has no signing runner or protected signing environment configured. |
 | Behoben | The signed Store build meets the all-PE signing gate through reviewed unsigned redistribution. Stable retains its original unsigned exceptions; Store has none. |
 | Teilweise behoben | All 149 tweak definitions and corresponding scripts have a source-hashed review. Three Store exclusions are enforced in resources, catalog and privileged execution. Other system changes still need certification review under policy 10.2.8. |
-| Teilweise behoben | Windows 11 VM installer acceptance passed for the exact Store installer: install, registration, shortcuts, installed signatures including uninstaller, removal, preservation sentinel, login-item removal and task-residue checks. Upgrade, normal launch/UAC, hardware and Windows 10 are pending. |
+| Teilweise behoben | Windows 11 VM installer acceptance passed for the exact Store installer: install, registration, shortcuts, installed signatures including uninstaller, removal, preservation sentinel, login-item removal and task-residue checks. Manual Windows 11 upgrade, launch/UAC and VM monitoring are confirmed separately; Windows 10 and physical hardware remain pending. |
 | Offen | Partner Center registration, verified publisher identity, listing assets, installer hosting, privacy review and certification submission remain maintainer tasks. |
 
 ### What actually happened in public v1.0.4
@@ -69,7 +74,7 @@ See also [EXE/MSI package requirements](https://learn.microsoft.com/en-us/window
 | store-candidate: dist:store:candidate / dist:store:candidate:dir | No, never submission-ready | No | Yes |
 | store: dist:store | Required on every PE | No | Yes |
 
-The embedded profile is compiled into ASAR, not a runtime environment switch. Conflicting local-test flags fail. Installers have variant-specific filenames; Stable preserves `NovaTweaks-Setup-<version>-x64.exe`. All keep app ID `de.novatweaks.desktop` and existing NSIS GUID `b7139bf8-d59a-5795-b95b-57eeb1dbd620` so distributions represent the same product and upgrade it rather than installing competing copies. Side-by-side installations are not supported. GitHub-to-Store upgrade still requires VM verification.
+The embedded profile is compiled into ASAR, not a runtime environment switch. Conflicting local-test flags fail. Installers have variant-specific filenames; Stable preserves `NovaTweaks-Setup-<version>-x64.exe`. All keep app ID `de.novatweaks.desktop` and existing NSIS GUID `b7139bf8-d59a-5795-b95b-57eeb1dbd620` so distributions represent the same product and upgrade it rather than installing competing copies. Side-by-side installations are not supported. GitHub 1.0.4-to-Store 1.0.5 upgrade was manually confirmed on the Windows 11 VM; other platforms and versions remain separate checks.
 
 Local signed packaging:
 
@@ -137,7 +142,7 @@ powershell -NoProfile -File scripts/test-installer-vm.ps1 -IsolatedVM -Installer
 
 The script rejects existing installations, checks silent process exit, selected path, Add/Remove Programs version/publisher, Start Menu shortcut, every installed PE and signed uninstaller, uninstall cleanup, user-data preservation, login-item cleanup and new Nova scheduled-task residue. The uninstall hook removes only Nova's CurrentUser login item on real removal, not upgrade. Existing user settings/backups are preserved.
 
-Run on Windows 10 and Windows 11 x64 as a standard user; snapshot and restore between scenarios. Verify no visible setup dialog, normal launch without UAC, deliberate broker approval/cancellation, backup/restore, actual older-version upgrade and Store/GitHub cross-upgrade manually using [windows-vm-validation.md](windows-vm-validation.md). A same-version reinstall is not evidence of a newer-version upgrade. Scripted acceptance and installed-uninstaller validation passed on the Windows 11 VM; upgrade, Windows 10 and the manual scenarios remain pending.
+Run on Windows 10 and Windows 11 x64 as a standard user; snapshot and restore between scenarios. Verify no visible setup dialog, normal launch without UAC, deliberate broker approval/cancellation, backup/restore, actual older-version upgrade and Store/GitHub cross-upgrade manually using [windows-vm-validation.md](windows-vm-validation.md). A same-version reinstall is not evidence of a newer-version upgrade. Scripted acceptance and installed-uninstaller validation passed on the Windows 11 VM; a newer-version upgrade was manually confirmed separately. Windows 10 and the remaining backup/restore scenarios are pending.
 
 ## Partner Center and hosting steps
 

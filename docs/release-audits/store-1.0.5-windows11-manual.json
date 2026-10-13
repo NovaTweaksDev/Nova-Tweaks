@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "maintainer-reported manual VM checks",
+  "recordedDate": "2026-10-13",
+  "vm": "nova",
+  "windowsVersion": "10.0.26200.0",
+  "installer": "NovaTweaks-store-Setup-1.0.5-x64.exe",
+  "installerSha256": "d9fe1e81c9d6478402cb071328221adb9638abe6d36416f85d7a1b192b0a0b53",
+  "sourceCommit": "2e622b5b457644a98c0891bcb86b9d60eabc111e",
+  "upgradeFrom": {
+    "version": "1.0.4",
+    "distribution": "published GitHub installer",
+    "sha256": "bd3baabc8de0b0af670c0f9b6f8da46b4da063235549e70691998b8a1fc7b779"
+  },
+  "confirmed": [
+    "Upgrade without prior uninstall",
+    "Version 1.0.5 starts",
+    "Selected language preserved"
+  ],
+  "priorBuildChecks": {
+    "version": "1.0.4",
+    "installerSha256": "c2f61d8beb8910b54628b881cb8033745faaaee3e18af9f319572795a2989c46",
+    "confirmed": [
+      "UAC cancellation releases approval button promptly",
+      "UAC approval succeeds on first attempt",
+      "Monitoring displays values and app remains stable",
+      "Manual uninstall succeeds"
+    ]
+  },
+  "limitations": [
+    "Manual confirmations supplied by maintainer; no automated upgrade log",
+    "Windows 10 not tested",
+    "Physical sensor and optional driver compatibility not established by VM",
+    "Backup/restore and real tweak execution remain pending"
+  ]
+}
