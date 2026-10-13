@@ -29,7 +29,6 @@
   },
   "limitations": [
     "Manual confirmations supplied by maintainer; no automated upgrade log",
-    "Windows 10 not tested",
     "Physical sensor and optional driver compatibility not established by VM",
     "Backup/restore and real tweak execution remain pending"
   ]

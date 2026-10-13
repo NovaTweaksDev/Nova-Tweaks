@@ -14,8 +14,12 @@ loading, UAC cancellation/approval, VM monitoring and manual removal. The signed
 1.0.5 Store build also passed packaging and all 257 PE signature checks. A manual
 upgrade from published GitHub 1.0.4 to Store 1.0.5 starts successfully and preserves
 the selected language; see [manual evidence](release-audits/store-1.0.5-windows11-manual.json).
-Windows 10, physical hardware/driver compatibility, backup/restore, policy review
-and Partner Center preparation remain pending.
+Manual Windows 10 checks also passed on kernel 10.0.19045.3803: installation,
+launch, Tweaks display, UAC approval/cancellation, VM monitoring, removal and
+GitHub 1.0.4-to-Store 1.0.5 upgrade with language preservation. See
+[Windows 10 manual evidence](release-audits/store-1.0.5-windows10-manual.json).
+Physical hardware/driver compatibility, backup/restore, policy review and Partner
+Center preparation remain pending.
 
 ## Evidence and current decision
 
@@ -28,7 +32,7 @@ Nova is **not ready for Store submission**. The implementation prepares a Win32 
 | Teilweise behoben | Certum/SimplySign works on this Windows host. Nova helper staging is signed without changing checked-in binaries or original upstream signatures. GitHub has no signing runner or protected signing environment configured. |
 | Behoben | The signed Store build meets the all-PE signing gate through reviewed unsigned redistribution. Stable retains its original unsigned exceptions; Store has none. |
 | Teilweise behoben | All 149 tweak definitions and corresponding scripts have a source-hashed review. Three Store exclusions are enforced in resources, catalog and privileged execution. Other system changes still need certification review under policy 10.2.8. |
-| Teilweise behoben | Windows 11 VM installer acceptance passed for the exact Store installer: install, registration, shortcuts, installed signatures including uninstaller, removal, preservation sentinel, login-item removal and task-residue checks. Manual Windows 11 upgrade, launch/UAC and VM monitoring are confirmed separately; Windows 10 and physical hardware remain pending. |
+| Teilweise behoben | Windows 11 VM installer acceptance passed for the exact Store installer: install, registration, shortcuts, installed signatures including uninstaller, removal, preservation sentinel, login-item removal and task-residue checks. Manual Windows 10/11 upgrade, launch/UAC, VM monitoring and removal are confirmed separately; physical hardware and backup/restore remain pending. |
 | Offen | Partner Center registration, verified publisher identity, listing assets, installer hosting, privacy review and certification submission remain maintainer tasks. |
 
 ### What actually happened in public v1.0.4
@@ -142,7 +146,7 @@ powershell -NoProfile -File scripts/test-installer-vm.ps1 -IsolatedVM -Installer
 
 The script rejects existing installations, checks silent process exit, selected path, Add/Remove Programs version/publisher, Start Menu shortcut, every installed PE and signed uninstaller, uninstall cleanup, user-data preservation, login-item cleanup and new Nova scheduled-task residue. The uninstall hook removes only Nova's CurrentUser login item on real removal, not upgrade. Existing user settings/backups are preserved.
 
-Run on Windows 10 and Windows 11 x64 as a standard user; snapshot and restore between scenarios. Verify no visible setup dialog, normal launch without UAC, deliberate broker approval/cancellation, backup/restore, actual older-version upgrade and Store/GitHub cross-upgrade manually using [windows-vm-validation.md](windows-vm-validation.md). A same-version reinstall is not evidence of a newer-version upgrade. Scripted acceptance and installed-uninstaller validation passed on the Windows 11 VM; a newer-version upgrade was manually confirmed separately. Windows 10 and the remaining backup/restore scenarios are pending.
+Run on Windows 10 and Windows 11 x64 as a standard user; snapshot and restore between scenarios. Verify no visible setup dialog, normal launch without UAC, deliberate broker approval/cancellation, backup/restore, actual older-version upgrade and Store/GitHub cross-upgrade manually using [windows-vm-validation.md](windows-vm-validation.md). A same-version reinstall is not evidence of a newer-version upgrade. Scripted acceptance and installed-uninstaller validation passed on the Windows 11 VM; a newer-version upgrade was manually confirmed separately. Windows 10 manual checks also passed; the remaining backup/restore scenarios are pending.
 
 ## Partner Center and hosting steps
 
