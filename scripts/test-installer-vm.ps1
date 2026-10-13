@@ -29,7 +29,7 @@ function Find-Installation {
     Get-ItemProperty -LiteralPath $_.PSPath
   } | Where-Object { $_.PSObject.Properties['DisplayName'] -and $_.DisplayName -eq 'Nova Tweaks' })
 }
-if ((Find-Installation).Count -ne 0) { throw 'Use a clean VM snapshot without an existing Nova installation.' }
+if (@(Find-Installation).Count -ne 0) { throw 'Use a clean VM snapshot without an existing Nova installation.' }
 function Assert-SignedInstaller([string]$File) {
   $signature = Get-AuthenticodeSignature -LiteralPath $File
   if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Thumbprint -ne $ExpectedThumbprint -or -not $signature.TimeStamperCertificate) {
@@ -49,7 +49,7 @@ if ($UpgradeFrom) {
   Run-Installer $UpgradeFrom "/S /currentuser /D=$installRoot"
 }
 Run-Installer $Installer "/S /currentuser /D=$installRoot"
-$registration = Find-Installation
+$registration = @(Find-Installation)
 if ($registration.Count -ne 1 -or $registration[0].DisplayVersion -ne $Version -or -not $registration[0].Publisher) {
   throw 'Expected exactly one registered product with the selected version and publisher.'
 }
@@ -74,7 +74,7 @@ $uninstaller = Join-Path $installRoot 'Uninstall Nova Tweaks.exe'
 Assert-SignedInstaller $uninstaller
 Run-Installer $uninstaller '/S /currentuser'
 Start-Sleep -Seconds 2
-if ((Find-Installation).Count -ne 0 -or (Test-Path -LiteralPath $app) -or (Test-Path -LiteralPath $shortcut)) {
+if (@(Find-Installation).Count -ne 0 -or (Test-Path -LiteralPath $app) -or (Test-Path -LiteralPath $shortcut)) {
   throw 'Program files, uninstall registration or shortcut remained.'
 }
 if (-not (Test-Path -LiteralPath $sentinel)) { throw 'Uninstall deleted user data.' }
