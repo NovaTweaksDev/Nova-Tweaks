@@ -7,7 +7,9 @@ signed Store packaging now passes the all-PE gate: 257 valid PE files, zero
 unsigned files and zero signature failures. Exactly 25 originally unsigned,
 individually reviewed redistributable files receive Nova distributor signatures.
 Original code content and existing upstream signatures are preserved; see
-[the component review](STORE_SIGNING_REVIEW.md). Exact-installer VM acceptance,
+[the component review](STORE_SIGNING_REVIEW.md). Automated installer acceptance
+also passed on the Windows 11 test VM (kernel 10.0.26200.0), using this exact
+installer hash. Normal launch/UAC, actual upgrade, hardware behavior, Windows 10,
 driver/policy review and Partner Center preparation remain pending.
 
 ## Evidence and current decision
@@ -21,7 +23,7 @@ Nova is **not ready for Store submission**. The implementation prepares a Win32 
 | Teilweise behoben | Certum/SimplySign works on this Windows host. Nova helper staging is signed without changing checked-in binaries or original upstream signatures. GitHub has no signing runner or protected signing environment configured. |
 | Behoben | The signed Store build meets the all-PE signing gate through reviewed unsigned redistribution. Stable retains its original unsigned exceptions; Store has none. |
 | Teilweise behoben | All 149 tweak definitions and corresponding scripts have a source-hashed review. Three Store exclusions are enforced in resources, catalog and privileged execution. Other system changes still need certification review under policy 10.2.8. |
-| Nicht verifiziert | Silent install, true upgrade, uninstall, real UAC, Windows 10/11 compatibility and hardware behavior require disposable VM execution. A reproducible script is provided; it was not run on this production host. |
+| Teilweise behoben | Windows 11 VM installer acceptance passed for the exact Store installer: install, registration, shortcuts, installed signatures including uninstaller, removal, preservation sentinel, login-item removal and task-residue checks. Upgrade, normal launch/UAC, hardware and Windows 10 are pending. |
 | Offen | Partner Center registration, verified publisher identity, listing assets, installer hosting, privacy review and certification submission remain maintainer tasks. |
 
 ### What actually happened in public v1.0.4
@@ -197,11 +199,23 @@ Actual signed Store packaging passed as well: all 257 output PE files (including
 the installer) have valid signatures; 25 entries are verified Nova distributor
 signatures with unchanged pinned code content. The extracted installer payload
 matches the validated unpacked application. No unsigned files or validation
-failures remain in this build. Exact-installed-uninstaller and VM behavior still
-require execution. These are test artifacts, not a published new version.
+failures remain in this build. The installed uninstaller was subsequently
+verified by the Windows 11 VM acceptance run. These are test artifacts, not a
+published new version.
 
 The final signed Stable packaging run passed: application payload 256 PE files, all seven Nova PE files valid with timestamps, original signed third-party files preserved, 25 reviewed unsigned upstream exceptions. The final output audit additionally checks the signed installer. Temporary NSIS files are removed before that audit and do not enter the retained release. The supplied Store signature gate deliberately rejects those 25 upstream exceptions. Installation tests remain separate and unexecuted.
 
 Dependency updates removed the reported critical development advisories without a forced major migration. The recorded audit has no runtime dependency vulnerabilities; 16 build/development advisories (10 moderate, 6 high) remain and need separately reviewed toolchain upgrades. This is not a claim that all dependencies or Windows functionality are secure.
 
-Final package-run evidence is recorded in the PR; no installation, uninstall, system-tweak execution, Store submission or public release was performed. SmartScreen reputation and Microsoft certification remain external outcomes.
+The maintainer executed the acceptance script inside VirtualBox VM nova and
+returned [the result](release-audits/store-1.0.4-windows11-installer.json):
+passed at 2026-10-13T16:55:56Z, Windows kernel 10.0.26200.0, exact installer
+SHA-256 53ca4c4c09a07b7fce1ddbd5ce62dfbfd9879aede4274dda633db102a3c426ec.
+This establishes the scripted per-user install/uninstall checks on this VM
+only. User-data preservation was checked with a sentinel, not every real
+backup/settings scenario. A synthetic Nova login item was removed; actual
+application login-item integration remains separate. Upgrade was not tested.
+
+No system tweak, Store submission or public release was performed. No installer
+was executed on the production host. SmartScreen reputation and Microsoft
+certification remain external outcomes.

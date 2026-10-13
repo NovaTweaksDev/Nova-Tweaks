@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "windowsVersion": "10.0.26200.0",
+  "profile": "Store",
+  "version": "1.0.4",
+  "installerSha256": "53CA4C4C09A07B7FCE1DDBD5CE62DFBFD9879AEDE4274DDA633DB102A3C426EC",
+  "upgradeTested": false,
+  "checkedAtUtc": "2026-10-13T16:55:56.4445492Z",
+  "manualChecksPending": [
+    "No visual setup dialogs",
+    "Normal launch without UAC",
+    "Real broker UAC approval",
+    "Hardware sensors",
+    "Windows 10/11 compatibility"
+  ]
+}
