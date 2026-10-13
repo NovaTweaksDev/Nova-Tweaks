@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const { spawn } = require('child_process');
 const fs = require('fs/promises');
 const path = require('path');
+const { tweakSnapshotError } = require('./tweakSnapshotValidation');
 const { resolveWindowsSystemExecutable } = require('../security/systemExecutables');
 
 const BACKUP_SCHEMA = 'nova-tweaks-backup';
@@ -326,14 +327,25 @@ function inferCaptureStatus(section) {
 
 function normalizeSection(scopeId, source) {
   const section = source && typeof source === 'object' ? source : {};
-  const captureStatus = inferCaptureStatus(section);
-  const data = Array.isArray(section.data)
+  let captureStatus = inferCaptureStatus(section);
+  let summary = typeof section.summary === 'string' ? section.summary.trim() : '';
+  let data = Array.isArray(section.data)
     ? section.data
     : section.data && typeof section.data === 'object'
       ? section.data
       : [];
 
-  const itemCount = Number.isFinite(section.itemCount)
+  let skipped = 0;
+  if (scopeId !== 'appSettings' && Array.isArray(data)) {
+    const available = data.filter((entry) => !tweakSnapshotError(entry));
+    skipped = data.length - available.length;
+    if (skipped) {
+      data = available;
+      if (captureStatus !== 'unavailable') captureStatus = 'partial';
+      summary = 'Some tweak states or selected values were unavailable and were not captured.';
+    }
+  }
+  const itemCount = !skipped && Number.isFinite(section.itemCount)
     ? Math.max(0, Math.trunc(section.itemCount))
     : Array.isArray(data)
       ? data.length
@@ -346,7 +358,7 @@ function normalizeSection(scopeId, source) {
       : new Date().toISOString(),
     captureStatus,
     itemCount,
-    summary: typeof section.summary === 'string' ? section.summary.trim() : '',
+    summary,
     data
   };
 }
@@ -1217,6 +1229,9 @@ function createBackupManager({ app, dialog, logger, getAppVersion, getBackupRoot
       snapshot: normalizeSnapshot(payload.snapshot, scope)
     };
 
+    if (type === 'beforeApply' && scope.some((scopeId) => document.snapshot[scopeId].captureStatus !== 'complete')) {
+      throw new BackupManagerError('The safety backup could not capture all requested values.', 'BACKUP_STATE_UNAVAILABLE');
+    }
     await writeJsonAtomic(path.join(backupsRoot, fileName), document);
     const nextIndex = await syncIndex();
     const createdBackup = nextIndex.backups.find((entry) => entry.id === id) || null;
@@ -1224,6 +1239,8 @@ function createBackupManager({ app, dialog, logger, getAppVersion, getBackupRoot
 
     return {
       backup: createdBackup,
+      ...(scope.some((scopeId) => document.snapshot[scopeId].captureStatus === 'partial')
+        ? { message: 'Nova config saved with partial capture. Unavailable tweak states or selected values were not captured.' } : {}),
       ...state
     };
   }

@@ -1,4 +1,5 @@
 const { requiresTweakStateCheck } = require('../tweaks/tweakStatePolicy');
+const { tweakSnapshotError } = require('./tweakSnapshotValidation');
 
 async function captureAutomaticTweakSnapshot(tweaks, tweakRunner, { strict = false } = {}) {
   const data = [];
@@ -6,9 +7,8 @@ async function captureAutomaticTweakSnapshot(tweaks, tweakRunner, { strict = fal
   for (const tweak of tweaks.filter(requiresTweakStateCheck)) {
     try {
       const state = await tweakRunner.getCurrentState({ tweakId: tweak.id });
-      if (state?.checked === false || !['enabled', 'disabled'].includes(state?.currentState)) {
-        throw new Error('The current state could not be verified.');
-      }
+      const captureError = tweakSnapshotError({ ...state, containerType: state?.containerType || tweak.containerType || tweak.container_type });
+      if (captureError) throw new Error(captureError);
       data.push({
         id: String(tweak.id),
         name: String(tweak.name || tweak.id),

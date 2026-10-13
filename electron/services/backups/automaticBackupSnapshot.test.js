@@ -21,3 +21,14 @@ test('never saves unverified detection fallbacks as disabled tweak states', asyn
   assert.equal(section.captureStatus, 'unavailable');
   assert.deepEqual(section.data, []);
 });
+
+
+test('omits missing slider values and preserves verified zero in partial automatic captures', async () => {
+  const tweaks = [{ id: 'missing', containerType: 'range_selection' }, { id: 'zero', containerType: 'range_selection' }];
+  const runner = { getCurrentState: async ({ tweakId }) => ({ checked: true, currentState: 'disabled', currentValue: tweakId === 'zero' ? 0 : null }) };
+  const section = await captureAutomaticTweakSnapshot(tweaks, runner);
+  assert.equal(section.captureStatus, 'partial');
+  assert.deepEqual(section.data.map((entry) => entry.id), ['zero']);
+  assert.equal(section.data[0].currentValue, 0);
+  await assert.rejects(captureAutomaticTweakSnapshot(tweaks, runner, { strict: true }), { code: 'BACKUP_STATE_UNAVAILABLE' });
+});

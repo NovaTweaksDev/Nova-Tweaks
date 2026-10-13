@@ -707,6 +707,7 @@ function toBackupTweakEntry(tweak) {
     name: String(tweak?.name || '').trim(),
     category: String(tweak?.category || '').trim(),
     subcategory: String(tweak?.subcategory || '').trim(),
+    checked: tweak?.checked,
     currentState: normalizeTweakState(tweak?.currentState),
     status: String(tweak?.status || '').trim() || normalizeTweakState(tweak?.currentState),
     containerType: String(tweak?.containerType || '').trim(),

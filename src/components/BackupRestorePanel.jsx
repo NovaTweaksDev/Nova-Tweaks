@@ -497,6 +497,7 @@ function BackupRestorePanel({
         subcategory,
         categoryKey: category.toLowerCase(),
         subcategoryKey: subcategory.toLowerCase(),
+        checked: entry?.checked,
         currentState: String(entry?.currentState || entry?.status || '').trim().toLowerCase(),
         status: String(entry?.status || entry?.currentState || '').trim(),
         containerType: String(entry?.containerType || '').trim().toLowerCase(),
@@ -744,7 +745,7 @@ function BackupRestorePanel({
       }
 
       applyBackupState(result);
-      finishOperation(operationId, "success", `Nova config "${result.backup?.name || i18n.t('interfaceText.nova_backup_86c14')}" saved.`);
+      finishOperation(operationId, "success", resolveMessage(result, `Nova config "${result.backup?.name || i18n.t('interfaceText.nova_backup_86c14')}" saved.`));
       onQuickstartEvent?.({ type: 'backup-created', backup: result.backup || null });
     } catch (createError) {
       finishOperation(operationId, "error", createError?.message || i18n.t('interfaceText.unable_to_save_nova_config_on_disk_09b10'));
