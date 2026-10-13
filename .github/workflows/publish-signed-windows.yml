@@ -91,6 +91,7 @@ jobs:
             .cache/packaging/${{ inputs.variant }}/release-build.json
             .cache/packaging/${{ inputs.variant }}/signatures.json
             .cache/packaging/${{ inputs.variant }}/installer-payload-signatures.json
+            .cache/packaging/${{ inputs.variant }}/redistribution-signing.json
             release-notes.md
           if-no-files-found: error
       - name: Publish explicitly approved Stable release

@@ -2,6 +2,14 @@
 
 Audit date: 2026-10-12. Scope: committed v1.0.4 source plus this release-readiness change. Uncommitted work in the original local checkout is deliberately excluded from this isolated branch. No release, tag or Store submission is authorized by this change.
 
+Updated 2026-10-13: free, open-source Store distribution was confirmed. Actual
+signed Store packaging now passes the all-PE gate: 257 valid PE files, zero
+unsigned files and zero signature failures. Exactly 25 originally unsigned,
+individually reviewed redistributable files receive Nova distributor signatures.
+Original code content and existing upstream signatures are preserved; see
+[the component review](STORE_SIGNING_REVIEW.md). Exact-installer VM acceptance,
+driver/policy review and Partner Center preparation remain pending.
+
 ## Evidence and current decision
 
 Nova is **not ready for Store submission**. The implementation prepares a Win32 EXE distribution, separated Store resources, protected signing and validation, but cannot claim certification or warning-free downloads.
@@ -11,7 +19,7 @@ Nova is **not ready for Store submission**. The implementation prepares a Win32 
 | Behoben | Stable tags no longer publish unsigned local-test installers. They produce review candidates only; signed publication requires an explicit protected workflow dispatch. |
 | Behoben | Build profiles, source commit/version checks, final installer checksums, recursive PE validation and evidence-based release notes are implemented. Source-dirty builds cannot be published by the supplied validator. |
 | Teilweise behoben | Certum/SimplySign works on this Windows host. Nova helper staging is signed without changing checked-in binaries or original upstream signatures. GitHub has no signing runner or protected signing environment configured. |
-| Offen | The Store requires all packaged PE files to be signed. The audited payload contains 25 unsigned upstream PE files. Stable has explicit hash-pinned exceptions; Store has none. |
+| Behoben | The signed Store build meets the all-PE signing gate through reviewed unsigned redistribution. Stable retains its original unsigned exceptions; Store has none. |
 | Teilweise behoben | All 149 tweak definitions and corresponding scripts have a source-hashed review. Three Store exclusions are enforced in resources, catalog and privileged execution. Other system changes still need certification review under policy 10.2.8. |
 | Nicht verifiziert | Silent install, true upgrade, uninstall, real UAC, Windows 10/11 compatibility and hardware behavior require disposable VM execution. A reproducible script is provided; it was not run on this production host. |
 | Offen | Partner Center registration, verified publisher identity, listing assets, installer hosting, privacy review and certification submission remain maintainer tasks. |
@@ -79,7 +87,7 @@ Use the SDK path installed on the signing machine; do not assume this exact SDK 
 
 After packaging, the real app smoke runs with isolated temporary user data and system operations disabled. The ASAR/profile/version/resources are checked, the NSIS payload is extracted without executing setup, every extracted application byte is compared to the validated unpacked application, and signatures are checked on both extracted content and final output. SHA-256 is written only after these operations. The unused Electron updater elevation helper is disabled; Nova has no electron-updater integration. NSIS installation elevation and the real administrator broker remain unchanged.
 
-Stable permits only exact reviewed upstream path/hash pairs from `scripts/release-pe-policy.json`; invalid signatures, unexpected upstream bytes, wrong Nova publisher or missing Nova timestamps fail. Store rejects unsigned upstream files too. The policy is review data, not permission to replace third-party signatures. Review upstream licensing and supported official signed distributions before changing those dependencies.
+Stable permits only exact reviewed upstream path/hash pairs from `scripts/release-pe-policy.json`; invalid signatures, unexpected upstream bytes, wrong Nova publisher or missing Nova timestamps fail. Store rejects unsigned upstream files too, but additionally accepts only reviewed distributor signatures from `scripts/store-redistribution-policy.json`: original full hashes, unchanged PE content, exact Nova certificate and timestamps are mandatory. Existing third-party signatures are never replaced. Runtime signed hashes are embedded in protected ASAR, and packaged third-party metadata records both original and final hashes/signature identities.
 
 Manual audit:
 
@@ -90,7 +98,7 @@ powershell -NoProfile -File scripts/verify-windows-signatures.ps1 -Root .cache/p
 powershell -NoProfile -File scripts/verify-windows-signatures.ps1 -Root .cache/packaging/stable/win-unpacked -Mode Store -ExpectedThumbprint $env:NOVA_SIGNING_THUMBPRINT -SignTool $env:NOVA_SIGNTOOL -ReportPath .cache/store-blockers.json
 ```
 
-The second command must currently fail on the 25 unsigned upstream files: Electron DLLs `dxcompiler.dll`, `ffmpeg.dll`, `vk_swiftshader.dll`, `vulkan-1.dll`, `PresentMonLegacy.exe` and 20 LibreHardwareMonitor/runtime EXE/DLL files. Signed upstream files preserve their original publisher. Do not re-sign these under Nova merely to make the gate green.
+The second command deliberately fails against Stable's 25 unsigned files. Run it instead against `.cache/packaging/store` to validate the signed Store installer and payload. The original Electron DLLs, PresentMonLegacy and 20 LibreHardwareMonitor/dependency PE files are signed only under the documented Store redistribution policy. Existing signed upstream files retain their original publishers. Provenance is included in `redistribution-signing.json`, the signature reports and bundled license/source records.
 
 GitHub tag workflows build unsigned candidates with read-only repository permissions. `publish-signed-windows.yml` runs only by explicit dispatch from main, against an existing reviewed version tag reachable from main, on a dedicated Windows signing runner in protected environment `nova-signing`. Configure public environment variables `NOVA_SIGNTOOL` and `NOVA_SIGNING_THUMBPRINT`, required reviewers, and self-hosted labels `Windows`, `X64`, `nova-signing`. Keep certificate access on that dedicated host; do not expose it to PR jobs. Maintain SimplySign MFA/session access interactively. Protect main and version tags, and reset the runner workspace between jobs.
 
@@ -132,7 +140,7 @@ Run on Windows 10 and Windows 11 x64 as a standard user; snapshot and restore be
 ## Partner Center and hosting steps
 
 1. Register/verify the publisher in Partner Center and reserve Nova Tweaks. Use the existing project name, website, support address and legal identity only after account verification. [Reserve a Win32 app name](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msi/reserve-your-apps-name).
-2. Resolve all unsigned PE blockers with legally reviewed official upstream components or a separately reviewed packaging change. Preserve license/source/notice/digest checks. Address driver disclosure and supported-system-configuration risks with Microsoft. Re-run Store tests and the strict Store package gate.
+2. Keep the reviewed Store redistribution policy and license/source records effective when updating dependencies. The initial unsigned PE blockers have been resolved. Address driver disclosure and supported-system-configuration risks with Microsoft. Re-run Store tests and the strict Store package gate.
 3. Build from the reviewed source tag with the protected signing process, retain signature reports and final checksum, and complete disposable VM tests for that exact installer hash. Never submit `store-candidate`.
 4. Host the final Store EXE at an immutable versioned HTTPS URL, e.g. a future official release asset `https://github.com/NovaTweaksDev/Nova-Tweaks/releases/download/v<VERSION>/NovaTweaks-store-Setup-<VERSION>-x64.exe`. This is a strategy, not an existing published URL. Do not use `latest/download`, expiring tokens or overwrite an existing version. Test public access, redirects, content length, checksum, offline installation and Microsoft ingestion. Choose dedicated static HTTPS hosting if GitHub delivery cannot meet ingestion requirements.
 5. Enter x64 package version, EXE URL and silent installation arguments; provide removal instructions and any installer-return-code information requested in Partner Center. Explain same-product GUID, per-user choice and optional administrator broker.
@@ -183,7 +191,14 @@ Microsoft explicitly notes that valid certificates, including EV, do not immedia
 
 ## Validation boundaries
 
-Local and Store-candidate full suites each completed with 297 passing tests, zero failures and one optional trust-key test skipped because its separate test credentials are unavailable. Lint and interface type checks passed. Real signing of a staged Nova helper passed with the existing Certum certificate and timestamp. The Store-candidate NSIS build, physical exclusion checks, packaged smoke, extracted-byte comparison and final checksum validation passed. Package smoke tests are real entrypoint/resource tests with system operations disabled; they do not validate actual Windows changes.
+Local and Store-candidate full suites each completed with 301 passing tests, zero failures and one optional trust-key test skipped because its separate test credentials are unavailable. Lint and interface type checks passed. Real signing of a staged Nova helper passed with the existing Certum certificate and timestamp. The Store-candidate NSIS build, physical exclusion checks, packaged smoke, extracted-byte comparison and final checksum validation passed. Package smoke tests are real entrypoint/resource tests with system operations disabled; they do not validate actual Windows changes.
+
+Actual signed Store packaging passed as well: all 257 output PE files (including
+the installer) have valid signatures; 25 entries are verified Nova distributor
+signatures with unchanged pinned code content. The extracted installer payload
+matches the validated unpacked application. No unsigned files or validation
+failures remain in this build. Exact-installed-uninstaller and VM behavior still
+require execution. These are test artifacts, not a published new version.
 
 The final signed Stable packaging run passed: application payload 256 PE files, all seven Nova PE files valid with timestamps, original signed third-party files preserved, 25 reviewed unsigned upstream exceptions. The final output audit additionally checks the signed installer. Temporary NSIS files are removed before that audit and do not enter the retained release. The supplied Store signature gate deliberately rejects those 25 upstream exceptions. Installation tests remain separate and unexecuted.
 

@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const signedResourceIntegrity = require('../electron/generated/signed-helper-integrity');
 
 const REQUIRED_LEGAL_FILES = [
   'LICENSE',
@@ -38,7 +39,8 @@ function assertThirdPartyFiles(rootDirectory, manifest, pathField) {
   const seenFileNames = new Set();
   for (const component of manifest.components) {
     const relativePath = String(component?.[pathField] || '').trim();
-    const expectedHash = String(component?.sha256 || '').trim().toUpperCase();
+    const signedHash = pathField === 'packagedPath' ? signedResourceIntegrity['third-party-files']?.[relativePath] : null;
+    const expectedHash = String(signedHash || component?.sha256 || '').trim().toUpperCase();
     const fileName = String(component?.fileName || '').trim();
     if (!fileName || !relativePath || !/^[0-9A-F]{64}$/.test(expectedHash)) {
       throw new Error(`Third-party manifest entry is incomplete for ${fileName || 'an unnamed component'}.`);

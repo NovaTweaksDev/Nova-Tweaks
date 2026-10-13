@@ -22,8 +22,9 @@ function formatDistributionNotes(notes, profile, report) {
   const publishers = [...new Set(nova.map((file) => file.publisher))];
   if (publishers.length !== 1) throw new Error('Nova publisher identity is inconsistent.');
   const unsigned = report.files.filter((file) => file.status === 'NotSigned');
+  const redistributed = report.files.filter((file) => file.redistributedByNova === true);
   if (profile === 'store' && unsigned.length) throw new Error('Store release cannot contain unsigned PE files.');
-  return `${notes}\n\nWindows distribution: ${profile}. Nova executables and installer: validated Authenticode signatures and timestamps.\nPublisher: ${publishers[0]}.\n${unsigned.length ? `Includes ${unsigned.length} hash-pinned unsigned upstream PE files; see signatures.json. This package does not meet Store all-PE signing requirements.\n` : ''}SHA-256 in checksums.txt covers the final installer after signing.\nValid signatures do not guarantee SmartScreen reputation. Installation and hardware-specific behavior require separate VM verification.\n`;
+  return `${notes}\n\nWindows distribution: ${profile}. Nova executables and installer: validated Authenticode signatures and timestamps.\nPublisher: ${publishers[0]}.\n${redistributed.length ? `Includes ${redistributed.length} reviewed upstream PE files signed by Nova as distributor; original code content and existing vendor signatures are preserved. See redistribution-signing.json and bundled third-party notices/source records.\n` : ''}${unsigned.length ? `Includes ${unsigned.length} hash-pinned unsigned upstream PE files; see signatures.json. This package does not meet Store all-PE signing requirements.\n` : ''}SHA-256 in checksums.txt covers the final installer after signing.\nValid signatures do not guarantee SmartScreen reputation. Installation and hardware-specific behavior require separate VM verification.\n`;
 }
 if (require.main === module) {
   const version = require('../package.json').version;

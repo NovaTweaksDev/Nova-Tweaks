@@ -37,7 +37,7 @@ A missing Visual C++ runtime dependency found during initial virtual-machine tes
 - GitHub Actions validates source changes with `npm ci`, `npm test`, and `npm run build` on Windows.
 - Preview tags build unsigned installers and publish the installer with `checksums.txt`.
 - Release packaging distinguishes Windows Authenticode signing from the application's Ed25519 artifact, tweak, and update trust configuration.
-- Third-party executables keep their upstream signature state and are excluded from Nova-owned executable signing configuration.
+- Existing third-party signatures stay untouched. Regular GitHub builds preserve unsigned upstream bytes; signed Store builds additionally sign only reviewed unsigned redistributable files with pinned code-content verification and preserved license/source obligations.
 - LibreHardwareMonitor and PresentMon license, notice, origin, source, version, and digest records are maintained separately from Nova-owned code.
 - Packaged tweak definitions, sidecars, and helper configuration have integrity and compliance checks in the test suite.
 

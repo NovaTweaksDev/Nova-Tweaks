@@ -40,6 +40,13 @@ function prepareSignedHelpers() {
     }
     if (resource.policy) signedHashes[resource.policy] = computeSidecarSha256(staged, resource.policy);
   }
+  if (profile.store) {
+    require('./prepare-store-signing').prepareStoreSigning(root, (file) => {
+      const report = path.join(root, '.cache/store-signing/signature-result.json');
+      runPowerShell('scripts/sign-nova-file.ps1', ['-File', file, '-UnsignedRedistribution', '-Thumbprint', thumbprint, '-SignTool', process.env.NOVA_SIGNTOOL, '-ReportPath', report]);
+      return JSON.parse(fs.readFileSync(report, 'utf8'));
+    }, signedHashes);
+  }
   fs.writeFileSync(path.join(root, 'electron/generated/signed-helper-integrity.js'), `module.exports = ${JSON.stringify(signedHashes)};\n`);
 }
 
@@ -58,6 +65,9 @@ async function main() {
   const packagingCache = path.resolve(output, '.cache');
   if (path.dirname(packagingCache) !== path.resolve(output)) throw new Error('Unexpected packaging cache.');
   fs.rmSync(packagingCache, { recursive: true, force: true });
+  if (profile.store && profile.signed) {
+    fs.copyFileSync(path.join(root, '.cache/store-signing/signing-evidence.json'), path.join(output, 'redistribution-signing.json'));
+  }
   const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
   fs.writeFileSync(path.join(output, 'release-build.json'), JSON.stringify({
     schemaVersion: 1, profile: profile.name, version: require('../package.json').version, commit, sourceDirty

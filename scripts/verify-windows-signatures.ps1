@@ -35,6 +35,7 @@ function Invoke-NovaSignatureAudit {
   $directory = (Resolve-Path -LiteralPath $Root).Path
   if ((Get-Item -LiteralPath $directory).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Package root cannot be a reparse point.' }
   $policy = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'release-pe-policy.json') -Raw | ConvertFrom-Json
+  $redistributionPolicy = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'store-redistribution-policy.json') -Raw | ConvertFrom-Json
   if ($Mode -ne 'Audit') {
     if ($ExpectedThumbprint -notmatch '^[A-Fa-f0-9]{40}$') { throw 'An explicit Nova publisher certificate thumbprint is required.' }
     if (-not $SignTool) { $SignTool = Find-NovaSignTool }
@@ -69,15 +70,25 @@ function Invoke-NovaSignatureAudit {
       }
       $policyPath = $relative -replace '^win-unpacked/', ''
       $upstreamException = @($policy.unsignedUpstream | Where-Object { $_.path -eq $policyPath -and $_.sha256 -eq $hash }).Count -eq 1
+      $redistributed = $false
+      if ($Mode -eq 'Store' -and -not $novaOwned -and -not $upstreamException -and $signature.Status -eq 'Valid' -and $thumbprint -eq $ExpectedThumbprint -and $signature.TimeStamperCertificate) {
+        $approved = @($redistributionPolicy.files | Where-Object { $_.path -eq $policyPath })
+        if ($approved.Count -eq 1) {
+          $contentHash = & node (Join-Path $PSScriptRoot 'pe-signing-content.js') $item.FullName
+          if ($LASTEXITCODE -ne 0) { throw 'Redistribution PE content inspection failed.' }
+          $redistributed = $contentHash -eq $approved[0].contentSha256
+        }
+      }
       $record = [ordered]@{
         path = $relative; sha256 = $hash; owner = $(if ($novaOwned) { 'Nova' } else { 'Third-party' })
         status = [string]$signature.Status; publisher = $publisher; thumbprint = $thumbprint
         timestampAuthority = $(if ($signature.TimeStamperCertificate) { $signature.TimeStamperCertificate.Subject } else { $null })
         certificateChain = $chainSubjects; unsignedUpstreamException = $upstreamException
+        redistributedByNova = $redistributed
       }
       $records.Add([pscustomobject]$record)
       if ($Mode -eq 'Audit') { continue }
-      if (-not $novaOwned -and -not $upstreamException) {
+      if (-not $novaOwned -and -not $upstreamException -and -not $redistributed) {
         $failures.Add("$relative : unexpected upstream bytes or publisher signature"); continue
       }
       if ($signature.Status -ne 'Valid') {

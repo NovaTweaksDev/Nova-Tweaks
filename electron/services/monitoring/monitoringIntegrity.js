@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const signedResourceIntegrity = require('../../generated/signed-helper-integrity');
 
 const INTEGRITY_FORMAT = 'nova-lhm-runtime-v2';
 const EXPECTED_CRITICAL_RUNTIME_SHA256 = '6bcf7760ff882f6670f041db70ae06d96b2cebdffd1aa990a84b249e0adfa5df';
@@ -101,7 +102,7 @@ function computeCriticalRuntimeSha256(runtimeRoot) {
 
 function assertMonitoringRuntimeIntegrity(
   runtimeRoot,
-  expectedSha256 = EXPECTED_CRITICAL_RUNTIME_SHA256
+  expectedSha256 = signedResourceIntegrity['monitoring-runtime'] || EXPECTED_CRITICAL_RUNTIME_SHA256
 ) {
   const normalizedExpected = String(expectedSha256 || '').trim().toLowerCase();
   if (!/^[a-f0-9]{64}$/.test(normalizedExpected)) {

@@ -2,6 +2,8 @@ param(
   [Parameter(Mandatory = $true)][string]$Installer,
   [Parameter(Mandatory = $true)][string]$Version,
   [string]$UpgradeFrom,
+  [ValidateSet('Stable', 'Store')][string]$Profile = 'Stable',
+  [string]$ToolsPath,
   [switch]$IsolatedVM,
   [string]$ExpectedThumbprint = 'DA86DBDAF373FFCA4E4469475C16A894CA42CFE4',
   [string]$ReportPath = 'installer-vm-results.json'
@@ -11,6 +13,13 @@ Set-StrictMode -Version Latest
 $machine = Get-CimInstance Win32_ComputerSystem
 if (-not $IsolatedVM -or $machine.Model -notmatch 'Virtual|VMware|KVM|QEMU|HVM') {
   throw 'Use a disposable Windows VM with a snapshot and pass -IsolatedVM. Never run on a production PC.'
+}
+if ($ToolsPath) {
+  $taskTestToolsPath = (Resolve-Path -LiteralPath $ToolsPath).Path
+  foreach ($taskTool in @('node.exe', 'signtool.exe')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $taskTestToolsPath $taskTool))) { throw 'Test tools missing.' }
+  }
+  $env:PATH = $taskTestToolsPath + ';' + $env:PATH
 }
 if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid version.' }
 $runKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
@@ -51,7 +60,7 @@ if (-not (Test-Path -LiteralPath $shortcut)) { throw 'Start Menu shortcut missin
 $taskSavedModulePath = $env:PSModulePath
 try {
   Remove-Item Env:PSModulePath -ErrorAction SilentlyContinue
-  & powershell.exe -NoProfile -NonInteractive -File (Join-Path $PSScriptRoot 'verify-windows-signatures.ps1') -Root $installRoot -Mode Stable -ExpectedThumbprint $ExpectedThumbprint | Out-Null
+  & powershell.exe -NoProfile -NonInteractive -File (Join-Path $PSScriptRoot 'verify-windows-signatures.ps1') -Root $installRoot -Mode $Profile -ExpectedThumbprint $ExpectedThumbprint | Out-Null
   if ($LASTEXITCODE -ne 0) { throw 'Installed payload signature validation failed.' }
 } finally { $env:PSModulePath = $taskSavedModulePath }
 $userData = Join-Path $env:APPDATA 'Nova Tweaks'
@@ -74,6 +83,7 @@ $tasksAfter = @(Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object {
 if (@($tasksAfter | Where-Object { $_ -notin $tasksBefore }).Count -gt 0) { throw 'New Nova scheduled task remained after uninstall.' }
 [ordered]@{
   status = 'passed'; windowsVersion = [Environment]::OSVersion.Version.ToString()
+  profile = $Profile
   version = $Version; installerSha256 = (Get-FileHash -LiteralPath $Installer -Algorithm SHA256).Hash
   upgradeTested = [bool]$UpgradeFrom; checkedAtUtc = [DateTime]::UtcNow.ToString('o')
   manualChecksPending = @('No visual setup dialogs', 'Normal launch without UAC', 'Real broker UAC approval', 'Hardware sensors', 'Windows 10/11 compatibility')
