@@ -78,7 +78,13 @@ if (@(Find-Installation).Count -ne 0 -or (Test-Path -LiteralPath $app) -or (Test
   throw 'Program files, uninstall registration or shortcut remained.'
 }
 if (-not (Test-Path -LiteralPath $sentinel)) { throw 'Uninstall deleted user data.' }
-if (Get-ItemPropertyValue -LiteralPath $runKey -Name 'Nova Tweaks' -ErrorAction SilentlyContinue) { throw 'Nova login item remained.' }
+# Check value presence, including an empty value, without reading a missing value.
+if (Test-Path -LiteralPath $runKey) {
+  $taskRunRegistryKey = Get-Item -LiteralPath $runKey -ErrorAction Stop
+  try {
+    if ($taskRunRegistryKey.GetValueNames() -contains 'Nova Tweaks') { throw 'Nova login item remained.' }
+  } finally { $taskRunRegistryKey.Dispose() }
+}
 $tasksAfter = @(Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object { $_.TaskName -like '*Nova*' } | ForEach-Object { $_.TaskPath + $_.TaskName })
 if (@($tasksAfter | Where-Object { $_ -notin $tasksBefore }).Count -gt 0) { throw 'New Nova scheduled task remained after uninstall.' }
 [ordered]@{
