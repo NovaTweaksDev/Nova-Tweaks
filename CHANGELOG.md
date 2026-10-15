@@ -6,6 +6,33 @@ This file records changes described by the project's public Git tags and GitHub 
 
 No changes recorded yet.
 
+## 1.0.6 - 2026-10-15
+
+### Added
+
+- Added Display Profiles under Game Mode to capture and switch existing Windows/NVIDIA desktop and gaming display setups.
+- Save resolution, refresh rate, output timing, supported scaling, and readable Digital Vibrance together; associate tested profiles with a game executable for automatic switching.
+- Confirm display changes within 15 seconds, with an independent recovery journal and actions to restore the previous setup or keep the current settings.
+
+### Changed
+
+- Set the Performance and Ultimate power plans' processor boost mode to Aggressive (value 2). Existing plans receive the new value when reapplied.
+- Keep confirmed display modes in Windows' display database across restarts. Output color range is excluded from display profiles.
+- Include the NVIDIA NVAPI notices with the desktop distribution.
+
+### Validation
+
+- Passed source linting, interface type checks, the production build, and 343 automated tests; four optional tests were skipped.
+- Passed the packaged renderer startup and bundled helper/tweak integrity checks with system operations disabled.
+- Verified valid Authenticode signatures for the installer, desktop executable, administrator broker, and elevation helper.
+
+### Limitations
+
+- This is the regular Windows x64 desktop build, separate from the 1.0.5 Store build.
+- Display profiles capture modes already provided by Windows and the display driver; they do not create custom resolutions or edit game configuration files.
+- Display behavior depends on compatible hardware and drivers. Automated checks do not replace manual confirmation on the target monitor.
+- Power-plan changes do not guarantee higher FPS or lower latency.
+
 ## 1.0.4 - 2026-10-08
 
 ### Fixed

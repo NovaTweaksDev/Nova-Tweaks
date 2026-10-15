@@ -37,7 +37,7 @@ $valMinProc = 5
 $valMaxProc = 100
 $valEpp     = 10
 $valCooling = 1
-$valBoost   = 4
+$valBoost   = 2
 $valParkMin = 100
 $valParkMax = 100
 

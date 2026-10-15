@@ -1,6 +1,22 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('desktopApi', {
+  getDisplayProfileState: () => ipcRenderer.invoke('display-profiles:state'),
+  refreshDisplayProfiles: () => ipcRenderer.invoke('display-profiles:refresh'),
+  captureDisplayProfile: (payload) => ipcRenderer.invoke('display-profiles:capture', payload),
+  configureDisplayProfile: (payload) => ipcRenderer.invoke('display-profiles:configure', payload),
+  deleteDisplayProfile: (payload) => ipcRenderer.invoke('display-profiles:delete', payload),
+  validateDisplayProfile: (payload) => ipcRenderer.invoke('display-profiles:validate', payload),
+  activateDisplayProfile: (payload) => ipcRenderer.invoke('display-profiles:activate', payload),
+  confirmDisplayProfile: (payload) => ipcRenderer.invoke('display-profiles:confirm', payload),
+  restoreDisplayProfile: (payload) => ipcRenderer.invoke('display-profiles:restore', payload),
+  keepCurrentDisplayState: () => ipcRenderer.invoke('display-profiles:keep'),
+  onDisplayProfileUpdate: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = (_event, state) => callback(state);
+    ipcRenderer.on('display-profiles:update', listener);
+    return () => ipcRenderer.removeListener('display-profiles:update', listener);
+  },
   getAdminState: () => ipcRenderer.invoke('app:get-admin-state'),
   requestAdminRelaunch: () => ipcRenderer.invoke('app:request-admin-relaunch'),
   getAdminAccessState: () => ipcRenderer.invoke('app:get-admin-access-state'),

@@ -10,7 +10,7 @@ const SIDECAR_POLICIES = Object.freeze({
     requiredFiles: ['NovaGameDetector.exe', 'NovaGameDetector.dll', 'NovaGameDetector.runtimeconfig.json']
   },
   'nvidia-display-helper': {
-    expectedSha256: '50826a7175220916fe93541cdeb3fe6bd6900d83f70903f335c9c6d07094a8f9',
+    expectedSha256: '8d265cdeff1b1011d475a331cf2c4e490f5cf235ef0ed1688c4dafa5a597506d',
     requiredFiles: ['nvidia-display-helper.exe']
   },
   'nvidia-profile-helper': {

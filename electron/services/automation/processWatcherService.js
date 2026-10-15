@@ -28,13 +28,40 @@ const PROTECTED_PROCESS_NAMES = new Set([
 
 const WINDOWS_PROCESS_SCRIPT = [
   "$ErrorActionPreference = 'SilentlyContinue'",
+  // Get-Process.Path can be unavailable for anti-cheat protected games. As in
+  // NovaGameDetector, query only limited process information, never VM access.
+  "Add-Type -TypeDefinition @'",
+  'using System;',
+  'using System.Text;',
+  'using System.Runtime.InteropServices;',
+  'public static class NovaProcessIdentity {',
+  '  [DllImport("kernel32.dll", SetLastError=true)] static extern IntPtr OpenProcess(uint access, bool inherit, uint pid);',
+  '  [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)] static extern bool QueryFullProcessImageName(IntPtr handle, uint flags, StringBuilder text, ref uint size);',
+  '  [DllImport("kernel32.dll", SetLastError=true)] static extern bool GetProcessTimes(IntPtr handle, out long created, out long exited, out long kernel, out long user);',
+  '  [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);',
+  '  public static string[] Query(int pid) {',
+  '    IntPtr handle = OpenProcess(0x1000, false, (uint)pid);',
+  '    if (handle == IntPtr.Zero) return new string[] { "", "" };',
+  '    try {',
+  '      uint size = 32768; var text = new StringBuilder((int)size); long created, exited, kernel, user;',
+  '      if (!GetProcessTimes(handle, out created, out exited, out kernel, out user)) return new string[] { "", "" };',
+  '      if (!QueryFullProcessImageName(handle, 0, text, ref size)) text.Clear();',
+  '      return new string[] { text.ToString(), DateTime.FromFileTimeUtc(created).ToString("o") };',
+  '    } finally { CloseHandle(handle); }',
+  '  }',
+  '}',
+  "'@",
   '$items = @(Get-Process | ForEach-Object {',
   '  try {',
+  '    $imagePath = ""; $started = ""',
+  '    $identity = [NovaProcessIdentity]::Query([int]$_.Id)',
+  '    $imagePath = $identity[0]; $started = $identity[1]',
+  '    if (-not $started) { try { $started = $_.StartTime.ToUniversalTime().ToString("o") } catch {} }',
   '    [PSCustomObject]@{',
   '      name = $_.ProcessName',
   '      pid = [int]$_.Id',
-  '      startTime = $_.StartTime.ToUniversalTime().ToString("o")',
-  '      executablePath = $_.Path',
+  '      startTime = $started',
+  '      executablePath = $imagePath',
   '      cpuSeconds = $_.CPU',
   '      ramBytes = $_.WorkingSet64',
   '      ioReadBytes = $_.IOReadBytes',
@@ -162,6 +189,7 @@ function createProcessWatcherService(options = {}) {
   const getSettings = options.getSettings || (() => ({}));
   const onUpdate = typeof options.onUpdate === 'function' ? options.onUpdate : () => {};
   const onSnapshot = typeof options.onSnapshot === 'function' ? options.onSnapshot : () => {};
+  const hasAdditionalDemand = typeof options.hasAdditionalDemand === 'function' ? options.hasAdditionalDemand : () => false;
   const getActiveGame = typeof options.getActiveGame === 'function' ? options.getActiveGame : () => null;
   const nowProvider = typeof options.nowProvider === 'function' ? options.nowProvider : () => Date.now();
   const intervalMs = Number.isFinite(options.intervalMs) ? options.intervalMs : DEFAULT_INTERVAL_MS;
@@ -325,7 +353,7 @@ function createProcessWatcherService(options = {}) {
   }
 
   async function pollOnce() {
-    if (pollInProgress || (!config().enabled && !hasActiveRules())) return getState();
+    if (pollInProgress || (!config().enabled && !hasActiveRules() && !hasAdditionalDemand())) return getState();
     pollInProgress = true;
     const now = nowProvider();
     try {
@@ -364,7 +392,7 @@ function createProcessWatcherService(options = {}) {
   }
 
   function start() {
-    if (timer || (!config().enabled && !hasActiveRules())) return;
+    if (timer || (!config().enabled && !hasActiveRules() && !hasAdditionalDemand())) return;
     timer = setInterval(() => void pollOnce(), intervalMs);
     void pollOnce();
     emitUpdate();
@@ -379,7 +407,7 @@ function createProcessWatcherService(options = {}) {
   }
 
   function applySettings() {
-    if (config().enabled || hasActiveRules()) start();
+    if (config().enabled || hasActiveRules() || hasAdditionalDemand()) start();
     else stop();
     emitUpdate();
   }

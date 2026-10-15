@@ -54,6 +54,25 @@ test('calculates a bounded adaptive memory threshold', () => {
   assert.equal(calculateAdaptiveMemoryThresholdMB(64 * 1024 ** 3), 4096);
 });
 
+test('display profile demand receives process snapshots without enabling resource alerts', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-display-watch-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  let demand = true, snapshots = 0;
+  const service = createProcessWatcherService({
+    historyPath: path.join(root, 'history.json'),
+    getSettings: () => createSettings({ enabled: false }),
+    hasAdditionalDemand: () => demand,
+    snapshotProvider: async () => [createProcess()],
+    onSnapshot: () => { snapshots += 1; }
+  });
+  await service.pollOnce();
+  assert.equal(snapshots, 1);
+  assert.equal(service.getState().currentAlerts.length, 0);
+  demand = false;
+  await service.pollOnce();
+  assert.equal(snapshots, 1);
+});
+
 test('protects critical Windows and Nova processes', () => {
   assert.equal(isProtectedProcess({ name: 'lsass', pid: 500 }), true);
   assert.equal(isProtectedProcess({ name: 'NovaTweaks', pid: 600 }), true);

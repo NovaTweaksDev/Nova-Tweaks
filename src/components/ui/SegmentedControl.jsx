@@ -10,7 +10,7 @@ function SegmentedControl({
   role = 'tablist',
   itemRole = 'tab'
 }) {
-  function handleRadioKeyDown(event, index) {
+  function handleSelectionKeyDown(event, index) {
     if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) {
       return;
     }
@@ -61,7 +61,7 @@ function SegmentedControl({
             key={String(id)}
             type="button"
             onClick={() => onChange?.(id)}
-            onKeyDown={itemRole === 'radio' ? (event) => handleRadioKeyDown(event, index) : undefined}
+            onKeyDown={itemRole === 'radio' || itemRole === 'tab' ? (event) => handleSelectionKeyDown(event, index) : undefined}
             disabled={disabled}
             className={joinClasses('ui-segment-item', active ? 'is-active' : '', itemClassName)}
             {...itemProps}

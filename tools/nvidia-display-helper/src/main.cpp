@@ -8,6 +8,9 @@
 #include <iostream>
 #include <string>
 #include <string_view>
+#include <vector>
+#include <stdexcept>
+#include <cstring>
 
 using NvU32 = std::uint32_t;
 using NvU16 = std::uint16_t;
@@ -131,6 +134,7 @@ std::string EscapeJson(std::string_view value) {
 
 class NvApi {
  public:
+  void* Interface(NvU32 id) const { return query_ ? query_(id) : nullptr; }
   ~NvApi() { Shutdown(); }
 
   bool Load(std::string& error) {
@@ -389,7 +393,13 @@ void PrintColorResult(const std::string& displayName, NvU32 displayId,
             << ",\"depth\":" << colorData.data.depth << "}}\n";
 }
 
+#include "display_profiles.h"
+
 int main(int argc, char** argv) {
+  if (argc > 1 && std::string(argv[1]).rfind("profile-", 0) == 0) {
+    try { return RunDisplayProfileCommand(argc, argv); }
+    catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 20; }
+  }
   if (argc < 2) {
     PrintUsage();
     return 2;
