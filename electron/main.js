@@ -25,6 +25,9 @@ const { createRuleAutomationService } = require('./services/automation/ruleAutom
 const { createScheduledMaintenanceService } = require('./services/automation/scheduledMaintenanceService');
 const { executeAutomaticTweakRuleAction } = require('./services/automation/automaticTweakRuleAction');
 const { createGameSessionManager } = require('./services/gamemode/gameSessionManager');
+const { createDisplayProfileProvider } = require('./services/displayProfiles/displayProfileProvider');
+const { createDisplayProfileService } = require('./services/displayProfiles/displayProfileService');
+const { registerDisplayProfileHandlers } = require('./ipc/displayProfileHandlers');
 const { createAppsManager, AppsManagerError } = require('./services/apps/appsManager');
 const { createBackupManager, BackupManagerError } = require('./services/backups/backupManager');
 const { captureAutomaticTweakSnapshot } = require('./services/backups/automaticBackupSnapshot');
@@ -339,6 +342,9 @@ let isAdminSession = false;
 let scriptRunner = null;
 let monitoringManager = null;
 let gameSessionManager = null;
+let displayProfileService = null;
+let displayProfilesQuitReady = false;
+let displayProfilesQuitPending = false;
 let tweakRunner = null;
 let backendTweakCatalog = null;
 let appsManager = null;
@@ -1748,6 +1754,7 @@ function createMainWindow() {
 }
 
 function registerIpcHandlers() {
+  registerDisplayProfileHandlers({ ipcMain, service: displayProfileService, getWindow: () => mainWindow });
   registerRestoreHandlers({ ipcMain, restoreService });
   ipcMain.handle('app:get-admin-state', async () => ({
     isAdmin: isAdminSession,
@@ -3143,6 +3150,15 @@ if (!initializePrivilegeState()) {
       onUpdate: broadcastRuleAutomationUpdate
     });
 
+    displayProfileService = createDisplayProfileService({
+      provider: createDisplayProfileProvider({ app }),
+      root: path.join(app.getPath('userData'), 'display-profiles'),
+      onUpdate: (state) => {
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('display-profiles:update', state);
+      },
+      onDemandChange: () => processWatcherService?.applySettings?.()
+    });
+
     processWatcherService = createProcessWatcherService({
       app,
       logger: processWatcherLogger,
@@ -3151,7 +3167,11 @@ if (!initializePrivilegeState()) {
       getSettings: () => settingsService.getSettings(),
       getActiveGame: () => gameSessionManager?.getState?.()?.activeGame || null,
       onUpdate: broadcastProcessAutomationUpdate,
-      onSnapshot: (processes) => ruleAutomationService?.handleProcessSnapshot?.(processes)
+      hasAdditionalDemand: () => displayProfileService?.needsProcessSnapshots?.() || false,
+      onSnapshot: (processes) => {
+        ruleAutomationService?.handleProcessSnapshot?.(processes);
+        void displayProfileService?.handleProcessSnapshot?.(processes);
+      }
     });
     processWatcherService.applySettings();
     ruleAutomationService.resumePendingAutomaticActions();
@@ -3212,7 +3232,19 @@ if (!initializePrivilegeState()) {
   }
 }
 
-app.on('before-quit', () => {
+app.on('before-quit', (event) => {
+  if (displayProfileService && !displayProfilesQuitReady) {
+    event.preventDefault();
+    if (!displayProfilesQuitPending) {
+      displayProfilesQuitPending = true;
+      processWatcherService?.stop?.();
+      void displayProfileService.shutdown().finally(() => {
+        displayProfilesQuitReady = true;
+        app.quit();
+      });
+    }
+    return;
+  }
   isQuitting = true;
   clearInterval(automaticBackupTimer);
   adminBrokerManager?.shutdown?.();

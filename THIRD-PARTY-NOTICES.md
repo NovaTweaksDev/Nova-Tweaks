@@ -12,6 +12,15 @@ original, unabridged upstream license and notice files are preserved under
 availability and SHA-256 hashes are recorded in
 [`third-party-components.json`](third-party-components.json).
 
+## NVIDIA NVAPI display declarations
+
+The Nova-owned NVIDIA display helper contains adapted display ABI declarations
+from the [public NVIDIA NVAPI SDK](https://github.com/NVIDIA/nvapi/blob/main/nvapi.h).
+These declarations are copyright (c) 2019-2026 NVIDIA CORPORATION & AFFILIATES
+and licensed under MIT; the [complete notice](licenses/NVAPI/LICENSE.txt) is
+included in packages. NVAPI driver libraries are loaded from the installed
+NVIDIA driver and are not redistributed by this addition.
+
 ## LibreHardwareMonitor
 
 - **Project:** LibreHardwareMonitor

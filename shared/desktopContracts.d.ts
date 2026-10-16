@@ -37,4 +37,41 @@ export interface RestoreApi {
   listBackupRestores(): Promise<IpcResult<{ jobs: RestoreJob[] }>>;
   onBackupRestoreUpdate(callback: (job: RestoreJob) => void): () => void;
 }
-declare global { interface Window { desktopApi: RestoreApi; } }
+export interface DisplaySnapshot {
+  id: string; name: string; fingerprint: string; token: string;
+  width: number; height: number;
+  refresh: { numerator: number; denominator: number };
+  signal: { width: number; height: number; numerator: number; denominator: number };
+  scaling: number; vibrance: number | null;
+  capabilities: { nvidiaScaling: boolean; vibrance: boolean };
+  nativeState: { pixelRate: string; totalWidth: number; totalHeight: number; windowsScaling: number; scanline: number; vibrance: number };
+}
+export interface DisplayProfile {
+  id: string; kind: 'desktop' | 'gaming'; name: string; revision: number;
+  snapshot: DisplaySnapshot; auto: boolean; executablePath: string;
+  tested: { revision: number; fingerprint: string } | null;
+}
+export interface DisplayProfileState {
+  profiles: DisplayProfile[]; displays: DisplaySnapshot[]; busy: boolean;
+  warning: string | null; lastError: RestoreError | null;
+  transaction: null | {
+    id: string; profileId: string; original: DisplaySnapshot; applied: DisplaySnapshot;
+    status: 'confirming' | 'active' | 'conflict' | 'recovery'; deadline: number | null;
+    game: { pid: number; startTime: string; executablePath: string } | null;
+    returnTo?: { profileId: string; snapshot: DisplaySnapshot };
+  };
+}
+export interface DisplayProfileApi {
+  getDisplayProfileState(): Promise<IpcResult<{ state: DisplayProfileState }>>;
+  refreshDisplayProfiles(): Promise<IpcResult<{ state: DisplayProfileState }>>;
+  captureDisplayProfile(payload: { id?: string; kind: 'desktop' | 'gaming'; name: string; monitorId: string }): Promise<IpcResult<{ state: DisplayProfileState }>>;
+  configureDisplayProfile(payload: { id: string; name?: string; executablePath?: string; auto?: boolean }): Promise<IpcResult<{ state: DisplayProfileState }>>;
+  deleteDisplayProfile(payload: { id: string }): Promise<IpcResult<{ state: DisplayProfileState }>>;
+  validateDisplayProfile(payload: { id: string }): Promise<IpcResult<{ state: DisplayProfileState }>>;
+  activateDisplayProfile(payload: { id: string }): Promise<IpcResult<{ state: DisplayProfileState }>>;
+  confirmDisplayProfile(payload: { id: string }): Promise<IpcResult<{ state: DisplayProfileState }>>;
+  restoreDisplayProfile(payload?: { force?: boolean }): Promise<IpcResult<{ state: DisplayProfileState }>>;
+  keepCurrentDisplayState(): Promise<IpcResult<{ state: DisplayProfileState }>>;
+  onDisplayProfileUpdate(callback: (state: DisplayProfileState) => void): () => void;
+}
+declare global { interface Window { desktopApi: RestoreApi & DisplayProfileApi; } }

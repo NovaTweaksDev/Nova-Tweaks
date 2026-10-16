@@ -1651,6 +1651,9 @@ function App() {
       const startupSection = bootstrapSettings?.startupWindow?.rememberLastTab
         ? String(bootstrapSettings.startupWindow.lastTab || '').trim()
         : '';
+      if (startupSection) {
+        void prefetchSectionModule(startupSection);
+      }
       await Promise.all([
         (async () => {
           if (!window.desktopApi?.getAppMetadata) return;
@@ -3141,23 +3144,42 @@ function App() {
     });
 
     try {
-      const result = window.desktopApi?.runTweak
-        ? await window.desktopApi.runTweak({
+      const executeTweak = () => window.desktopApi?.runTweak
+        ? window.desktopApi.runTweak({
             id: tweak.id,
             targetState,
             params: scriptParams
           })
         : window.desktopApi?.apiExecuteTweak
-        ? await window.desktopApi.apiExecuteTweak({
+        ? window.desktopApi.apiExecuteTweak({
             id: tweak.id,
             targetState,
             params: scriptParams
           })
-        : await window.desktopApi.executeTweak({
+        : window.desktopApi.executeTweak({
             id: tweak.id,
             targetState,
             params: scriptParams
           });
+
+      let result = await executeTweak();
+      if (
+        result?.ok !== true &&
+        !suppressNotifications &&
+        (result?.code === 'ADMIN_REQUIRED' || result?.code === 'ADMIN_BROKER_APPROVAL_REQUIRED')
+      ) {
+        const approveAdmin = await requestSettingsConfirmation({
+          title: t('tweaks.confirm.adminRequiredTitle'),
+          message: t('tweaks.confirm.adminRequiredMessage', { name: tweak.name }),
+          confirmLabel: t('status.elevate'),
+          tone: 'warning'
+        });
+        if (approveAdmin) {
+          const approval = await handleRequestAdminRelaunch();
+          // Only retry an action that was blocked before execution, once access is ready.
+          result = approval?.ok ? await executeTweak() : approval;
+        }
+      }
 
       const adminAccessDenied = result?.ok !== true && result?.code === 'ADMIN_BROKER_CANCELLED';
       if (adminAccessDenied) {
@@ -3311,27 +3333,6 @@ function App() {
 
       if (adminAccessDenied && !suppressNotifications) {
         pushToast(executionMessage, 'warning');
-      }
-
-      if (
-        !successful &&
-        !adminAccessDenied &&
-        !suppressNotifications &&
-        isAdmin === false &&
-        (result?.code === 'ADMIN_REQUIRED' || normalizeRequiresAdmin(tweak))
-      ) {
-        const restartAsAdmin = await requestSettingsConfirmation({
-          title: t('tweaks.confirm.adminRequiredTitle'),
-          message: t('tweaks.confirm.adminRequiredMessage', { name: tweak.name }),
-          confirmLabel: t('status.elevate'),
-          tone: 'warning'
-        });
-        if (restartAsAdmin) {
-          const elevationResult = await handleRequestAdminRelaunch();
-          if (!elevationResult?.ok) {
-            pushToast(t('status.elevationFailed'), "error");
-          }
-        }
       }
 
       const normalizedResult = { ...result };
@@ -3839,9 +3840,7 @@ function App() {
 
   const isGameRuntimeSection = renderedSection === 'session-monitoring' || renderedSection === 'game-mode';
   const gameModeView = renderedSection === 'session-monitoring' ? 'session-monitoring' : 'game-mode';
-  const sectionSuspenseFallback = activeSection === 'tweaks'
-    ? null
-    : <SectionLoadingSkeleton sectionId={activeSection} label={t('common.loading')} />;
+  const sectionSuspenseFallback = <SectionLoadingSkeleton sectionId={activeSection} label={t('common.loading')} />;
   const sectionLoadingFallback = showSectionFallback
     ? sectionSuspenseFallback
     : null;

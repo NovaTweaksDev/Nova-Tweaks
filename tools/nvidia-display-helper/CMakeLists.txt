@@ -10,7 +10,7 @@ add_executable(nvidia-display-helper
 )
 
 target_compile_definitions(nvidia-display-helper PRIVATE _UNICODE UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
-target_link_libraries(nvidia-display-helper PRIVATE user32)
+target_link_libraries(nvidia-display-helper PRIVATE user32 advapi32)
 
 if(MSVC)
   set_property(TARGET nvidia-display-helper PROPERTY

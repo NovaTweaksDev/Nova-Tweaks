@@ -34,7 +34,8 @@ import {
   Square,
   Thermometer
 } from 'lucide-react';
-import { Button, IconBadge, ModalShell, PageHeader, PageShell, PremiumBadge, StatusPill, Switch } from './ui';
+import { Button, IconBadge, ModalShell, PageHeader, PageShell, PremiumBadge, SegmentedControl, StatusPill, Switch } from './ui';
+import DisplayProfilesPanel from './DisplayProfilesPanel';
 import {
   createPresetExecutionPlan,
   createPresetOperation,
@@ -2861,6 +2862,7 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
   });
   const recording = activeSession?.sessionStatus === 'recording';
   const panelView = view === 'session-monitoring' ? 'session-monitoring' : 'game-mode';
+  const [gameModeTab, setGameModeTab] = useState('optimization');
   const isSessionMonitoringView = panelView === 'session-monitoring';
   const pageTitle = isSessionMonitoringView ? t('nav.sessionMonitoring') : t('nav.gameMode');
   const pageDescription = isSessionMonitoringView
@@ -2909,6 +2911,12 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
       />
 
       <div className="game-mode-control-layout">
+        {!isSessionMonitoringView && <SegmentedControl value={gameModeTab} onChange={setGameModeTab} ariaLabel={t('displayProfiles.navigation')} className="w-full sm:w-fit" options={[
+          { id: 'optimization', label: t('displayProfiles.optimizationTab') },
+          { id: 'display-profiles', label: t('displayProfiles.tab') }
+        ]} />}
+        {!isSessionMonitoringView && <DisplayProfilesPanel visible={gameModeTab === 'display-profiles'} gamePath={executablePath} onChooseExecutable={chooseExecutable} />}
+        {(isSessionMonitoringView || gameModeTab === 'optimization') && <>
         <DetectedGameHeader
           t={t}
           hasDetectedGame={hasDetectedGame}
@@ -3041,6 +3049,7 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
         )}
 
         <GameModeFootnote t={t} />
+        </>}
       </div>
 
       <ModalShell
