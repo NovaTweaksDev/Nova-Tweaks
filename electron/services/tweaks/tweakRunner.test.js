@@ -218,12 +218,17 @@ test('bundled boot checks route only Check through the existing broker without p
     } });
   const ids = ['disable_dynamic_tick', 'disable_hyper_v_hypervisor', 'disable_nx_dep', 'force_hpet',
     'force_platform_tick', 'ignore_all_boot_failures', 'tsc_sync_policy_enhanced', 'use_legacy_boot_menu'];
+  const { isBlockedSecurityTweakId } = require('./blockedSecurityTweaks');
   for (const tweakId of ids) {
+    if (isBlockedSecurityTweakId(tweakId)) {
+      await assert.rejects(runner.getCurrentState({ tweakId }), { code: 'TWEAK_BLOCKED_BY_SECURITY_POLICY' });
+      continue;
+    }
     const state = await runner.getCurrentState({ tweakId });
     assert.equal(state.currentState, 'disabled', `${tweakId}: ${JSON.stringify(state.stateCheckError)}`);
     assert.equal(state.checked, true, tweakId);
   }
-  assert.deepEqual(calls, ids);
+  assert.deepEqual(calls, ids.filter((id) => !isBlockedSecurityTweakId(id)));
 });
 
 for (const code of ['SCRIPT_TIMEOUT', 'SCRIPT_NOT_FOUND', 'ADMIN_BROKER_APPROVAL_REQUIRED']) {
