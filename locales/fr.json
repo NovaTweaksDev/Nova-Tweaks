@@ -1317,6 +1317,7 @@
     "liveFilterResults": "{{shown}} des {{total}} applications visibles",
     "loadError": "Impossible de charger les applications installées.",
     "detailsLoadError": "Certains détails des applications n'ont pas pu être chargés.",
+    "cachedSize": "Dernière taille mesurée. Utilisez Actualiser pour vérifier à nouveau.",
     "loadingDetails": "Chargement des détails : icônes, stockage et état d'exécution...",
     "loadingStatus": "Vérification...",
     "refreshing": "Actualisation des applications installées...",

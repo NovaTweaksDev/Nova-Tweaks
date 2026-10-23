@@ -3012,6 +3012,7 @@ if (!initializePrivilegeState()) {
       logger: appsLogger,
       onOptimizationUpdate: broadcastAppOptimizationUpdate,
       optimizationBackupRoot: path.join(app.getPath('userData'), 'app-optimization'),
+      appDetailsCachePath: path.join(app.getPath('userData'), 'apps', 'details-v1.json'),
       isAdminProvider: () => isAdminSession,
       privilegedExecutor: (operation, payload, options) => adminBrokerManager.execute(operation, payload, options),
       isPackaged: app.isPackaged

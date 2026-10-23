@@ -95,6 +95,23 @@ test('reuses a trusted summary scan when opening optimization details', async (t
   assert.equal(analysis.optimization.profileId, 'discord');
 });
 
+test('optimization and restore revalidate the selected app instead of acting on a remembered entry', async (t) => {
+  const backupRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-app-action-recheck-'));
+  t.after(() => fs.rm(backupRoot, { recursive: true, force: true }));
+  const requests = [];
+  const service = createAppOptimizationService({ backupRoot, getApps: async (options) => {
+    requests.push(options);
+    return [];
+  } });
+  await service.enrichApps([{ id: 'removed', name: 'Discord' }], { detailLevel: 'summary' });
+  await assert.rejects(service.start({ appId: 'removed' }), { code: 'APPS_APP_NOT_FOUND' });
+  await assert.rejects(service.reset({ appId: 'removed' }), { code: 'APPS_APP_NOT_FOUND' });
+  assert.deepEqual(requests, [
+    { detailLevel: 'full', refreshAppId: 'removed' },
+    { detailLevel: 'full', refreshAppId: 'removed' }
+  ]);
+});
+
 test('status-only apps complete without invoking undocumented changes', async (t) => {
   const backupRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-app-state-'));
   t.after(() => fs.rm(backupRoot, { recursive: true, force: true }));

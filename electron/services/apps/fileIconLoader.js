@@ -1,8 +1,10 @@
 function createFileIconLoader(getFileIcon, timeoutMs = 3000) {
   const pending = new Map();
   const cache = new Map();
-  return function load(iconPath) {
-    const key = String(iconPath).toLowerCase();
+  const versions = new Map();
+  function load(iconPath) {
+    const normalizedPath = String(iconPath).toLowerCase();
+    const key = `${normalizedPath}:${versions.get(normalizedPath) || 0}`;
     if (cache.has(key)) return Promise.resolve(cache.get(key));
     if (pending.has(key)) return pending.get(key);
     let timer;
@@ -20,7 +22,12 @@ function createFileIconLoader(getFileIcon, timeoutMs = 3000) {
     // Keep stalled native requests deduplicated; cache late successes for the next scan.
     void extraction.finally(() => { pending.delete(key); });
     return result;
+  }
+  load.invalidate = (iconPath) => {
+    const key = String(iconPath).toLowerCase();
+    versions.set(key, (versions.get(key) || 0) + 1);
   };
+  return load;
 }
 
 module.exports = { createFileIconLoader };

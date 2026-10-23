@@ -20,13 +20,19 @@ export function useAppManagementActions({ activeAppsLoadRequestRef, setAppsError
     setAppsError('');
 
     try {
+      const cachedResult = await window.desktopApi.listInstalledApps({ detailLevel: 'cached' }).catch(() => null);
+      if (activeAppsLoadRequestRef.current !== requestId) return { ok: false, apps: [] };
+      if (cachedResult?.ok && Array.isArray(cachedResult.apps) && cachedResult.apps.length) {
+        setInstalledApps(cachedResult.apps);
+        hasLoadedAppsRef.current = true;
+      }
       const summaryResult = await window.desktopApi.listInstalledApps({ detailLevel: 'summary' });
       if (activeAppsLoadRequestRef.current !== requestId) {
         return { ok: false, apps: [] };
       }
 
       if (!summaryResult?.ok) {
-        setInstalledApps([]);
+        if (!hasLoadedAppsRef.current) setInstalledApps([]);
         setAppsError(summaryResult?.code || 'LOAD_FAILED');
         if (notify || didBootstrapRef.current) {
           pushToast(`${t('apps.loadError')} (${summaryResult?.code || 'LOAD_FAILED'})`, "error");
@@ -40,7 +46,7 @@ export function useAppManagementActions({ activeAppsLoadRequestRef, setAppsError
       setIsLoadingApps(false);
       setIsLoadingAppDetails(true);
 
-      const detailResult = await window.desktopApi.listInstalledApps({ detailLevel: 'full' });
+      const detailResult = await window.desktopApi.listInstalledApps({ detailLevel: 'full', forceRefresh: options.forceRefresh === true });
       if (activeAppsLoadRequestRef.current !== requestId) {
         return { ok: false, apps: [] };
       }

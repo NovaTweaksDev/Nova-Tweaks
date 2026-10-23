@@ -22,10 +22,10 @@ function registerAppsHandlers(runtime) {
       };
     }
 
-    const detailLevel = payload?.detailLevel === 'summary' ? 'summary' : 'full';
+    const detailLevel = ['summary', 'cached'].includes(payload?.detailLevel) ? payload.detailLevel : 'full';
     const startedAt = Date.now();
     try {
-      const apps = await runtime.appsManager.listInstalledApps({ detailLevel });
+      const apps = await runtime.appsManager.listInstalledApps({ detailLevel, forceRefresh: payload?.forceRefresh === true });
       runtime.warnIfSlow(runtime.appsLogger, 'apps:list', startedAt, runtime.IPC_SLOW_CALL_THRESHOLD_MS, {
         detailLevel,
         appCount: apps.length

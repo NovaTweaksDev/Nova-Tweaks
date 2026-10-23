@@ -205,6 +205,7 @@ function isStartupEnabled(app, startupEntries) {
 
 function getRuntimeStatus(app) {
   const explicitStatus = normalizeKey(app?.runtimeStatus || app?.processStatus || app?.status);
+  if (explicitStatus === 'unknown') return { label: i18n.t('tweakDetails.unknown'), running: false };
   const runningFlag = app?.isRunning ?? app?.running ?? app?.processActive;
 
   if (runningFlag === true || Number(app?.processId) > 0 || explicitStatus === 'running' || explicitStatus === 'active') {
@@ -468,7 +469,7 @@ function AppRow({ app, startupEntries, detailsLoading = false, menuOpen, canClea
   const canUninstall = Boolean(app?.canUninstall) && !isSystemApp(app);
   const cacheAction = getCacheOptimizationAction(app);
   const cacheNeedsCleanup = Boolean(cacheAction?.needsChange);
-  const size = detailsLoading ? '--' : formatBytes(getAppSizeBytes(app));
+  const size = app.sizeKnown === false ? '--' : app.sizeKnown && app.sizeBytes === 0 ? '0 B' : formatBytes(getAppSizeBytes(app));
   const metaItems = [
     version ? t('apps.versionValue', { version }) : '',
     size !== '--' ? size : '',
@@ -492,13 +493,13 @@ function AppRow({ app, startupEntries, detailsLoading = false, menuOpen, canClea
         <p className="mt-1 truncate text-xs font-medium text-[var(--text-secondary)]" title={publisher}>{publisher}</p>
         {metaItems.length ? (
           <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {metaItems.slice(0, 3).map((item) => <span key={item} className="rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">{item}</span>)}
+            {metaItems.slice(0, 3).map((item) => <span key={item} title={item === size && app.detailsStale ? t('apps.cachedSize') : undefined} className="rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">{item}</span>)}
           </div>
         ) : null}
       </div>
 
       <p className={`truncate text-center text-sm font-medium text-[var(--text-secondary)] ${SHARED_LIST_CATEGORY_CELL_CLASS}`}>{localizeAppCategory(category, t)}</p>
-      <div className={`flex items-center justify-center ${SHARED_LIST_STATUS_CELL_CLASS}`}><StatusCell status={status} loading={detailsLoading} /></div>
+      <div className={`flex items-center justify-center ${SHARED_LIST_STATUS_CELL_CLASS}`}><StatusCell status={status} loading={detailsLoading && !app.detailsLoaded} /></div>
 
       <span className={`relative ${SHARED_LIST_ACTIONS_CLASS}`}>
         {cacheAction ? (
@@ -924,7 +925,7 @@ function AppsPanel({
     return {
       total: `${visibleApps.length} (${allApps.length})`,
       enabled: detailsLoading ? '--' : allApps.filter((app) => getRuntimeStatus(app).running || isStartupEnabled(app, allStartupEntries)).length,
-      storage: detailsLoading ? '--' : totalBytes > 0 ? formatBytes(totalBytes) : '--',
+      storage: totalBytes > 0 ? formatBytes(totalBytes) : '--',
       updates: allApps.filter((app) => Boolean(app?.updateAvailable || app?.hasUpdate)).length
     };
   }, [allApps, allStartupEntries, detailsLoading, visibleApps]);

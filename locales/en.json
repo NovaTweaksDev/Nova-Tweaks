@@ -1395,6 +1395,7 @@
     "liveFilterResults": "{{shown}} of {{total}} apps visible",
     "loadError": "Unable to load installed applications.",
     "detailsLoadError": "Some app details could not be loaded.",
+    "cachedSize": "Last measured size. Use Reload to check again.",
     "loadingDetails": "Loading app details: icons, storage usage and runtime status...",
     "loadingStatus": "Checking...",
     "refreshing": "Refreshing installed apps...",

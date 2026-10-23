@@ -560,6 +560,8 @@ if (Test-Path -LiteralPath ([string]$item.path)) {
   }
 
   function rememberApps(apps, detailLevel) {
+    const currentIds = new Set((Array.isArray(apps) ? apps : []).map((app) => app.id));
+    for (const id of knownApps.keys()) if (!currentIds.has(id)) knownApps.delete(id);
     for (const app of Array.isArray(apps) ? apps : []) {
       if (!app?.id) continue;
       const previous = knownApps.get(app.id);
@@ -571,11 +573,11 @@ if (Test-Path -LiteralPath ([string]$item.path)) {
 
   async function findApp(appId, { requireFull = false } = {}) {
     const known = knownApps.get(appId);
-    if (known && (!requireFull || known.detailLevel === 'full')) {
+    if (known && !requireFull) {
       return known.app;
     }
     const detailLevel = requireFull ? 'full' : 'summary';
-    const apps = await getApps?.({ detailLevel });
+    const apps = await getApps?.({ detailLevel, ...(requireFull ? { refreshAppId: appId } : {}) });
     rememberApps(apps, detailLevel);
     const app = (Array.isArray(apps) ? apps : []).find((entry) => entry.id === appId);
     if (!app) {
@@ -1123,7 +1125,7 @@ if ($process) { $requested = [bool]$process.CloseMainWindow() }
   }
 
   async function reset({ appId } = {}) {
-    const app = await findApp(String(appId || '').trim());
+    const app = await findApp(String(appId || '').trim(), { requireFull: true });
     const profile = findOptimizationProfile(app, environment);
     if (!profile) {
       throw new AppOptimizationError('No optimization profile is available for this app.', 'APP_OPTIMIZATION_NOT_SUPPORTED');

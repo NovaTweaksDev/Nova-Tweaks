@@ -4154,7 +4154,7 @@ function App() {
               errorCode={appsError}
               activeUninstallAppId={activeAppUninstallId}
               activeOptimizeAppId={activeAppOptimizeId}
-              onReload={() => loadInstalledApps({ notify: true, includeAuth: true })}
+              onReload={() => loadInstalledApps({ notify: true, includeAuth: true, forceRefresh: true })}
               onRequestUninstall={handleRequestUninstallApp}
               onOptimize={handleOptimizeApp}
               onViewOptimization={handleViewAppOptimization}

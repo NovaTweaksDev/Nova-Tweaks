@@ -27,3 +27,17 @@ test('failed extraction can be retried', async () => {
   assert.equal(await load('app.exe'), '');
   assert.equal(await load('app.exe'), icon.toDataURL());
 });
+
+test('changed app files invalidate icons without accepting an older pending extraction', async () => {
+  let finishOld;
+  let calls = 0;
+  const load = createFileIconLoader(() => ++calls === 1
+    ? new Promise((resolve) => { finishOld = resolve; }) : Promise.resolve(icon));
+  const old = load('app.exe');
+  await new Promise(setImmediate);
+  load.invalidate('APP.exe');
+  assert.equal(await load('app.exe'), icon.toDataURL());
+  finishOld({ isEmpty: () => false, toDataURL: () => 'obsolete' });
+  await old;
+  assert.equal(await load('app.exe'), icon.toDataURL());
+});

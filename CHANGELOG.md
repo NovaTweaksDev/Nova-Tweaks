@@ -12,6 +12,7 @@ No changes recorded yet.
 
 - Refined the Overview, tweak cards, settings, and Game Mode layout and feedback.
 - Improved monitoring history, unavailable metric handling, and shutdown cleanup.
+- Persist installed-app details across restarts, refresh changed entries selectively, and retain visible sizes and icons during background checks. Recheck sizes weekly or with Reload.
 - Added Game Mode background-app controls and session statistics.
 - Improved tweak-state reporting and automation handling of administrator approval cancellation.
 - Integrated the signed Windows release pipeline for regular and Microsoft Store installers.

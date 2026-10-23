@@ -3,6 +3,7 @@ const fs = require('fs/promises');
 const path = require('path');
 const { runGameDetectionScan } = require('./gameDetectionBridge');
 const { createAppOptimizationService } = require('./appOptimizationService');
+const { createAppDetailsCache, appKey } = require('./appDetailsCache');
 const {
   resolveWindowsRoot,
   resolveWindowsSystemExecutable
@@ -179,6 +180,7 @@ function normalizeAppsPayload(payload) {
     .filter((entry) => entry && typeof entry === 'object')
     .map((entry) => ({
       id: String(entry.id || '').trim(),
+      inventoryKey: String(entry.inventoryKey || '').trim(),
       name: String(entry.name || '').trim(),
       publisher: String(entry.publisher || '').trim(),
       version: String(entry.version || '').trim(),
@@ -199,6 +201,11 @@ function normalizeAppsPayload(payload) {
       lastUsed: String(entry.lastUsed || '').trim(),
       estimatedSize: Number.isFinite(Number(entry.estimatedSize)) ? Number(entry.estimatedSize) : 0,
       sizeBytes: Number.isFinite(Number(entry.sizeBytes)) ? Number(entry.sizeBytes) : 0,
+      sizeKnown: entry.sizeKnown === true,
+      detailsLoaded: entry.detailsLoaded === true,
+      detailsStale: entry.detailsStale === true,
+      detailsUpdatedAt: Number(entry.detailsUpdatedAt) || 0,
+      sizeUpdatedAt: Number(entry.sizeUpdatedAt) || 0,
       runtimeStatus: String(entry.runtimeStatus || '').trim(),
       processActive: Boolean(entry.processActive),
       processId: Number.isFinite(Number(entry.processId)) ? Math.trunc(Number(entry.processId)) : 0,
@@ -233,6 +240,11 @@ function toPublicAppShape(entry) {
     lastUsed: entry.lastUsed,
     estimatedSize: entry.estimatedSize,
     sizeBytes: entry.sizeBytes,
+    sizeKnown: entry.sizeKnown,
+    detailsLoaded: entry.detailsLoaded,
+    detailsStale: entry.detailsStale,
+    detailsUpdatedAt: entry.detailsUpdatedAt,
+    sizeUpdatedAt: entry.sizeUpdatedAt,
     runtimeStatus: entry.runtimeStatus,
     processActive: Boolean(entry.processActive),
     processId: entry.processId,
@@ -359,6 +371,8 @@ function createAppsManager({
   logger,
   onOptimizationUpdate,
   optimizationBackupRoot,
+  appDetailsCachePath,
+  executePowerShellJson,
   isAdminProvider,
   privilegedExecutor,
   isPackaged = false
@@ -378,13 +392,18 @@ function createAppsManager({
     ? require('./fileIconLoader').createFileIconLoader(getFileIcon)
     : null;
   const installedAppsScanPromises = new Map();
+  const appDetailsCache = createAppDetailsCache({ filePath: appDetailsCachePath, logger });
+  let installedAppsQueue = Promise.resolve();
   let appOptimizationService = null;
 
   function getAppOptimizationService() {
     if (!appOptimizationService) {
       appOptimizationService = createAppOptimizationService({
         logger,
-        onUpdate: onOptimizationUpdate,
+        onUpdate: (state) => {
+          if (['success', 'partial', 'failed', 'cancelled'].includes(state.status)) void appDetailsCache.invalidate(state.appId);
+          onOptimizationUpdate?.(state);
+        },
         backupRoot: optimizationBackupRoot,
         getApps: (options) => listInstalledAppsInternal(options),
         getStartupEntries: () => listStartupAppsInternal(),
@@ -603,6 +622,7 @@ function createAppsManager({
   }
 
   async function runPowerShellJson(script, options = {}) {
+    if (typeof executePowerShellJson === 'function') return executePowerShellJson(script, options);
     const result = await runPowerShell(script, options);
     if (!result.stdout) {
       return [];
@@ -1376,6 +1396,7 @@ $null | ConvertTo-Json -Compress -Depth 4
       }
 
       const cacheKey = normalizeWindowsPathKey(iconPath);
+      if (app.iconDataUrl) iconDataUrlCache.set(cacheKey, app.iconDataUrl);
       if (iconDataUrlCache.has(cacheKey)) {
         const cachedDataUrl = iconDataUrlCache.get(cacheKey);
         if (cachedDataUrl) {
@@ -1419,12 +1440,23 @@ $null | ConvertTo-Json -Compress -Depth 4
     });
   }
 
-  async function scanInstalledApps(detailLevel = 'full') {
+  async function scanInstalledApps(detailLevel = 'full', { reuse = new Map(), skipIcons = false, needsShortcuts = true } = {}) {
     const includeDetails = detailLevel === 'full';
+    const reusePayload = Buffer.from(JSON.stringify([...reuse].map(([key, value]) => ({ key,
+      value: { executablePath: value.executablePath, iconPath: value.iconPath, sizeBytes: value.sizeBytes, sizeKnown: value.sizeKnown }
+    })))).toString('base64');
     const script = `
 $ErrorActionPreference = 'Stop'
 $includeDetails = ${includeDetails ? '$true' : '$false'}
+$scanDetails = $includeDetails
+$reusedDetails = @{}
+$cachedPayload = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${reusePayload}')) | ConvertFrom-Json
+foreach ($cachedEntry in @($cachedPayload)) {
+  if ($null -ne $cachedEntry) { $reusedDetails[[string]$cachedEntry.key] = $cachedEntry.value }
+}
 $apps = @()
+$script:runtimePathCache = @{}
+$script:runtimeDirectoryCache = @{}
 
 $registryPaths = @(
   'HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
@@ -1740,7 +1772,7 @@ function Get-ShortcutRuntimeHints([string]$displayName, [string]$installLocation
   return [string[]]$hints.ToArray()
 }
 
-function Normalize-PathForRuntime([string]$value) {
+function Resolve-PathForRuntimeValue([string]$value) {
   if ([string]::IsNullOrWhiteSpace($value)) { return '' }
   $expanded = [Environment]::ExpandEnvironmentVariables(([string]$value).Trim())
   if ([string]::IsNullOrWhiteSpace($expanded)) { return '' }
@@ -1754,7 +1786,15 @@ function Normalize-PathForRuntime([string]$value) {
   return $expanded.TrimEnd('\').ToLowerInvariant()
 }
 
-function Test-SpecificRuntimeDirectory([string]$directoryPath) {
+function Normalize-PathForRuntime([string]$value) {
+  if ([string]::IsNullOrWhiteSpace($value)) { return '' }
+  if (-not $script:runtimePathCache.ContainsKey($value)) {
+    $script:runtimePathCache[$value] = Resolve-PathForRuntimeValue -value $value
+  }
+  return [string]$script:runtimePathCache[$value]
+}
+
+function Resolve-SpecificRuntimeDirectory([string]$directoryPath) {
   $normalized = Normalize-PathForRuntime -value $directoryPath
   if ([string]::IsNullOrWhiteSpace($normalized)) { return $false }
 
@@ -1779,6 +1819,14 @@ function Test-SpecificRuntimeDirectory([string]$directoryPath) {
 
   $segments = @($normalized -split '[\\/]' | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
   return $segments.Count -ge 2
+}
+
+function Test-SpecificRuntimeDirectory([string]$directoryPath) {
+  if ([string]::IsNullOrWhiteSpace($directoryPath)) { return $false }
+  if (-not $script:runtimeDirectoryCache.ContainsKey($directoryPath)) {
+    $script:runtimeDirectoryCache[$directoryPath] = Resolve-SpecificRuntimeDirectory -directoryPath $directoryPath
+  }
+  return [bool]$script:runtimeDirectoryCache[$directoryPath]
 }
 
 function Test-ProcessInsideDirectory([string]$processPath, [string]$directoryPath) {
@@ -1864,38 +1912,45 @@ function Resolve-RuntimeState(
 }
 
 function Get-DirectorySizeBytes([string]$directoryPath, [hashtable]$sizeCache) {
-  if ([string]::IsNullOrWhiteSpace($directoryPath)) { return [int64]0 }
+  if ([string]::IsNullOrWhiteSpace($directoryPath)) { $script:sizeReadFailed = $true; return [int64]0 }
 
   try {
     $resolved = (Resolve-Path -LiteralPath $directoryPath -ErrorAction Stop).Path
   } catch {
+    $script:sizeReadFailed = $true
     return [int64]0
   }
 
   if ([string]::IsNullOrWhiteSpace($resolved) -or -not (Test-Path -LiteralPath $resolved -PathType Container)) {
+    $script:sizeReadFailed = $true
     return [int64]0
   }
 
   $cacheKey = $resolved.ToLowerInvariant()
   if ($sizeCache.ContainsKey($cacheKey)) {
-    return [int64]$sizeCache[$cacheKey]
+    $script:sizeReadFailed = $script:sizeReadFailed -or [bool]$sizeCache[$cacheKey].failed
+    return [int64]$sizeCache[$cacheKey].bytes
   }
 
   $total = [int64]0
   try {
-    $files = Get-ChildItem -LiteralPath $resolved -File -Recurse -Force -ErrorAction SilentlyContinue
+    $sizeErrors = @()
+    $files = Get-ChildItem -LiteralPath $resolved -File -Recurse -Force -ErrorAction SilentlyContinue -ErrorVariable sizeErrors
+    if ($sizeErrors.Count -gt 0) { $script:sizeReadFailed = $true }
     foreach ($file in $files) {
       try {
         $total += [int64]$file.Length
       } catch {
+        $script:sizeReadFailed = $true
         # Ignore files that disappear during enumeration.
       }
     }
   } catch {
+    $script:sizeReadFailed = $true
     $total = [int64]0
   }
 
-  $sizeCache[$cacheKey] = [int64]$total
+  $sizeCache[$cacheKey] = @{ bytes = [int64]$total; failed = [bool]$script:sizeReadFailed }
   return [int64]$total
 }
 
@@ -1912,19 +1967,21 @@ function Resolve-AppSizeBytes([int64]$estimatedSizeKb, [string]$installLocation,
   }
 
   if ([string]::IsNullOrWhiteSpace($sizeRoot)) {
+    $script:sizeReadFailed = $true
     return [int64]0
   }
 
   return Get-DirectorySizeBytes -directoryPath $sizeRoot -sizeCache $sizeCache
 }
 
-$shortcutEntries = if ($includeDetails) { Get-StartMenuShortcutEntries } else { @() }
+$shortcutEntries = if ($scanDetails -and ${needsShortcuts ? '$true' : '$false'}) { Get-StartMenuShortcutEntries } else { @() }
 $processByPath = @{}
 $processByName = @{}
 $runningProcesses = New-Object 'System.Collections.Generic.List[object]'
 $directorySizeCache = @{}
+$processQuerySucceeded = $true
 try {
-  $processes = if ($includeDetails) { Get-CimInstance Win32_Process -ErrorAction SilentlyContinue } else { @() }
+  $processes = if ($scanDetails) { Get-CimInstance Win32_Process -ErrorAction Stop } else { @() }
   foreach ($process in $processes) {
     $processId = [int]$process.ProcessId
     $processPath = [string]$process.ExecutablePath
@@ -1952,13 +2009,14 @@ try {
     }) | Out-Null
   }
 } catch {
+  $processQuerySucceeded = $false
   $processByPath = @{}
   $processByName = @{}
   $runningProcesses = New-Object 'System.Collections.Generic.List[object]'
 }
 
 foreach ($registryPath in $registryPaths) {
-  $entries = Get-ItemProperty -Path $registryPath -ErrorAction SilentlyContinue
+  $entries = if (Test-Path $registryPath) { Get-ItemProperty -Path $registryPath -ErrorAction Stop } else { @() }
   foreach ($entry in $entries) {
     $name = [string]$entry.DisplayName
     if ([string]::IsNullOrWhiteSpace($name)) { continue }
@@ -1972,6 +2030,10 @@ foreach ($registryPath in $registryPaths) {
     if ([string]::IsNullOrWhiteSpace($registryKey)) {
       $registryKey = [Guid]::NewGuid().ToString()
     }
+    $inventoryKey = [string]$entry.PSPath
+    $cached = $reusedDetails[$inventoryKey]
+    $includeDetails = $scanDetails -and $null -eq $cached
+    $script:sizeReadFailed = $false
     $iconPath = [string]$entry.DisplayIcon
     if ($includeDetails -and [string]::IsNullOrWhiteSpace($iconPath)) {
       if (-not [string]::IsNullOrWhiteSpace($installLocation) -and (Test-Path -LiteralPath $installLocation)) {
@@ -2007,8 +2069,9 @@ foreach ($registryPath in $registryPaths) {
         $iconPath = $iconFromShortcut
       }
     }
-    $executablePath = if ($includeDetails) { Resolve-AppExecutablePath -displayName $name -installLocation $installLocation -iconPath $iconPath -uninstallCommand $rawUninstall -shortcuts $shortcutEntries } else { '' }
-    $runtimeState = if ($includeDetails) {
+    if ($cached) { $iconPath = [string]$cached.iconPath }
+    $executablePath = if ($cached) { [string]$cached.executablePath } elseif ($includeDetails) { Resolve-AppExecutablePath -displayName $name -installLocation $installLocation -iconPath $iconPath -uninstallCommand $rawUninstall -shortcuts $shortcutEntries } else { '' }
+    $runtimeState = if ($scanDetails -and $processQuerySucceeded) {
       Resolve-RuntimeState -displayName $name -installLocation $installLocation -executablePath $executablePath -uninstallCommand $rawUninstall -iconPath $iconPath -shortcuts $shortcutEntries -processByPath $processByPath -processByName $processByName -runningProcesses $runningProcesses
     } else {
       New-RuntimeState -status 'unknown' -active $false -processId 0
@@ -2017,7 +2080,7 @@ foreach ($registryPath in $registryPaths) {
     if ($null -ne $entry.EstimatedSize) {
       try { $estimatedSize = [int64]$entry.EstimatedSize } catch { $estimatedSize = 0 }
     }
-    $sizeBytes = if ($includeDetails) {
+    $sizeBytes = if ($cached) { [int64]$cached.sizeBytes } elseif ($includeDetails) {
       Resolve-AppSizeBytes -estimatedSizeKb $estimatedSize -installLocation $installLocation -executablePath $executablePath -sizeCache $directorySizeCache
     } elseif ($estimatedSize -gt 0) {
       [int64]$estimatedSize * 1024
@@ -2028,6 +2091,9 @@ foreach ($registryPath in $registryPaths) {
 
     $apps += [PSCustomObject]@{
       id = "win32::$registryKey::$($name.ToLowerInvariant())"
+      inventoryKey = $inventoryKey
+      detailsLoaded = [bool]$scanDetails
+      sizeKnown = if ($cached) { [bool]$cached.sizeKnown } else { ($includeDetails -and -not $script:sizeReadFailed) -or $estimatedSize -gt 0 }
       name = $name.Trim()
       publisher = [string]$entry.Publisher
       version = [string]$entry.DisplayVersion
@@ -2136,18 +2202,22 @@ function Get-AppxLogoPath([object]$Package) {
   return ''
 }
 
-$appxPackages = Get-AppxPackage -ErrorAction SilentlyContinue
+$appxPackages = Get-AppxPackage -ErrorAction Stop
 foreach ($pkg in $appxPackages) {
   $pkgName = [string]$pkg.Name
   if ([string]::IsNullOrWhiteSpace($pkgName)) { continue }
+  $inventoryKey = "appx::$([string]$pkg.PackageFullName)"
+  $cached = $reusedDetails[$inventoryKey]
+  $includeDetails = $scanDetails -and $null -eq $cached
+  $script:sizeReadFailed = $false
 
   $isFramework = [bool]$pkg.IsFramework
   $isResourcePackage = [bool]$pkg.IsResourcePackage
   $nonRemovable = [bool]$pkg.NonRemovable
   $canUninstall = -not ($isFramework -or $isResourcePackage -or $nonRemovable)
-  $logoPath = Get-AppxLogoPath -Package $pkg
-  $packageSizeBytes = if ($includeDetails) { Get-DirectorySizeBytes -directoryPath ([string]$pkg.InstallLocation) -sizeCache $directorySizeCache } else { [int64]0 }
-  $runtimeState = if ($includeDetails) {
+  $logoPath = if ($cached) { [string]$cached.iconPath } else { Get-AppxLogoPath -Package $pkg }
+  $packageSizeBytes = if ($cached) { [int64]$cached.sizeBytes } elseif ($includeDetails) { Get-DirectorySizeBytes -directoryPath ([string]$pkg.InstallLocation) -sizeCache $directorySizeCache } else { [int64]0 }
+  $runtimeState = if ($scanDetails -and $processQuerySucceeded) {
     Resolve-RuntimeState -displayName $pkgName -installLocation ([string]$pkg.InstallLocation) -executablePath '' -uninstallCommand '' -iconPath $logoPath -shortcuts $shortcutEntries -processByPath $processByPath -processByName $processByName -runningProcesses $runningProcesses
   } else {
     New-RuntimeState -status 'unknown' -active $false -processId 0
@@ -2155,6 +2225,9 @@ foreach ($pkg in $appxPackages) {
 
   $apps += [PSCustomObject]@{
     id = "appx::$([string]$pkg.PackageFullName)"
+    inventoryKey = $inventoryKey
+    detailsLoaded = [bool]$scanDetails
+    sizeKnown = if ($cached) { [bool]$cached.sizeKnown } else { $includeDetails -and -not $script:sizeReadFailed }
     name = $pkgName
     publisher = if ($pkg.PublisherDisplayName) { [string]$pkg.PublisherDisplayName } else { [string]$pkg.Publisher }
     version = [string]$pkg.Version
@@ -2198,12 +2271,12 @@ $result = foreach ($app in $apps) {
 $result | ConvertTo-Json -Compress -Depth 4
 `;
 
-    const payload = await runPowerShellJson(script, { timeoutMs: DEFAULT_LIST_TIMEOUT_MS });
+    const payload = await runPowerShellJson(`try {\n${script}\n} catch { [Console]::Error.WriteLine($_.Exception.Message); exit 1 }\n`, { timeoutMs: DEFAULT_LIST_TIMEOUT_MS });
     const normalized = normalizeAppsPayload(payload)
       .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }));
     let withIcons = normalized;
     try {
-      withIcons = await withIconData(normalized);
+      if (!skipIcons) withIcons = await withIconData(normalized);
     } catch (error) {
       logger?.warn?.('Unable to enrich app list with icons.', {
         code: error?.code || 'APPS_ICON_HYDRATE_FAILED',
@@ -2221,25 +2294,62 @@ $result | ConvertTo-Json -Compress -Depth 4
   }
 
   async function listInstalledAppsInternal(options = {}) {
+    const startedAt = Date.now();
+    if (options?.detailLevel === 'cached') return appDetailsCache.cached();
     const detailLevel = options?.detailLevel === 'summary' ? 'summary' : 'full';
-    const activeScan = installedAppsScanPromises.get(detailLevel);
+    const scanKey = `${detailLevel}:${Boolean(options.forceRefresh)}:${options.refreshAppId || ''}`;
+    const activeScan = installedAppsScanPromises.get(scanKey);
     if (activeScan) {
       return activeScan;
     }
 
-    const scanPromise = scanInstalledApps(detailLevel);
-    installedAppsScanPromises.set(detailLevel, scanPromise);
+    const scanPromise = installedAppsQueue.catch(() => {}).then(async () => {
+      const inventoryStarted = Date.now();
+      const inventory = await scanInstalledApps('summary', { skipIcons: true });
+      const inventoryMs = Date.now() - inventoryStarted;
+      if (detailLevel === 'summary') {
+        const merged = await appDetailsCache.merge(inventory);
+        return withIconData(merged);
+      }
+      const refreshRevision = appDetailsCache.getRevision();
+      const reuse = await appDetailsCache.prepare(inventory, options);
+      for (const app of reuse.values()) {
+        if (app.iconPath && app.iconDataUrl) iconDataUrlCache.set(normalizeWindowsPathKey(app.iconPath), app.iconDataUrl);
+      }
+      for (const app of inventory) {
+        if (!reuse.has(appKey(app)) && app.iconPath) {
+          iconDataUrlCache.delete(normalizeWindowsPathKey(app.iconPath));
+          loadFileIcon?.invalidate?.(app.iconPath);
+        }
+      }
+      const detailsStarted = Date.now();
+      const detailed = await scanInstalledApps('full', { reuse, needsShortcuts: inventory.length !== reuse.size });
+      const result = detailed.map((app) => {
+        const previous = reuse.get(appKey(app));
+        return { ...app, detailsUpdatedAt: previous?.detailsUpdatedAt || Date.now(),
+          sizeCheckFailed: previous?.sizeCheckFailed || !app.sizeKnown,
+          sizeUpdatedAt: previous?.sizeUpdatedAt || (app.sizeKnown ? Date.now() : 0) };
+      });
+      const merged = await appDetailsCache.save(inventory, result, refreshRevision);
+      logger?.info?.('App detail refresh completed.', { inventoryMs, detailsMs: Date.now() - detailsStarted,
+        durationMs: Date.now() - startedAt, count: inventory.length, reused: reuse.size,
+        refreshed: result.length - reuse.size });
+      return merged.map((app) => ({ ...app, detailsStale: Boolean(app.sizeCheckFailed) || !app.sizeKnown || !app.sizeUpdatedAt }));
+    });
+    installedAppsQueue = scanPromise;
+    installedAppsScanPromises.set(scanKey, scanPromise);
     try {
       return await scanPromise;
     } finally {
-      if (installedAppsScanPromises.get(detailLevel) === scanPromise) {
-        installedAppsScanPromises.delete(detailLevel);
+      if (installedAppsScanPromises.get(scanKey) === scanPromise) {
+        installedAppsScanPromises.delete(scanKey);
       }
     }
   }
 
   async function listInstalledApps(options = {}) {
     const internalApps = await listInstalledAppsInternal(options);
+    if (options?.detailLevel === 'cached') return internalApps.map(toPublicAppShape);
     const detailLevel = options?.detailLevel === 'summary' ? 'summary' : 'full';
     const enrichedApps = await getAppOptimizationService().enrichApps(internalApps, { detailLevel });
     return enrichedApps.map(toPublicAppShape);
@@ -3292,7 +3402,7 @@ Remove-AppxPackage -Package $packageFullName -ErrorAction Stop
     }
 
     const normalizedAppId = appId.trim();
-    const apps = await listInstalledAppsInternal();
+    const apps = await listInstalledAppsInternal({ detailLevel: 'summary' });
     const targetApp = apps.find((entry) => entry.id === normalizedAppId);
 
     if (!targetApp) {
@@ -3335,6 +3445,7 @@ Remove-AppxPackage -Package $packageFullName -ErrorAction Stop
       source: targetApp.source,
       restartRequired: runResult.restartRequired
     });
+    await appDetailsCache.invalidate(targetApp.id);
 
     return {
       app: toPublicAppShape(targetApp),
@@ -4449,6 +4560,7 @@ if ($cpuAffinityApplyErrors.Count -gt 0) {
       throw new AppsManagerError('A valid appId is required.', 'APPS_INVALID_PAYLOAD');
     }
 
+    await appDetailsCache.invalidate(appId.trim());
     return getAppOptimizationService().start({
       appId: appId.trim(),
       actionIds: Array.isArray(actionIds) ? actionIds : null
@@ -4471,7 +4583,10 @@ if ($cpuAffinityApplyErrors.Count -gt 0) {
       getAppOptimizationService().analyzeById(String(appId || '').trim(), { includeCacheSize }),
     confirmAppOptimizationClose: (payload) => getAppOptimizationService().confirmClose(payload),
     cancelAppOptimization: (payload) => getAppOptimizationService().cancel(payload),
-    resetAppOptimizations: (payload) => getAppOptimizationService().reset(payload),
+    resetAppOptimizations: async (payload) => {
+      try { return await getAppOptimizationService().reset(payload); }
+      finally { await appDetailsCache.invalidate(payload?.appId); }
+    },
     cleanupInactiveAppCaches: () => getAppOptimizationService().cleanupInactiveAppCaches(),
     getAppOptimizationState: () => getAppOptimizationService().getState()
   };
