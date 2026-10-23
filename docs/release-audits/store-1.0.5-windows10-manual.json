@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "maintainer-reported manual VM checks",
+  "recordedDate": "2026-10-13",
+  "vm": "nova win 10",
+  "windowsVersion": "10.0.19045.3803",
+  "installer": "NovaTweaks-store-Setup-1.0.5-x64.exe",
+  "installerSha256": "d9fe1e81c9d6478402cb071328221adb9638abe6d36416f85d7a1b192b0a0b53",
+  "sourceCommit": "2e622b5b457644a98c0891bcb86b9d60eabc111e",
+  "upgradeFrom": {
+    "version": "1.0.4",
+    "distribution": "published GitHub installer",
+    "sha256": "bd3baabc8de0b0af670c0f9b6f8da46b4da063235549e70691998b8a1fc7b779"
+  },
+  "confirmed": [
+    "Install completes",
+    "Normal launch without UAC",
+    "Tweaks tab displays",
+    "UAC approval succeeds",
+    "UAC cancellation permits prompt retry",
+    "Monitoring displays available VM values",
+    "Manual uninstall succeeds",
+    "Upgrade from published 1.0.4 without prior uninstall",
+    "Version 1.0.5 starts after upgrade",
+    "Selected language preserved"
+  ],
+  "limitations": [
+    "Manual confirmations supplied by maintainer; no automated Windows 10 installer or upgrade log",
+    "Physical sensor and optional driver compatibility not established by VM",
+    "Backup/restore and real tweak execution remain pending"
+  ],
+  "windowsVersionSource": "VirtualBox Guest Additions OS/Release",
+  "observations": [
+    "Initial approval attempt showed no UAC dialog with 1 vCPU and 2 GB RAM. Maintainer confirmed success after increasing VM resources; underlying cause was not established."
+  ]
+}

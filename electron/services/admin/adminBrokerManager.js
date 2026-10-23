@@ -76,6 +76,7 @@ function createAdminBrokerManager(options = {}) {
   const onStateChange = typeof options.onStateChange === 'function' ? options.onStateChange : () => {};
   const platform = options.platform || process.platform;
   const createServer = options.createServer || net.createServer;
+  const executeFile = options.execFile || execFile;
   const launchBroker = options.launchBroker || defaultLaunchBroker;
   const now = options.nowProvider || (() => Date.now());
 

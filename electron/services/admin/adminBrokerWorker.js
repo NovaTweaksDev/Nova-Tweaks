@@ -132,6 +132,15 @@ function createDefaultOperationHandler(options = {}) {
 
   async function executeTweak(payload, timeoutMs) {
     const artifactInput = payload?.artifact;
+    const { isBlockedSecurityTweakId } = require('../tweaks/blockedSecurityTweaks');
+    const buildProfile = require('../../generated/build-profile');
+    const artifactIdentity = artifactInput?.signedPayload || artifactInput;
+    if (isBlockedSecurityTweakId(artifactIdentity?.tweakId)) {
+      throw new AdminBrokerProtocolError('This tweak is excluded from this build.', 'TWEAK_BLOCKED_BY_SECURITY_POLICY');
+    }
+    if (buildProfile.store && payload?.trustMode !== 'bundled-integrity') {
+      throw new AdminBrokerProtocolError('Store tweaks must use bundled integrity.', 'TWEAK_BLOCKED_BY_SECURITY_POLICY');
+    }
     const action = String(payload?.action || '').trim();
     const params = payload?.params;
     if (!artifactInput || !['Check', 'On', 'Off'].includes(action) || !params || typeof params !== 'object' || Array.isArray(params)) {

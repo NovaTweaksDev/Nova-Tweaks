@@ -20,7 +20,7 @@ Registration moved from main.js to settings, backup, apps, monitoring and tweak 
 
 shared/desktopContracts.d.ts and tsconfig.contracts.json check the timeout/gate, restore IPC adapter and restore hooks without migrating the Electron build pipeline. Preload tweak parameters reference the same contracts through JSDoc. ESLint checks undefined identifiers, unreachable code, duplicate keys and hook placement without reformatting the codebase.
 
-CI and releases run lint, interface type checking, tests and packaging. The smoke test starts the package with isolated temporary user data, verifies required helper resources and loads the actual dashboard with system operations disabled. Release notes use the exact tagged changelog section and fail for missing, duplicate or empty sections. Installers remain explicitly unsigned.
+CI and releases run lint, interface type checking, tests and packaging. The smoke test starts the package with isolated temporary user data, verifies required helper resources and loads the actual dashboard with system operations disabled. Release notes use the exact tagged changelog section and fail for missing, duplicate or empty sections. Preview, local and review-candidate installers are unsigned; Stable and Store builds require signing and validation. See [MICROSOFT_STORE.md](MICROSOFT_STORE.md) for the protected publication process and outstanding Store blockers.
 
 ## Validation commands
 

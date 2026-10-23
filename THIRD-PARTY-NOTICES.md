@@ -94,15 +94,29 @@ Both PresentMon files are third-party software and are not Nova-owned code.
 
 ## Signing policy
 
-Nova Tweaks release signing must never add, remove or replace signatures on:
+Regular GitHub release signing must never add, remove or replace signatures on:
 
 - `LibreHardwareMonitor.exe`
 - `PresentMon.exe`
 - `PresentMonLegacy.exe`
 
-Only Nova-owned binaries may be signed with the Nova Tweaks/SignPath
-certificate. Release automation preserves the hashes recorded above and uses
+In regular GitHub builds, only Nova-owned binaries may be signed with the Nova Certum/SimplySign
+certificate (or a separately approved future signing provider). Release automation preserves the hashes recorded above and uses
 explicit signing exclusions for these three executable names. The valid Intel
 signature on `PresentMon.exe` is retained; the unsigned LibreHardwareMonitor
 and PresentMonLegacy files remain unsigned. `PawnIO_setup.exe` is rejected if
 it appears in either the repository payload or a packaged application.
+
+The signed Store edition additionally signs only the 25 individually reviewed,
+originally unsigned files listed in scripts/store-redistribution-policy.json.
+Existing third-party signatures remain untouched. These signatures identify
+Nova as distributor, not copyright owner or upstream author. Original full
+hashes are checked before signing, and pinned PE content hashes must remain
+unchanged afterwards. The exact distributor certificate and timestamp are
+required; the Store gate still rejects every unsigned PE.
+
+Original license texts, notices and corresponding source rights remain in the
+package, including [dependency notices and exact source commits](licenses/StoreRedistribution/README.md).
+See [the signing review](docs/STORE_SIGNING_REVIEW.md) and
+[Store readiness](docs/MICROSOFT_STORE.md). Stable retains its existing explicit
+hash-pinned unsigned exceptions; this Store-only exception does not apply to it.

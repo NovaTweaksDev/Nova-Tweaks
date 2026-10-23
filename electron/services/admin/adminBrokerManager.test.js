@@ -270,3 +270,34 @@ test('manual approval policy blocks operation prompts and resets for a new sessi
   await assert.rejects(manager.execute('tweak.execute'), { code: 'ADMIN_BROKER_APPROVAL_REQUIRED' });
   assert.equal(launches, 1);
 });
+
+
+test('default PowerShell launcher returns cancellation promptly and permits retry', {
+  skip: process.platform !== 'win32', timeout: 15000
+}, async (t) => {
+  const { execFile } = require('node:child_process');
+  const { windowsPowerShellEnv } = require('../../../scripts/windows-powershell-env');
+  let launches = 0;
+  const manager = createAdminBrokerManager({
+    app: { isPackaged: false, getAppPath: () => process.cwd() },
+    platform: 'win32',
+    execFile: (file, args, options, callback) => {
+      if (args.at(-1).includes('WindowsIdentity')) {
+        callback(null, 'S-1-5-21-100-200-300-1001');
+        return;
+      }
+      launches += 1;
+      // Exercise the real generated script without opening UAC or starting a process.
+      const mock = 'function Start-Process { Write-Error "Simulated UAC cancellation." }; ';
+      execFile(file, [...args.slice(0, -1), mock + args.at(-1)], {
+        ...options, timeout: 5000, env: windowsPowerShellEnv()
+      }, callback);
+    }
+  });
+  t.after(() => manager.shutdown());
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    await assert.rejects(manager.ensureReady(), { code: 'ADMIN_BROKER_CANCELLED' });
+    assert.equal(manager.getState().status, 'cancelled');
+  }
+  assert.equal(launches, 2);
+});

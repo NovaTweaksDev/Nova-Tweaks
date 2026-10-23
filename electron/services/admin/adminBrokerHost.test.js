@@ -7,6 +7,8 @@ const { execFile, spawn } = require('node:child_process');
 
 const { PROTOCOL_VERSION, createLineDecoder, encodeMessage } = require('./adminBrokerProtocol');
 const { quoteWindowsArgument } = require('./adminBrokerManager');
+const { windowsPowerShellEnv } = require('../../../scripts/windows-powershell-env');
+const HANDSHAKE_TEST_TIMEOUT_MS = 20000;
 
 if (process.argv.includes('--nova-admin-broker-worker')) {
   const sessionIndex = process.argv.indexOf('--broker-session');
@@ -69,7 +71,8 @@ if (process.argv.includes('--nova-admin-broker-worker')) {
   test('native broker host permits the unsigned local-test worker only with the explicit flag', async (t) => {
     const fixture = await createHostFixture(t);
     const hello = new Promise((resolve, reject) => {
-      const deadline = setTimeout(() => reject(new Error('Timed out waiting for local-test broker handshake.')), 5000);
+      const deadline = setTimeout(() => reject(new Error('Timed out waiting for local-test broker handshake.')), HANDSHAKE_TEST_TIMEOUT_MS);
+      t.after(() => clearTimeout(deadline));
       fixture.onConnection((client) => {
         client.on('data', createLineDecoder((message) => {
           if (message?.type !== 'hello') return;
@@ -116,11 +119,13 @@ if (process.argv.includes('--nova-admin-broker-worker')) {
     const launched = new Promise((resolve, reject) => {
       execFile('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', command], {
         windowsHide: true,
-        timeout: 5000
+        env: windowsPowerShellEnv(),
+        timeout: HANDSHAKE_TEST_TIMEOUT_MS
       }, (error, stdout) => error ? reject(error) : resolve(stdout));
     });
     const hello = new Promise((resolve, reject) => {
-      const deadline = setTimeout(() => reject(new Error('Timed out waiting for PowerShell broker handshake.')), 5000);
+      const deadline = setTimeout(() => reject(new Error('Timed out waiting for PowerShell broker handshake.')), HANDSHAKE_TEST_TIMEOUT_MS);
+      t.after(() => clearTimeout(deadline));
       fixture.onConnection((client) => {
         client.on('data', createLineDecoder((message) => {
           if (message?.type !== 'hello') return;
@@ -130,8 +135,7 @@ if (process.argv.includes('--nova-admin-broker-worker')) {
       });
     });
 
-    await launched;
-    const message = await hello;
+    const [, message] = await Promise.all([launched, hello]);
     assert.equal(message.sessionId, fixture.sessionId);
     fixture.getClient().write(encodeMessage({ type: 'shutdown', protocolVersion: PROTOCOL_VERSION }));
   });

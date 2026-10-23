@@ -30,7 +30,10 @@ test('release packaging rejects development content in the generated ASAR', () =
     '/dist/index.html',
     '/electron/main.js',
     '/electron/preload.js',
-    '/electron/generated/signing-config.js'
+    '/electron/generated/signing-config.js',
+    '/electron/generated/build-profile.js',
+    '/electron/generated/signed-helper-integrity.js',
+    '/electron/services/tweaks/storeTweakPolicy.json'
   ];
 
   assert.doesNotThrow(() => assertPackagedAsarEntries(required));

@@ -1,32 +1,28 @@
 {
   "name": "nova-tweaks",
   "productName": "Nova Tweaks",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "description": "Windows optimization and control app for gamers and power users",
   "author": "Nova Tweaks",
   "main": "electron/main.js",
   "scripts": {
-    "predev": "npm run ensure:presentmon",
+    "predev": "npm run ensure:presentmon && node scripts/build-profile.js && node scripts/generate-desktop-signing-config.js && node scripts/generate-bundled-tweak-manifest.js",
     "dev": "concurrently --kill-others \"npm:dev:renderer\" \"npm:dev:electron\"",
     "dev:debug": "cross-env NOVA_OPEN_DEVTOOLS=true npm run dev",
     "dev:renderer": "vite --host 127.0.0.1 --port 5183 --strictPort",
     "dev:electron": "wait-on tcp:5183 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5183 node electron/launcher.js",
-    "prestart": "npm run ensure:presentmon",
+    "prestart": "npm run ensure:presentmon && node scripts/build-profile.js && node scripts/generate-desktop-signing-config.js && node scripts/generate-bundled-tweak-manifest.js",
     "start": "node electron/launcher.js",
-    "prebuild": "npm run ensure:presentmon && npm run build:admin-broker && node scripts/generate-desktop-signing-config.js && node scripts/generate-bundled-tweak-manifest.js",
+    "prebuild": "node scripts/build-profile.js && npm run ensure:presentmon && npm run build:admin-broker && node scripts/generate-desktop-signing-config.js && node scripts/generate-bundled-tweak-manifest.js",
     "build": "vite build",
     "build:release": "cross-env NOVA_DESKTOP_RELEASE_BUILD=true npm run build",
     "clean:release-output": "node scripts/clean-release-output.js",
-    "dist:win": "npm run build:release && electron-builder --win nsis --x64 -c.win.forceCodeSigning=true && node scripts/write-release-checksum.js",
-    "dist:local": "cross-env NOVA_LOCAL_TEST_BUILD=true npm run build && cross-env NOVA_LOCAL_TEST_BUILD=true CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win nsis --x64 --publish never -c.win.signExecutable=false && node scripts/write-release-checksum.js",
-    "dist:win:dir": "npm run build:release && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win dir --x64 -c.win.signExecutable=false",
-    "dist:local:dir": "cross-env NOVA_LOCAL_TEST_BUILD=true npm run build && cross-env NOVA_LOCAL_TEST_BUILD=true CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win dir --x64 -c.win.signExecutable=false",
+    "dist:win": "node scripts/package-windows.js stable",
+    "dist:local": "node scripts/package-windows.js local",
+    "dist:win:dir": "node scripts/package-windows.js candidate --dir",
+    "dist:local:dir": "node scripts/package-windows.js local --dir",
     "dist:msix:test": "npm run build:release && node scripts/verify-msix-test-prerequisites.js && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --config electron-builder.msix-test.cjs --win dir --x64 --publish never && powershell -ExecutionPolicy Bypass -File scripts/package-msix-test.ps1",
     "dist:msix:test:signed": "npm run build:release && node scripts/verify-msix-test-prerequisites.js && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --config electron-builder.msix-test.cjs --win dir --x64 --publish never && powershell -ExecutionPolicy Bypass -File scripts/package-msix-test.ps1 -LocalSigned",
-    "predist:win": "npm run clean:release-output && npm run vendor:presentmon",
-    "predist:local": "npm run clean:release-output",
-    "predist:win:dir": "npm run clean:release-output && npm run vendor:presentmon",
-    "predist:local:dir": "npm run clean:release-output",
     "ensure:presentmon": "powershell -ExecutionPolicy Bypass -File scripts/vendor-presentmon.ps1",
     "vendor:presentmon": "powershell -ExecutionPolicy Bypass -File scripts/vendor-presentmon.ps1 -Force",
     "build:game-detector": "powershell -ExecutionPolicy Bypass -File scripts/build-game-detector.ps1",
@@ -36,11 +32,17 @@
     "build:admin-broker": "powershell -ExecutionPolicy Bypass -File tools/nova-admin-broker/build.ps1 -Configuration Release -Platform x64",
     "build:nvidia-display-helper": "powershell -ExecutionPolicy Bypass -File tools/nvidia-display-helper/build.ps1 -Configuration Release",
     "preview": "vite preview",
-    "pretest": "node scripts/generate-desktop-signing-config.js && node scripts/generate-bundled-tweak-manifest.js",
+    "pretest": "node scripts/build-profile.js && node scripts/generate-desktop-signing-config.js && node scripts/generate-bundled-tweak-manifest.js",
     "test": "node --test",
     "lint": "eslint electron scripts src",
     "typecheck": "tsc -p tsconfig.contracts.json",
-    "test:packaged": "node scripts/packaged-smoke.js"
+    "test:packaged": "node scripts/packaged-smoke.js",
+    "dist:preview": "node scripts/package-windows.js preview",
+    "dist:candidate": "node scripts/package-windows.js candidate",
+    "dist:candidate:dir": "node scripts/package-windows.js candidate --dir",
+    "dist:store": "node scripts/package-windows.js store",
+    "dist:store:candidate": "node scripts/package-windows.js store-candidate",
+    "dist:store:candidate:dir": "node scripts/package-windows.js store-candidate --dir"
   },
   "build": {
     "appId": "de.novatweaks.desktop",
@@ -63,6 +65,7 @@
     "files": [
       "dist/**/*",
       "electron/**/*.js",
+      "electron/services/tweaks/storeTweakPolicy.json",
       "!electron/**/*.test.js",
       "!electron/launcher.js",
       "!node_modules/**/*",
@@ -190,9 +193,11 @@
       }
     ],
     "win": {
-	  "signtoolOptions": {
-		"certificateSha1": "da86dbdaf373ffca4e4469475c16a894ca42cfe4",
-		"signingHashAlgorithms": ["sha256"]
+      "signtoolOptions": {
+        "certificateSha1": "da86dbdaf373ffca4e4469475c16a894ca42cfe4",
+        "signingHashAlgorithms": [
+          "sha256"
+        ]
       },
       "requestedExecutionLevel": "asInvoker",
       "executableName": "NovaTweaks",
@@ -224,7 +229,10 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Nova Tweaks"
+      "shortcutName": "Nova Tweaks",
+      "include": "scripts/installer-hooks.nsh",
+      "deleteAppDataOnUninstall": false,
+      "packElevateHelper": false
     }
   },
   "dependencies": {

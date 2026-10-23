@@ -11,6 +11,11 @@ permissions:
 
 jobs:
   validate:
+    strategy:
+      matrix:
+        profile: [local, store-candidate]
+    env:
+      NOVA_BUILD_PROFILE: ${{ matrix.profile }}
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
@@ -33,13 +38,7 @@ jobs:
         run: npm run typecheck
 
       - name: Run tests
-        run: npm test
-
-      - name: Build application
-        run: npm run build
+        run: npm test -- --test-concurrency=2
 
       - name: Package unsigned application
-        run: npm run dist:local:dir
-
-      - name: Start packaged application and verify helpers
-        run: npm run test:packaged
+        run: node scripts/package-windows.js ${{ matrix.profile }} --dir

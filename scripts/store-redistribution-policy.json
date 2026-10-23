@@ -1,0 +1,335 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-10-13",
+  "files": [
+    {
+      "path": "dxcompiler.dll",
+      "source": "node_modules/electron/dist/dxcompiler.dll",
+      "staged": "electron/dxcompiler.dll",
+      "sha256": "494a0ca088d1b9dd8ff673d590aaddd6bdcff09c938befef8c88c2016c49ee9a",
+      "contentSha256": "494a0ca088d1b9dd8ff673d590aaddd6bdcff09c938befef8c88c2016c49ee9a",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md"
+      ]
+    },
+    {
+      "path": "ffmpeg.dll",
+      "source": "node_modules/electron/dist/ffmpeg.dll",
+      "staged": "electron/ffmpeg.dll",
+      "sha256": "0b4a5071d9cee1c8318f365d977f271ce771be8cce214cd12e24b714e239ff16",
+      "contentSha256": "0b4a5071d9cee1c8318f365d977f271ce771be8cce214cd12e24b714e239ff16",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md"
+      ]
+    },
+    {
+      "path": "vk_swiftshader.dll",
+      "source": "node_modules/electron/dist/vk_swiftshader.dll",
+      "staged": "electron/vk_swiftshader.dll",
+      "sha256": "a3239fabefee509d40221a55d0bb1711746f59c9b620ffdb34335b450592acbb",
+      "contentSha256": "a3239fabefee509d40221a55d0bb1711746f59c9b620ffdb34335b450592acbb",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md"
+      ]
+    },
+    {
+      "path": "vulkan-1.dll",
+      "source": "node_modules/electron/dist/vulkan-1.dll",
+      "staged": "electron/vulkan-1.dll",
+      "sha256": "f3b192d1df5dc8d046c84d6e15bc575c9f6605fe0497b126d8b6664a9a75032f",
+      "contentSha256": "f3b192d1df5dc8d046c84d6e15bc575c9f6605fe0497b126d8b6664a9a75032f",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md"
+      ]
+    },
+    {
+      "path": "resources/capture/PresentMon/PresentMonLegacy.exe",
+      "source": "resources/capture/PresentMon/PresentMonLegacy.exe",
+      "staged": "resources/capture/PresentMon/PresentMonLegacy.exe",
+      "sha256": "e57a2f8ee1de1ef1a5516d875f1b115e881943cd729fe9c5a2f88b1dc79a8a3b",
+      "contentSha256": "e57a2f8ee1de1ef1a5516d875f1b115e881943cd729fe9c5a2f88b1dc79a8a3b",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/PresentMon/v1.10.0/LICENSE.txt",
+        "licenses/PresentMon/v1.10.0/THIRD_PARTY.txt"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/Aga.Controls.dll",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/Aga.Controls.dll",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/Aga.Controls.dll",
+      "sha256": "65796bb77f62b581f996ca636c72337409ad3d9c31fc4f50b11649e04f22bebd",
+      "contentSha256": "65796bb77f62b581f996ca636c72337409ad3d9c31fc4f50b11649e04f22bebd",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/BlackSharp.Core.dll",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/BlackSharp.Core.dll",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/BlackSharp.Core.dll",
+      "sha256": "b0e79d5926e052a54f13c8836d85f633eda93ba2f3ed33c6b07b933e9b8d849d",
+      "contentSha256": "b0e79d5926e052a54f13c8836d85f633eda93ba2f3ed33c6b07b933e9b8d849d",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md",
+        "licenses/StoreRedistribution/BlackSharp-LICENSE.txt"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/DiskInfoToolkit.dll",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/DiskInfoToolkit.dll",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/DiskInfoToolkit.dll",
+      "sha256": "418ea0925f8d3d09eb44416f8acfd0c9cf1e2a2aa6bcf286e3425d2bd26467fc",
+      "contentSha256": "418ea0925f8d3d09eb44416f8acfd0c9cf1e2a2aa6bcf286e3425d2bd26467fc",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md",
+        "licenses/StoreRedistribution/DiskInfoToolkit-LICENSE.txt"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/LibreHardwareMonitor.exe",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/LibreHardwareMonitor.exe",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/LibreHardwareMonitor.exe",
+      "sha256": "90688d9d3e82428b5627235b06c015cd1c5c3ca59f16d1ed3f37417fbfcd73fa",
+      "contentSha256": "90688d9d3e82428b5627235b06c015cd1c5c3ca59f16d1ed3f37417fbfcd73fa",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/LibreHardwareMonitorLib.dll",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/LibreHardwareMonitorLib.dll",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/LibreHardwareMonitorLib.dll",
+      "sha256": "5d233bb6937bdd0a2c85cd1b46c031726d274f6202e1900df1e71880cd3f4549",
+      "contentSha256": "5d233bb6937bdd0a2c85cd1b46c031726d274f6202e1900df1e71880cd3f4549",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/Microsoft.Win32.TaskScheduler.dll",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/Microsoft.Win32.TaskScheduler.dll",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/Microsoft.Win32.TaskScheduler.dll",
+      "sha256": "5e64f2b0912f3fd60d62c4907229033ef22a349791843c0a0e748b3260e3fcae",
+      "contentSha256": "e253f49cc57dee6968864ed989a450218ff251d32c3cc19399fc93647d178e53",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md",
+        "licenses/StoreRedistribution/TaskScheduler-LICENSE.txt"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/OxyPlot.dll",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/OxyPlot.dll",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/OxyPlot.dll",
+      "sha256": "da767e3d8c10674e6ffa72670952d1274544b453b68e774b29f03b5160a4a034",
+      "contentSha256": "02a9f378191e0c0756b9615203895b6f1bef03e0d4f4e5863916c108388ec0d5",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md",
+        "licenses/StoreRedistribution/OxyPlot-LICENSE.txt"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/OxyPlot.WindowsForms.dll",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/OxyPlot.WindowsForms.dll",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/OxyPlot.WindowsForms.dll",
+      "sha256": "0758b8a4c129730e4585e717d4183d48b1167a78e4955ce704d9e6cc204148b2",
+      "contentSha256": "7d3cbc4984f45766a16b8d78e63954ec63d7a249b94dc837b656a9da1d7588e4",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md",
+        "licenses/StoreRedistribution/OxyPlot-LICENSE.txt"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/RAMSPDToolkit-NDD.dll",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/RAMSPDToolkit-NDD.dll",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/RAMSPDToolkit-NDD.dll",
+      "sha256": "a1ab5d8b01ac322ba94b4e0d2f926bfe1497829602de570375fdb5dfbdae651e",
+      "contentSha256": "a1ab5d8b01ac322ba94b4e0d2f926bfe1497829602de570375fdb5dfbdae651e",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md",
+        "licenses/StoreRedistribution/RAMSPDToolkit-LICENSE.txt"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/de/Microsoft.Win32.TaskScheduler.resources.dll",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/de/Microsoft.Win32.TaskScheduler.resources.dll",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/de/Microsoft.Win32.TaskScheduler.resources.dll",
+      "sha256": "364902c4f05ad552bcf237b638c81706bf6c58b53311dfe422d7a1512d849214",
+      "contentSha256": "64588941c5dcbeb751308e173a69f9445e2abf4b730a79dbfd8bcc58f2c6fac9",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md",
+        "licenses/StoreRedistribution/TaskScheduler-LICENSE.txt"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/es/Microsoft.Win32.TaskScheduler.resources.dll",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/es/Microsoft.Win32.TaskScheduler.resources.dll",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/es/Microsoft.Win32.TaskScheduler.resources.dll",
+      "sha256": "2f50e1c945c6ddd5e9284c04011ecc1b2b2d0fd62c2e4ca6b9ca7174e54d5089",
+      "contentSha256": "42a65aa85b55a81f9b79df2f376f26f78b17e1dbedc5de1c7522cc6f64931968",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md",
+        "licenses/StoreRedistribution/TaskScheduler-LICENSE.txt"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/fr/Microsoft.Win32.TaskScheduler.resources.dll",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/fr/Microsoft.Win32.TaskScheduler.resources.dll",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/fr/Microsoft.Win32.TaskScheduler.resources.dll",
+      "sha256": "2df63c99dc41e10c03ad99cfb7e8cf0147b656a075134427f0b86c7494cd5163",
+      "contentSha256": "5d610e45c809484bdad7ca34639013a8135bc750d2e81e7fc264c35cb91b0f7e",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md",
+        "licenses/StoreRedistribution/TaskScheduler-LICENSE.txt"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/it/Microsoft.Win32.TaskScheduler.resources.dll",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/it/Microsoft.Win32.TaskScheduler.resources.dll",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/it/Microsoft.Win32.TaskScheduler.resources.dll",
+      "sha256": "be3437a10436c6daa842fa248f71bc374d2b8749f0805bc33dbdfb5f463368c2",
+      "contentSha256": "bea8635b9dc81f6c1443e31ed485810f70288d429a8badf6c0ad5099deb4ecf3",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md",
+        "licenses/StoreRedistribution/TaskScheduler-LICENSE.txt"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/ja/Microsoft.Win32.TaskScheduler.resources.dll",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/ja/Microsoft.Win32.TaskScheduler.resources.dll",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/ja/Microsoft.Win32.TaskScheduler.resources.dll",
+      "sha256": "100cbc8fdf751d59f8f0ab16a9fff71ebc8d3e5964d3e1abaa0dc7f62ea5007d",
+      "contentSha256": "9b4a1f5bc3455c89492d922836f27ba5fe89bdb95badfb96bbcaa957d6dc2899",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md",
+        "licenses/StoreRedistribution/TaskScheduler-LICENSE.txt"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/pl/Microsoft.Win32.TaskScheduler.resources.dll",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/pl/Microsoft.Win32.TaskScheduler.resources.dll",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/pl/Microsoft.Win32.TaskScheduler.resources.dll",
+      "sha256": "057f36d0c19ba330cc2d4cec0f0153d9c5bb61607504c4dde65229c8f4643556",
+      "contentSha256": "a70e27f48e398b3f3e4f8c9a0e700edcf46e40a44b18b98bd3866618c611d14c",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md",
+        "licenses/StoreRedistribution/TaskScheduler-LICENSE.txt"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/ru/Microsoft.Win32.TaskScheduler.resources.dll",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/ru/Microsoft.Win32.TaskScheduler.resources.dll",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/ru/Microsoft.Win32.TaskScheduler.resources.dll",
+      "sha256": "cbc2ded62d394489cbd14ffc323294bbff9c4c5c86f8e8fcdc6a8573bdc30912",
+      "contentSha256": "8b09ceba30df2f31cec28539afe1171b94fa6f37b1325b93d6aa3004aba13daf",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md",
+        "licenses/StoreRedistribution/TaskScheduler-LICENSE.txt"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/sv/Microsoft.Win32.TaskScheduler.resources.dll",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/sv/Microsoft.Win32.TaskScheduler.resources.dll",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/sv/Microsoft.Win32.TaskScheduler.resources.dll",
+      "sha256": "c083fdb4c4d801844be5b3352989e497d6c65c12b39317327a1eeee32bd784b0",
+      "contentSha256": "80956ae10eae9b78d1e464098d434bce0fa011f6680761a5cd0e74866cda869b",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md",
+        "licenses/StoreRedistribution/TaskScheduler-LICENSE.txt"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/tr/Microsoft.Win32.TaskScheduler.resources.dll",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/tr/Microsoft.Win32.TaskScheduler.resources.dll",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/tr/Microsoft.Win32.TaskScheduler.resources.dll",
+      "sha256": "a84a0beaa958d5078bf2a6c0f17ac9c165da14bb7153140a980d40d9431e1657",
+      "contentSha256": "7c04e92c7b9ea46051d428135cccc25996aec1eb981e39cf8206f5efa0e352dc",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md",
+        "licenses/StoreRedistribution/TaskScheduler-LICENSE.txt"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/zh-CN/Microsoft.Win32.TaskScheduler.resources.dll",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/zh-CN/Microsoft.Win32.TaskScheduler.resources.dll",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/zh-CN/Microsoft.Win32.TaskScheduler.resources.dll",
+      "sha256": "162f0f43e7909f2ecc50af71df726709fdde8abcd6d505a719f2baf13f41c2b3",
+      "contentSha256": "92071d08ed9b18781c42d85b0002bf4fb7cfe277a38ca97a3bd4ddbb522afac7",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md",
+        "licenses/StoreRedistribution/TaskScheduler-LICENSE.txt"
+      ]
+    },
+    {
+      "path": "resources/resources/monitoring/LibreHardwareMonitor/patched/zh-Hant/Microsoft.Win32.TaskScheduler.resources.dll",
+      "source": "resources/monitoring/LibreHardwareMonitor/patched/zh-Hant/Microsoft.Win32.TaskScheduler.resources.dll",
+      "staged": "resources/monitoring/LibreHardwareMonitor/patched/zh-Hant/Microsoft.Win32.TaskScheduler.resources.dll",
+      "sha256": "b717136bd3f8b9c3cf8ac2afbf75bea233029a8cfcd8250f749902a755cb4fd2",
+      "contentSha256": "289955d7600cfd49bcd2001b5a7cb9d9e2397eaee369692159b993ca21e15e9e",
+      "licenseFiles": [
+        "docs/STORE_SIGNING_REVIEW.md",
+        "licenses/LibreHardwareMonitor/LICENSE.txt",
+        "licenses/LibreHardwareMonitor/THIRD-PARTY-NOTICES.txt",
+        "licenses/StoreRedistribution/README.md",
+        "licenses/StoreRedistribution/TaskScheduler-LICENSE.txt"
+      ]
+    }
+  ]
+}

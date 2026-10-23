@@ -16,7 +16,9 @@ function normalizeTweakId(value) {
 }
 
 function isBlockedSecurityTweakId(tweakId) {
-  return BLOCKED_SECURITY_TWEAK_IDS.has(normalizeTweakId(tweakId));
+  const id = normalizeTweakId(tweakId);
+  return BLOCKED_SECURITY_TWEAK_IDS.has(id)
+    || (buildProfile.store === true && Object.hasOwn(storePolicy.exclusions, id));
 }
 
 function isBlockedSecurityTweak(tweak) {
@@ -49,3 +51,5 @@ module.exports = {
   isBlockedSecurityTweakId,
   isBlockedSecurityTweakScriptName
 };
+const buildProfile = require('../../generated/build-profile');
+const storePolicy = require('./storeTweakPolicy.json');

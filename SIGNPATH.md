@@ -6,7 +6,7 @@ Nova Tweaks does not currently use a SignPath Foundation certificate.
 
 A Foundation application submitted in September 2026 was not approved at that stage because the young project had not yet established sufficient externally verifiable public reputation and visibility. The response did not identify a technical or licensing defect. The project may reapply after building a broader public track record.
 
-Current Windows releases remain unsigned unless a different documented signing method is configured. Windows can therefore display an `Unknown publisher` warning.
+The public v1.0.4 installer, application and broker were signed through Certum/SimplySign, independently of SignPath. Direct validation confirmed their publisher as `Open Source Developer Elia Willi Klemenz`. The remaining Nova helpers in that release were unsigned. Preview and local test builds remain unsigned. The revised pipeline signs all Nova-owned PE files, preserves third-party bytes and refuses publication on validation failure; see [MICROSOFT_STORE.md](docs/MICROSOFT_STORE.md) for the actual audit and remaining infrastructure requirements.
 
 No SignPath organization, project, signing policy, or artifact configuration is active for Nova Tweaks. The repository must not be described as SignPath-approved or SignPath-signed.
 
@@ -37,7 +37,7 @@ A missing Visual C++ runtime dependency found during initial virtual-machine tes
 - GitHub Actions validates source changes with `npm ci`, `npm test`, and `npm run build` on Windows.
 - Preview tags build unsigned installers and publish the installer with `checksums.txt`.
 - Release packaging distinguishes Windows Authenticode signing from the application's Ed25519 artifact, tweak, and update trust configuration.
-- Third-party executables keep their upstream signature state and are excluded from Nova-owned executable signing configuration.
+- Existing third-party signatures stay untouched. Regular GitHub builds preserve unsigned upstream bytes; signed Store builds additionally sign only reviewed unsigned redistributable files with pinned code-content verification and preserved license/source obligations.
 - LibreHardwareMonitor and PresentMon license, notice, origin, source, version, and digest records are maintained separately from Nova-owned code.
 - Packaged tweak definitions, sidecars, and helper configuration have integrity and compliance checks in the test suite.
 

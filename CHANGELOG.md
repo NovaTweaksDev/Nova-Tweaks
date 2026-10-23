@@ -6,6 +6,22 @@ This file records changes described by the project's public Git tags and GitHub 
 
 No changes recorded yet.
 
+## 1.1.0 - 2026-10-23
+
+### Changed
+
+- Refined the Overview, tweak cards, settings, and Game Mode layout and feedback.
+- Improved monitoring history, unavailable metric handling, and shutdown cleanup.
+- Added Game Mode background-app controls and session statistics.
+- Improved tweak-state reporting and automation handling of administrator approval cancellation.
+- Integrated the signed Windows release pipeline for regular and Microsoft Store installers.
+- Store builds retain the existing product identity and exclude the three previously restricted boot/security tweaks.
+
+### Validation limits
+
+- Hardware-specific sensor readings, display switching, and real system changes require testing on target hardware.
+- Microsoft Store publication requires an update submission using the new versioned installer URL in Partner Center.
+
 ## 1.0.6 - 2026-10-15
 
 ### Added

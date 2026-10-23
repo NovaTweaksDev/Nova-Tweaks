@@ -211,3 +211,53 @@ test('partial scopes restore captured entries without claiming a complete scope'
   assert.equal(result.errors[0].code, 'RESTORE_SCOPE_INCOMPLETE');
   assert.deepEqual(f.calls, ['a', 'b', 'c', 'd']);
 });
+
+
+test('manual config with unavailable sliders restores settings and verified zero without claiming full capture', async (t) => {
+  const fs = require('node:fs/promises');
+  const os = require('node:os');
+  const path = require('node:path');
+  const { createBackupManager } = require('./backupManager');
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'nova-partial-config-'));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const backups = createBackupManager({ app: { getPath: () => root }, dialog: { showOpenDialog() {}, showSaveDialog() {} }, getBackupRoot: () => root,
+    windowsRestoreStateProvider: async () => ({ available: false, points: [] }) });
+  const payload = { name: 'Partial config', scope: ['tweakStates', 'appSettings'], snapshot: {
+    tweakStates: { captureStatus: 'complete', data: [
+      { id: 'missing', containerType: 'range-selection', checked: true, currentState: 'disabled', currentValue: null },
+      { id: 'unverified', checked: false, currentState: 'disabled' },
+      { id: 'zero', containerType: 'range_selection', checked: true, currentState: 'disabled', currentValue: 0 }
+    ] }, appSettings: { captureStatus: 'complete', data: { language: 'de' } }
+  } };
+  const created = await backups.createBackup(payload);
+  assert.match(created.message, /partial capture/);
+  // Simulate a config saved by the older build before capture validation existed.
+  const storedFile = path.join(root, created.backup.fileName);
+  const legacy = JSON.parse(await fs.readFile(storedFile, 'utf8'));
+  legacy.snapshot = payload.snapshot;
+  await fs.writeFile(storedFile, JSON.stringify(legacy));
+  const plan = (await backups.restoreBackup({ id: created.backup.id })).restorePlan;
+  assert.equal(plan.snapshot.tweakStates.captureStatus, 'partial');
+  assert.equal(plan.snapshot.tweakStates.itemCount, 1);
+  assert.deepEqual(plan.snapshot.tweakStates.data.map((entry) => entry.id), ['zero']);
+  await assert.rejects(backups.createBackup({ ...payload, type: 'beforeApply' }), { code: 'BACKUP_STATE_UNAVAILABLE' });
+  const f = fixture();
+  let restored;
+  f.dependencies.backupManager = backups;
+  f.dependencies.settingsService = { updateSettings: (patch) => { restored = patch; return patch; } };
+  f.dependencies.tweakRunner = {
+    getConfig: async (id) => { assert.equal(id, 'zero'); return { containerType: 'range_selection' }; },
+    getExecutionRequirements: async ({ params }) => { assert.equal(params.Value, 0); return { requiresAdmin: false }; },
+    getCurrentState: async () => ({ checked: true, currentState: 'disabled', currentValue: 0 }),
+    runTweak: async () => assert.fail('The verified target is already reached')
+  };
+  const service = createRestoreService(f.dependencies);
+  const { job } = await service.start({ id: created.backup.id });
+  const result = await finish(service, job.id);
+  assert.equal(restored.preferences.language, 'de');
+  assert.equal(result.status, 'completed');
+  assert.equal(result.ok, false);
+  assert.equal(result.partial, true);
+  assert.deepEqual(result.appliedScopes, ['appSettings']);
+  assert.equal(result.errors[0].code, 'RESTORE_SCOPE_INCOMPLETE');
+});

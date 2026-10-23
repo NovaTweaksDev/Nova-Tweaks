@@ -50,7 +50,10 @@ test('bundled tweak configs are canonical, unique and free of generated metadata
   }
 
   const catalog = createTweakCatalog({ configsDir, scriptsDir });
-  assert.equal(catalog.listTweaks().length, files.length);
+  const profile = require('../../generated/build-profile');
+  const exclusions = require('../tweaks/storeTweakPolicy.json').exclusions;
+  const expected = profile.store ? files.filter((name) => !Object.hasOwn(exclusions, name.slice(0, -5))).length : files.length;
+  assert.equal(catalog.listTweaks().length, expected);
 });
 
 test('bundled tweak scripts declare every configured execution parameter', () => {

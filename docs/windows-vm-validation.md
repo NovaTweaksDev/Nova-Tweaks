@@ -6,6 +6,8 @@ The regular Windows CI uses injected failure tests and an unsigned packaged smok
 
 ## Manual scenarios
 
+First run the installer acceptance script from [MICROSOFT_STORE.md](MICROSOFT_STORE.md#installer-acceptance-in-a-disposable-vm) with the exact signed release, on clean Windows 10 and Windows 11 x64 snapshots. It checks silent install/upgrade/uninstall, registration, shortcuts, installed signatures, login-item removal and preservation of user data. The maintainer-run Windows 11 Store install/uninstall result is recorded in docs/release-audits/store-1.0.4-windows11-installer.json; upgrade and Windows 10 remain pending. Repeat the scenarios below with the signed Stable and final Store packages; unsigned smoke checks cannot substitute for these tests.
+
 1. **UAC cancellation:** launch the unsigned package as a standard user, choose a reversible registry tweak after inspecting its script, cancel UAC. Confirm no registry change occurred, the UI reports cancellation, and a later explicit request can retry.
 2. **Safety backup failure:** make the VM's configured backup destination unwritable. Attempt an operation requiring a before-apply backup. Confirm the backup error and independently confirm the target registry/service state did not change. Restore permissions before continuing.
 3. **Partial restore:** capture a complete Nova backup for four reversible stateful tweaks, change their states, and arrange a controlled failure on step three in a development VM fixture. Verify that the first two steps complete, the third fails, the fourth does not run, and the scope is not reported complete. Use service failure injection for this scenario; do not weaken production signature or integrity checks.

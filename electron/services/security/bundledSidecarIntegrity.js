@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const signedHelperIntegrity = require('../../generated/signed-helper-integrity');
 
 const INTEGRITY_FORMAT = 'nova-bundled-sidecar-v2';
 const CRITICAL_EXTENSIONS = new Set(['.config', '.dll', '.exe', '.json']);
@@ -48,7 +49,7 @@ function getPolicy(policyName) {
       'BUNDLED_SIDECAR_POLICY_INVALID'
     );
   }
-  return policy;
+  return { ...policy, expectedSha256: signedHelperIntegrity[normalizedName] || policy.expectedSha256 };
 }
 
 function collectCriticalFiles(directoryPath, policyName) {
