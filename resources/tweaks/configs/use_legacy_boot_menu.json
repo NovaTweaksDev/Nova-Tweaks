@@ -68,7 +68,7 @@
         "success_exit_codes": [
           0
         ],
-        "requires_admin": false,
+        "requires_admin": true,
         "expected_output": {
           "enabled": "ENABLED",
           "disabled": "DISABLED",

@@ -1,4 +1,5 @@
 import { ChevronDown } from 'lucide-react';
+import { IconContainer } from './ui';
 
 function AutomationAccordionSection({
   id,
@@ -27,13 +28,9 @@ function AutomationAccordionSection({
           aria-controls={contentId}
           onClick={onToggle}
         >
-          <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${
-            open
-              ? 'border-[color:color-mix(in_srgb,var(--accent)_28%,var(--border))] bg-[var(--active-layer)] text-[var(--accent)]'
-              : 'border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-muted)]'
-          }`}>
+          <IconContainer tone="accent" className="ui-panel-heading-icon">
             <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
-          </span>
+          </IconContainer>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold text-[var(--text-primary)] sm:text-base">{title}</span>
             <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">{description}</span>

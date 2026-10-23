@@ -26,7 +26,7 @@ export function isPresetTweakActive(tweak, presetDefinition) {
   return true;
 }
 
-export function createPresetRestoreSnapshot(resolvedTweaks) {
+export function createPresetRestoreSnapshot(resolvedTweaks, { backgroundManaged = false } = {}) {
   return resolvedTweaks
     .filter(({ presetDefinition }) => presetDefinition.stateful !== false)
     .flatMap(({ tweak, presetDefinition }) => {
@@ -37,6 +37,7 @@ export function createPresetRestoreSnapshot(resolvedTweaks) {
       return [{
         id: presetDefinition.id,
         currentState,
+        ...(presetDefinition.id === 'xbox_services' && backgroundManaged ? { backgroundManaged: true } : {}),
         selectedOption: String(tweak?.selectedOption || '').trim(),
         selectedResolution: String(tweak?.selectedResolution || tweak?.currentResolution || '').trim()
       }];
@@ -53,11 +54,11 @@ function getRestoreParams(snapshotEntry) {
   return {};
 }
 
-export function createPresetExecutionPlan({ resolvedTweaks, disableRequested, restoreSnapshot = [] }) {
+export function createPresetExecutionPlan({ resolvedTweaks, disableRequested, restoreSnapshot = [], backgroundManaged = false }) {
   if (!disableRequested) {
     return {
       ok: true,
-      entries: resolvedTweaks.map((entry) => ({
+      entries: resolvedTweaks.filter((entry) => !backgroundManaged || entry.presetDefinition.id !== 'xbox_services').map((entry) => ({
         ...entry,
         targetState: 'enabled',
         executionParams: entry.presetDefinition.params || {}
@@ -77,7 +78,7 @@ export function createPresetExecutionPlan({ resolvedTweaks, disableRequested, re
 
   return {
     ok: true,
-    entries: statefulTweaks.map((entry) => {
+    entries: statefulTweaks.filter((entry) => !backgroundManaged || entry.presetDefinition.id !== 'xbox_services').map((entry) => {
       const snapshotEntry = snapshotById.get(normalizePresetId(entry.presetDefinition.id));
       return {
         ...entry,

@@ -916,6 +916,14 @@
     }
   },
   "tweaks": {
+    "stateCheck": {
+      "failed": "Status unknown – check failed",
+      "checking": "Checking status…",
+      "retry": "Check again",
+      "lastConfirmed": "Last confirmed: {{state}} (outdated)",
+      "blocked": "Verify this tweak’s status before changing it.",
+      "skipped": "{{count}} tweaks skipped because their status is unverified."
+    },
     "title": "Tweaks Panel",
     "description": "Filter tweak definitions, toggle tweak states and inspect script output.",
     "pageTitle": "Tweaks",
@@ -1607,6 +1615,10 @@
     }
   },
   "gameMode": {
+    "frameStatistics": {
+      "recentSamples": "Latest {{count}} samples, every 5 s",
+      "liveWindow": "Live lows use recent samples. The final report includes the entire session."
+    },
     "premiumBadge": "Premium",
     "activeBadge": "Active",
     "buttonAria": "Nova Game Mode launch button",
@@ -1663,6 +1675,90 @@
       }
     },
     "preset": {
+      "background": {
+        "running": "Minimizing background services and apps …",
+        "failed": "Background minimization incomplete ({{code}})",
+        "incomplete": "Game Mode applied. Background minimization incomplete: {{names}}.",
+        "restoreIncomplete": "Game Mode restoration incomplete: {{names}}.",
+        "summary": "{{services}} services processed · {{apps}} apps closed · {{seconds}} s",
+        "service": {
+          "untouched": "Unchanged",
+          "intent": "Restore pending",
+          "changed": "Stopped and disabled",
+          "restored": "Restored",
+          "skipped": "Skipped",
+          "conflict": "Restore pending",
+          "restoring": "Restoring"
+        },
+        "app": {
+          "closed": "Closed",
+          "skipped": "Not closed"
+        },
+        "recovery": "Background service restoration is pending. Switch Game Mode off to retry.",
+        "reason": {
+          "unknown": "Not fully completed",
+          "ALREADY_DISABLED": "Already disabled",
+          "SERVICE_DEPENDENTS_RUNNING": "Skipped because dependent services are running",
+          "SERVICE_STATE_CONFLICT": "Changed externally; left untouched",
+          "SERVICE_UNAVAILABLE": "Service currently unavailable",
+          "SERVICE_RESTORE_FAILED": "Restoration pending",
+          "SERVICE_CHANGE_FAILED": "Change failed",
+          "SERVICE_VERIFICATION": "Target state not confirmed",
+          "PROCESS_IDENTITY_CHANGED": "Process identity changed; skipped",
+          "APP_CLOSE_UNSUPPORTED": "Normal exit unavailable",
+          "PROCESS_UNAVAILABLE": "Process no longer available",
+          "APP_STILL_RUNNING": "App remains open or is awaiting confirmation",
+          "PROTECTED_PROCESS": "Game or protected process; kept running",
+          "PROCESS_OWNER_UNVERIFIED": "User ownership unverified; skipped",
+          "PROCESS_IDENTITY_MISSING": "Process identity unverified; skipped",
+          "PROCESS_ANCESTRY_UNVERIFIED": "Process ancestry unclear; skipped",
+          "APP_SCAN_FAILED": "Apps could not be identified reliably",
+          "APP_CLOSURE_CANCELLED": "Cancelled because Nova is closing"
+        }
+      },
+      "info": {
+        "badge": "Info",
+        "title": "What Game Mode changes",
+        "restore": "Disabling restores saved service states and preset settings. Closed apps stay closed. Clearing standby memory is a one-time action.",
+        "items": {
+          "nova_ultimate_powerplan": {
+            "title": "Nova power plan",
+            "description": "Activates the Nova power plan, prioritizing processor performance over power saving."
+          },
+          "clear_standby_list": {
+            "title": "Clear standby memory",
+            "description": "Clears cached memory pages once. Windows rebuilds the cache afterwards."
+          },
+          "xbox_services": {
+            "title": "Xbox services",
+            "description": "Temporarily disables Xbox services. Sign-in, cloud saves and controller features may be affected."
+          },
+          "windows_game_mode": {
+            "title": "Windows Game Mode",
+            "description": "Enables the Windows gaming mode."
+          },
+          "set_timer_resolution": {
+            "title": "Timer resolution",
+            "description": "Requests a 0.5 ms system timer resolution and checks whether it is effective."
+          },
+          "set_dns_provider": {
+            "title": "Cloudflare DNS",
+            "description": "Sets the DNS provider to 1.1.1.1 / 1.0.0.1. This does not increase internet bandwidth."
+          },
+          "hardware_accelerated_gpu": {
+            "title": "GPU scheduling",
+            "description": "Enables hardware-accelerated GPU scheduling on supported systems. The change requires a restart."
+          },
+          "background_services": {
+            "title": "Minimize background services",
+            "description": "Pauses diagnostics, SysMain, search indexing, printing/fax, location, Insider/demo, remote registry, touch/pen, smart card and Bluetooth services. Related features may be unavailable during Game Mode; running dependent services are never stopped implicitly."
+          },
+          "background_apps": {
+            "title": "Close background apps",
+            "description": "Requests known cloud clients, browsers, communication and recording apps to exit normally. Discord is explicitly kept running. Calls and recordings in other apps may end. Apps awaiting confirmation stay open and are never forcibly terminated."
+          }
+        }
+      },
       "running": "Applying Game Mode...",
       "applied": "Game Mode applied ({{total}} steps).",
       "partial": "Partially applied ({{completed}}/{{total}}).",

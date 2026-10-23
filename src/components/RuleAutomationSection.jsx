@@ -35,6 +35,7 @@ import {
 import {
   Button,
   ChoiceCards,
+  IconContainer,
   MetricSlider,
   ModalShell,
   SearchCombobox,
@@ -515,9 +516,9 @@ function RuleEditor({ rule, open, tweaks, tweakCatalogStatus, onClose, onSave })
         <section className="rule-editor-section rule-editor-conditions rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <span className="rule-editor-section-icon inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-secondary)]">
+              <IconContainer tone="accent" className="ui-panel-heading-icon">
                 <Workflow className="h-4 w-4" aria-hidden="true" />
-              </span>
+              </IconContainer>
               <div>
                 <h4 className="font-semibold text-[var(--text-primary)]">{t('ruleAutomation.when')}</h4>
                 <p className="mt-0.5 text-xs text-[var(--text-muted)]">{t('ruleAutomation.whenDescription')}</p>
@@ -585,9 +586,9 @@ function RuleEditor({ rule, open, tweaks, tweakCatalogStatus, onClose, onSave })
 
         <section className="rule-editor-section rule-editor-action rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
           <div className="flex items-center gap-3">
-            <span className="rule-editor-section-icon inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--text-secondary)]">
+            <IconContainer tone="accent" className="ui-panel-heading-icon">
               <Zap className="h-4 w-4" aria-hidden="true" />
-            </span>
+            </IconContainer>
             <div>
               <h4 className="font-semibold text-[var(--text-primary)]">{t('ruleAutomation.then')}</h4>
               <p className="mt-0.5 text-xs text-[var(--text-muted)]">{t('ruleAutomation.thenDescription')}</p>

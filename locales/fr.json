@@ -913,6 +913,14 @@
     }
   },
   "tweaks": {
+    "stateCheck": {
+      "failed": "État inconnu – vérification échouée",
+      "checking": "Vérification de l’état…",
+      "retry": "Vérifier à nouveau",
+      "lastConfirmed": "Dernier état confirmé : {{state}} (obsolète)",
+      "blocked": "Vérifiez l’état de ce réglage avant de le modifier.",
+      "skipped": "{{count}} réglages ignorés car leur état n’est pas vérifié."
+    },
     "title": "Panneau de réglages",
     "description": "Filtrez les définitions de réglage, basculez les états de réglage et inspectez la sortie du script.",
     "pageTitle": "Tweaks",
@@ -1604,6 +1612,10 @@
     }
   },
   "gameMode": {
+    "frameStatistics": {
+      "recentSamples": "Dernières {{count}} mesures, toutes les 5 s",
+      "liveWindow": "Les valeurs basses en direct utilisent les mesures récentes. Le rapport final couvre toute la session."
+    },
     "premiumBadge": "Premium",
     "activeBadge": "Actif",
     "buttonAria": "Bouton Nova Game Mode",
@@ -1660,6 +1672,90 @@
       }
     },
     "preset": {
+      "background": {
+        "running": "Réduction des services et applications en arrière-plan …",
+        "failed": "Réduction en arrière-plan incomplète ({{code}})",
+        "incomplete": "Game Mode appliqué. Réduction en arrière-plan incomplète : {{names}}.",
+        "restoreIncomplete": "Restauration du Game Mode incomplète : {{names}}.",
+        "summary": "{{services}} services traités · {{apps}} applications fermées · {{seconds}} s",
+        "service": {
+          "untouched": "Inchangé",
+          "intent": "Restauration en attente",
+          "changed": "Arrêté et désactivé",
+          "restored": "Restauré",
+          "skipped": "Ignoré",
+          "conflict": "Restauration en attente",
+          "restoring": "Restauration en cours"
+        },
+        "app": {
+          "closed": "Fermée",
+          "skipped": "Non fermée"
+        },
+        "recovery": "La restauration des services est en attente. Désactivez Game Mode pour réessayer.",
+        "reason": {
+          "unknown": "Opération incomplète",
+          "ALREADY_DISABLED": "Déjà désactivé",
+          "SERVICE_DEPENDENTS_RUNNING": "Ignoré : services dépendants actifs",
+          "SERVICE_STATE_CONFLICT": "Modifié ailleurs ; laissé intact",
+          "SERVICE_UNAVAILABLE": "Service actuellement indisponible",
+          "SERVICE_RESTORE_FAILED": "Restauration en attente",
+          "SERVICE_CHANGE_FAILED": "Échec de la modification",
+          "SERVICE_VERIFICATION": "État cible non confirmé",
+          "PROCESS_IDENTITY_CHANGED": "Identité du processus modifiée ; ignoré",
+          "APP_CLOSE_UNSUPPORTED": "Fermeture normale indisponible",
+          "PROCESS_UNAVAILABLE": "Processus devenu indisponible",
+          "APP_STILL_RUNNING": "Application ouverte ou en attente de confirmation",
+          "PROTECTED_PROCESS": "Jeu ou processus protégé ; conservé",
+          "PROCESS_OWNER_UNVERIFIED": "Propriétaire non vérifié ; ignoré",
+          "PROCESS_IDENTITY_MISSING": "Identité non vérifiée ; ignoré",
+          "PROCESS_ANCESTRY_UNVERIFIED": "Origine du processus incertaine ; ignoré",
+          "APP_SCAN_FAILED": "Identification fiable des applications impossible",
+          "APP_CLOSURE_CANCELLED": "Annulé car Nova se ferme"
+        }
+      },
+      "info": {
+        "badge": "Info",
+        "title": "Ce que modifie Game Mode",
+        "restore": "La désactivation restaure les états des services et les réglages enregistrés. Les applications fermées ne sont pas relancées. Le vidage de la mémoire en veille est ponctuel.",
+        "items": {
+          "nova_ultimate_powerplan": {
+            "title": "Mode d’alimentation Nova",
+            "description": "Active le mode Nova, qui privilégie les performances du processeur aux économies d’énergie."
+          },
+          "clear_standby_list": {
+            "title": "Vider la mémoire en veille",
+            "description": "Vide une fois les pages mémoire en cache. Windows reconstitue ensuite le cache."
+          },
+          "xbox_services": {
+            "title": "Services Xbox",
+            "description": "Désactive temporairement les services Xbox. La connexion, les sauvegardes cloud et les manettes peuvent être affectées."
+          },
+          "windows_game_mode": {
+            "title": "Mode Jeu de Windows",
+            "description": "Active le mode Jeu de Windows."
+          },
+          "set_timer_resolution": {
+            "title": "Résolution du minuteur",
+            "description": "Demande une résolution du minuteur système de 0,5 ms et vérifie son application effective."
+          },
+          "set_dns_provider": {
+            "title": "DNS Cloudflare",
+            "description": "Configure le fournisseur DNS sur 1.1.1.1 / 1.0.0.1. Cela n’augmente pas le débit Internet."
+          },
+          "hardware_accelerated_gpu": {
+            "title": "Planification GPU",
+            "description": "Active la planification GPU à accélération matérielle sur les systèmes compatibles. Un redémarrage est nécessaire."
+          },
+          "background_services": {
+            "title": "Réduire les services en arrière-plan",
+            "description": "Suspend les services de diagnostic, SysMain, indexation, impression/fax, localisation, Insider/démo, registre distant, saisie tactile/stylet, carte à puce et Bluetooth. Les fonctions associées peuvent devenir indisponibles pendant Game Mode ; les services dépendants actifs ne sont jamais arrêtés implicitement."
+          },
+          "background_apps": {
+            "title": "Fermer les applications en arrière-plan",
+            "description": "Demande aux clients cloud, navigateurs et applications de communication et d’enregistrement connus de quitter normalement. Discord reste explicitement ouvert. Les appels et enregistrements des autres applications peuvent prendre fin. Les applications demandant confirmation restent ouvertes, sans arrêt forcé."
+          }
+        }
+      },
       "running": "Application du Game Mode...",
       "applied": "Game Mode appliqué ({{total}} étapes).",
       "partial": "Application partielle ({{completed}}/{{total}}).",

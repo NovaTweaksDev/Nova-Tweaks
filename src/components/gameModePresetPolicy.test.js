@@ -106,3 +106,15 @@ test('preset detection validates option and resolution values', async () => {
     { expectedSelection: 'Cloudflare' }
   ), false);
 });
+
+test('new background snapshots delegate Xbox to exact service restoration; legacy snapshots keep the old path', async () => {
+  const { createPresetRestoreSnapshot, createPresetExecutionPlan } = await import('./gameModePresetPolicy.mjs');
+  const resolvedTweaks = [{ presetDefinition: { id: 'xbox_services' }, tweak: { id: 'xbox_services', currentState: 'disabled' } }];
+  const snapshot = createPresetRestoreSnapshot(resolvedTweaks, { backgroundManaged: true });
+  assert.equal(snapshot[0].backgroundManaged, true);
+  assert.equal(createPresetExecutionPlan({ resolvedTweaks, disableRequested: false, backgroundManaged: true }).entries.length, 0);
+  assert.equal(createPresetExecutionPlan({ resolvedTweaks, disableRequested: true, restoreSnapshot: snapshot, backgroundManaged: true }).entries.length, 0);
+  const legacy = createPresetRestoreSnapshot(resolvedTweaks);
+  assert.equal(legacy[0].backgroundManaged, undefined);
+  assert.equal(createPresetExecutionPlan({ resolvedTweaks, disableRequested: true, restoreSnapshot: legacy }).entries[0].targetState, 'disabled');
+});

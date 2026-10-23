@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   Trash2
 } from 'lucide-react';
-import { Button, LoadingIndicator, SegmentedControl, StatusPill, Switch } from './ui';
+import { Button, IconContainer, LoadingIndicator, SegmentedControl, StatusPill, Switch } from './ui';
 import AutomationAccordionSection from './AutomationAccordionSection';
 
 const TASKS = [
@@ -42,9 +42,9 @@ function TaskCard({ task, index, last, selected, disabled, onToggle }) {
         {!last ? <span className="maintenance-task-route__line" /> : null}
       </span>
       <div className="maintenance-task-route__body">
-        <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${selected ? 'bg-[var(--active-layer)] text-[var(--accent)]' : 'bg-[var(--surface-elevated)] text-[var(--text-muted)]'}`}>
+        <IconContainer tone={selected ? 'accent' : 'neutral'} className="ui-section-icon ui-section-icon--compact">
           <Icon className="h-4 w-4" />
-        </span>
+        </IconContainer>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold text-[var(--text-primary)]">{t(`scheduledMaintenance.tasks.${task.id}.title`)}</span>
           <span className="mt-0.5 block text-xs leading-4 text-[var(--text-muted)]">{t(`scheduledMaintenance.tasks.${task.id}.description`)}</span>

@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowUp, ArrowUpDown, Check, Gauge, Info, RefreshCw, RotateCcw, ShieldAlert, SlidersHorizontal, TrendingUp, Wrench, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import TweakStateNotice from './TweakStateNotice';
 import { Button, PremiumBadge } from './ui';
 import SubcategoryIcon from './SubcategoryIcon';
 import {
@@ -61,6 +62,8 @@ function localizeStatus(label, t) {
   if (normalized === 'disabled') return t('tweaks.state.disabled');
   if (normalized === 'pending') return t('tweaks.state.pending');
   if (normalized === 'ready') return t('tweaks.oneShotAction.ready');
+  if (normalized === 'unknown') return t('tweakDetails.unknown');
+  if (normalized === 'checking') return t('tweaks.stateCheck.checking');
   if (normalized === 'reboot required' || normalized === 'restart required') return t('tweaks.rebootRequired', { defaultValue: 'Reboot required' });
   return label || t('tweakDetails.unknown');
 }
@@ -70,7 +73,7 @@ function localizeCategory(category, t) {
   return t(`tweaks.categories.${safeCategory}`, { defaultValue: safeCategory });
 }
 
-function TweakDetailPanel({ tweak, onClose, onOpenTechnicalDetails, showRiskLabels = true, showCategoryAccent = false, blurName = false }) {
+function TweakDetailPanel({ tweak, onClose, onOpenTechnicalDetails, onRetryState, showRiskLabels = true, showCategoryAccent = false, blurName = false }) {
   const { i18n, t } = useTranslation();
 
   if (!tweak) {
@@ -139,6 +142,7 @@ function TweakDetailPanel({ tweak, onClose, onOpenTechnicalDetails, showRiskLabe
           </span>
         </div>
         <p className="tweak-detail-description">{description}</p>
+        <TweakStateNotice tweak={tweak} onRetry={onRetryState} />
       </section>
 
       <section className="tweak-detail-metadata">

@@ -110,6 +110,11 @@ function MascotToggle({
       interactionLockRef.current = false;
       return;
     }
+    if (result.currentState === 'disabled') {
+      interactionLockRef.current = false;
+      result.completeDeferredSuccess?.();
+      return;
+    }
 
     deferredSuccessRef.current = typeof result.completeDeferredSuccess === 'function'
       ? result.completeDeferredSuccess

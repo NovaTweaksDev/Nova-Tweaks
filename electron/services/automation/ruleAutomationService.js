@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { randomUUID } = require('crypto');
+const { MAX_SAMPLE_AGE_MS, isFreshTime, readMeasurement, isNewMeasurement, networkMeasurementTime } = require('../monitoring/samplePolicy');
 
 const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const ADMIN_APPROVAL_TTL_MS = 5 * 60 * 1000;
@@ -37,11 +38,19 @@ function processValue(processInfo, type) {
   return null;
 }
 
+function isSensorCondition(condition) {
+  return !String(condition.type).startsWith('process') && !String(condition.type).startsWith('game');
+}
+function isEdgeCondition(condition) {
+  return ['gameStarted', 'gameStopped', 'processStarted', 'processStopped'].includes(condition.type);
+}
 function systemValue(context, type) {
-  if (context.metricsAt && Number(context.currentTime || Date.now()) - context.metricsAt > 15000 && !type.startsWith('game')) return null;
+  const currentTime = context.currentTime ?? Date.now();
+  if (!type.startsWith('game') && !readMeasurement(context.metrics, currentTime)) return null;
   const overview = context.metrics?.overview || {};
   const primaryGpu = overview.gpus?.[0] || {};
   const quality = overview.networkQuality || {};
+  if (['networkLatency', 'packetLoss'].includes(type) && !networkMeasurementTime(quality, currentTime)) return null;
   const values = {
     systemCpu: overview.cpu?.usagePercent ?? context.metrics?.cpuLoad,
     systemGpu: primaryGpu.usagePercent ?? context.metrics?.gpuLoad,
@@ -88,11 +97,20 @@ function evaluateRule(rule, context) {
     ? (rule.matchMode === 'any' ? [...(context.processEvents || []), ...(context.processes || [])] : (context.processEvents || []))
     : (context.processes || []);
   const candidates = hasProcessConditions ? (rule.matchMode === 'any' ? [...processCandidates, null] : processCandidates) : [null];
+  let sensorMatch = null;
   for (const processInfo of candidates) {
     const matches = conditions.map((condition) => conditionMatches(condition, context, processInfo));
-    if ((rule.matchMode === 'any' ? matches.some(Boolean) : matches.every(Boolean))) return { matched: true, processInfo };
+    if (rule.matchMode === 'any') {
+      const independent = conditions.filter((condition, index) => matches[index] && !isSensorCondition(condition));
+      if (independent.length) return { matched: true, processInfo, sensorTypes: [], edgeTriggered: conditions.some(isEdgeCondition) };
+      if (matches.some(Boolean) && !sensorMatch) sensorMatch = { matched: true, processInfo,
+        sensorTypes: conditions.filter((_condition, index) => matches[index]).map((condition) => condition.type), edgeTriggered: false };
+    } else if (matches.every(Boolean)) {
+      return { matched: true, processInfo, sensorTypes: conditions.filter(isSensorCondition).map((condition) => condition.type),
+        edgeTriggered: conditions.some(isEdgeCondition) };
+    }
   }
-  return { matched: false, processInfo: null };
+  return sensorMatch || { matched: false, processInfo: null };
 }
 
 function createRuleAutomationService(options = {}) {
@@ -112,6 +130,9 @@ function createRuleAutomationService(options = {}) {
   let processSnapshotInitialized = false;
   let previousProcesses = new Map();
   const activeSince = new Map();
+  const sensorProgress = new Map();
+  let lastMeasurement = null;
+  let lastNetworkMeasurementAt = null;
   const cooldownUntil = new Map();
   const automaticExecutionIds = new Set();
   const serviceSessionId = randomUUID();
@@ -175,6 +196,15 @@ function createRuleAutomationService(options = {}) {
     }
     if (now() > Number(execution.expiresAt || execution.createdAt + ADMIN_APPROVAL_TTL_MS)) {
       return { ok: false, message: 'The pending rule action expired.' };
+    }
+    context.currentTime = now();
+    const sensorConditions = (rule.conditions || []).filter((condition) => execution.sensorTypes
+      ? execution.sensorTypes.includes(condition.type) : rule.matchMode !== 'any' && isSensorCondition(condition));
+    if (sensorConditions.length) {
+      const matches = sensorConditions.map((condition) => conditionMatches(condition, context));
+      if (!(rule.matchMode === 'any' ? matches.some(Boolean) : matches.every(Boolean))) {
+        return { ok: false, message: 'The sensor conditions are no longer fresh or no longer match.' };
+      }
     }
     const conditionTypes = (rule.conditions || []).map((entry) => entry.type);
     if (conditionTypes.includes('processStopped') || conditionTypes.includes('gameStopped')) {
@@ -275,11 +305,12 @@ function createRuleAutomationService(options = {}) {
       automaticExecutionIds.delete(execution.id);
     }
   }
-  function fire(rule, processInfo) {
+  function fire(rule, processInfo, result) {
     const createdAt = now();
       const execution = {
       id: randomUUID(), ruleId: rule.id, ruleName: rule.name, status: rule.action.type === 'notify' ? 'completed' : 'pending',
       action: { ...rule.action }, processInfo: processInfo ? { name: processInfo.name, pid: processInfo.pid, startTime: processInfo.startTime, executablePath: processInfo.executablePath } : null,
+      sensorTypes: result.sensorTypes || [],
       createdAt,
       updatedAt: createdAt,
       expiresAt: createdAt + ADMIN_APPROVAL_TTL_MS,
@@ -298,26 +329,49 @@ function createRuleAutomationService(options = {}) {
       void tryExecuteAutomatic(execution);
     }
   }
-  function evaluate() {
+  function evaluate(fromMeasurement = false, networkAdvanced = false) {
     const timestamp = now();
     context.currentTime = timestamp;
     for (const rule of rules().filter((entry) => entry.enabled)) {
       const result = evaluateRule(rule, context);
       if (!result.matched || Number(cooldownUntil.get(rule.id) || 0) > timestamp || pending.some((entry) => entry.ruleId === rule.id)) {
         activeSince.delete(rule.id);
+        sensorProgress.delete(rule.id);
         continue;
       }
-      const since = activeSince.get(rule.id) ?? timestamp;
+      let evidenceAt = timestamp;
+      if (result.sensorTypes.length && !result.edgeTriggered) {
+        let previous = sensorProgress.get(rule.id);
+        if (previous && !isFreshTime(previous.evidenceAt, timestamp)) {
+          previous = null;
+          activeSince.delete(rule.id);
+          sensorProgress.delete(rule.id);
+        }
+        // Process/game ticks may inspect fresh sensors, but cannot advance a sensor hold.
+        if (!fromMeasurement) continue;
+        if (!previous) activeSince.delete(rule.id);
+        const observations = new Map(result.sensorTypes.map((type) => {
+          const network = ['networkLatency', 'packetLoss'].includes(type);
+          return [type, network ? networkMeasurementTime(context.metrics?.overview?.networkQuality, timestamp) : context.metricsAt];
+        }));
+        const advanced = [...observations].map(([type]) => !['networkLatency', 'packetLoss'].includes(type) || networkAdvanced);
+        if (previous && [...observations].some(([type, time]) => time - (previous.observations.get(type) ?? time) > MAX_SAMPLE_AGE_MS)) {
+          activeSince.delete(rule.id);
+        }
+        if (!(rule.matchMode === 'any' ? advanced.some(Boolean) : advanced.every(Boolean))) continue;
+        // All-mode holds are limited by the oldest required source (including network tests).
+        const evidenceTimes = [...observations.values()];
+        evidenceAt = rule.matchMode === 'any' ? Math.max(...evidenceTimes) : Math.min(...evidenceTimes);
+        sensorProgress.set(rule.id, { observations, evidenceAt });
+      } else {
+        sensorProgress.delete(rule.id);
+      }
+      const since = activeSince.get(rule.id) ?? evidenceAt;
       activeSince.set(rule.id, since);
-      const edgeTriggered = rule.conditions.some((condition) => (
-        condition.type === 'gameStarted' ||
-        condition.type === 'gameStopped' ||
-        condition.type === 'processStarted' ||
-        condition.type === 'processStopped'
-      ));
-      if (timestamp - since >= (edgeTriggered ? 0 : Number(rule.holdSeconds || 0) * 1000)) {
-        fire(rule, result.processInfo);
+      if (evidenceAt - since >= (result.edgeTriggered ? 0 : Number(rule.holdSeconds || 0) * 1000)) {
+        fire(rule, result.processInfo, result);
         activeSince.delete(rule.id);
+        sensorProgress.delete(rule.id);
       }
     }
     context.gameEvent = '';
@@ -353,7 +407,34 @@ function createRuleAutomationService(options = {}) {
     evaluate();
     context.processEvents = [];
   }
-  function handleMetrics(metrics) { context.metrics = metrics; context.metricsAt = now(); evaluate(); }
+  function resetSensorHolds() {
+    for (const id of sensorProgress.keys()) activeSince.delete(id);
+    sensorProgress.clear();
+  }
+  function handleMetrics(metrics) {
+    const currentTime = now();
+    if (metrics?.sampleKind === 'status' || metrics?.monitoring === 'offline') {
+      context.metrics = null;
+      context.metricsAt = null;
+      resetSensorHolds();
+      evaluate();
+      return;
+    }
+    if (lastMeasurement && !isFreshTime(lastMeasurement.measuredAt, currentTime)) resetSensorHolds();
+    const measurement = readMeasurement(metrics, currentTime);
+    if (!isNewMeasurement(measurement, lastMeasurement)) {
+      evaluate();
+      return;
+    }
+    if (lastMeasurement && measurement.measuredAt - lastMeasurement.measuredAt > MAX_SAMPLE_AGE_MS) resetSensorHolds();
+    lastMeasurement = measurement;
+    context.metrics = metrics;
+    context.metricsAt = measurement.measuredAt;
+    const networkAt = networkMeasurementTime(metrics?.overview?.networkQuality, currentTime);
+    const networkAdvanced = networkAt !== null && (lastNetworkMeasurementAt === null || networkAt > lastNetworkMeasurementAt);
+    if (networkAdvanced) lastNetworkMeasurementAt = networkAt;
+    evaluate(true, networkAdvanced);
+  }
   function handleGameState(game, event = '') {
     const running = Boolean(game?.activeGame || game?.sessionStatus === 'recording');
     context.stoppedGame = !running && previousGameRunning ? context.game : null;

@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import TweakStateNotice from './TweakStateNotice';
+import { isTweakStateBlocked } from '../utils/tweakState.mjs';
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
-import { Check, Info, MoreVertical, Play, SlidersHorizontal, Star, WandSparkles } from 'lucide-react';
+import { ArrowUpRight, Check, Info, MoreVertical, Play, SlidersHorizontal, Star, WandSparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import SubcategoryIcon from './SubcategoryIcon';
 import CategoryIcon from './CategoryIcon';
@@ -66,13 +68,14 @@ function UnifiedTweakCard({
   isSelected = false,
   disabled,
   isCheckingState = false,
+  onRetryState,
   showCategoryAccent = false,
   mascotAnimationEnabled = false,
   reducedMotion = false
 }) {
   const { t } = useTranslation();
   const portalContainer = useAppPortalContainer();
-  const [enabled, setEnabled] = useState(tweak.currentState === 'enabled');
+  const enabled = tweak.currentState === 'enabled';
   const [loading, setLoading] = useState(false);
   const [selectionOpen, setSelectionOpen] = useState(false);
   const [rangeOpen, setRangeOpen] = useState(false);
@@ -90,10 +93,6 @@ function UnifiedTweakCard({
     : 0;
 
   useEffect(() => {
-    setEnabled(tweak.currentState === 'enabled');
-  }, [tweak.currentState, tweak.id]);
-
-  useEffect(() => {
     setPendingSelection(currentSelection || selectionOptions[0]?.value || '');
   }, [currentSelection, selectionOptions, tweak.id]);
 
@@ -108,7 +107,7 @@ function UnifiedTweakCard({
   const isExecute = actionType === 'one_shot_action';
   const isPremiumTweak = normalizePremium(tweak);
   const isRecommendedTweak = normalizeRecommended(tweak);
-  const actionDisabled = loading || disabled || isCheckingState;
+  const actionDisabled = loading || disabled || isCheckingState || isTweakStateBlocked(tweak);
   const accentStyle = getCategoryAccentStyle(tweak.category);
   const selectedClass = showCategoryAccent
     ? 'border-[color:color-mix(in_srgb,var(--category-accent)_42%,var(--border))] bg-[color:color-mix(in_srgb,var(--surface)_82%,var(--surface-strong)_18%)] shadow-[0_0_0_1px_color-mix(in_srgb,var(--category-accent)_10%,transparent)]'
@@ -116,9 +115,6 @@ function UnifiedTweakCard({
   const idleClass = showCategoryAccent
     ? 'border-[color:color-mix(in_srgb,var(--border)_52%,transparent)] bg-[color:color-mix(in_srgb,var(--surface)_78%,var(--surface-strong)_22%)] hover:border-[color:color-mix(in_srgb,var(--category-accent)_20%,var(--border))] hover:bg-[var(--surface-hover)]'
     : 'border-[color:color-mix(in_srgb,var(--border)_52%,transparent)] bg-[color:color-mix(in_srgb,var(--surface)_78%,var(--surface-strong)_22%)] hover:border-[color:color-mix(in_srgb,var(--text-muted)_22%,var(--border))] hover:bg-[var(--surface-hover)]';
-  const iconClass = showCategoryAccent
-    ? 'border-[color:color-mix(in_srgb,var(--category-accent)_24%,var(--border))] bg-[color:color-mix(in_srgb,var(--category-accent)_8%,var(--surface-elevated))] text-[var(--category-accent)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--category-accent)_12%,transparent)]'
-    : 'border-[color:color-mix(in_srgb,var(--category-accent)_18%,var(--border-subtle))] bg-[color:color-mix(in_srgb,var(--category-accent)_6%,var(--surface-elevated))] text-[color:color-mix(in_srgb,var(--category-accent)_72%,var(--text-muted))] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--category-accent)_8%,transparent)]';
   const taxonomyLabel = tweak.subcategory
     ? localizeTaxonomy(tweak.subcategory, 'subcategories', t)
     : localizeTaxonomy(tweak.category || 'System', 'categories', t);
@@ -128,12 +124,7 @@ function UnifiedTweakCard({
     const nextEnabled = !enabled;
     setLoading(true);
     try {
-      const result = await onToggle?.(tweak, nextEnabled, options);
-      if (result?.ok) {
-        const nextState = result.currentState === 'enabled' ? 'enabled' : nextEnabled ? 'enabled' : 'disabled';
-        setEnabled(nextState === 'enabled');
-      }
-      return result;
+      return await onToggle?.(tweak, nextEnabled, options);
     } finally {
       setLoading(false);
     }
@@ -192,6 +183,13 @@ function UnifiedTweakCard({
   }
 
   function renderPrimaryAction() {
+    if (isTweakStateBlocked(tweak)) {
+      return <button type="button" className={TWEAK_ROW_PRIMARY_BUTTON_CLASS}
+        disabled={loading || isCheckingState || tweak.stateCheckStatus === 'pending'}
+        onClick={(event) => { event.stopPropagation(); void onRetryState?.(tweak); }}>
+        {t(`tweaks.stateCheck.${tweak.stateCheckStatus === 'pending' ? 'checking' : 'retry'}`)}
+      </button>;
+    }
     if (isPowerPlan) {
       return (
         <button type="button" onClick={openSelection} disabled={actionDisabled} className={TWEAK_ROW_PRIMARY_BUTTON_CLASS}>
@@ -268,8 +266,8 @@ function UnifiedTweakCard({
         onClick={() => onOpenDetails?.(tweak)}
       >
         <div className={TWEAK_LIST_ICON_CELL_CLASS}>
-          <span className={`relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border ${iconClass}`}>
-            <SubcategoryIcon category={tweak.category} subcategory={tweak.subcategory} className="h-4 w-4" />
+          <span className={`nova-tweak-icon relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border${showCategoryAccent ? ' is-accented' : ''}`}>
+            <SubcategoryIcon category={tweak.category} subcategory={tweak.subcategory} className="h-5 w-5" />
             {isPremiumTweak ? (
               <PremiumBadge
                 compact
@@ -291,6 +289,7 @@ function UnifiedTweakCard({
                   {tweak.description}
                 </p>
               ) : null}
+              <TweakStateNotice tweak={tweak} compact />
             </div>
             {isRecommendedTweak ? (
               <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--accent)]" title={t('tweaks.oneShotSelection.recommendedBadge')} aria-label={t('tweaks.oneShotSelection.recommendedBadge')}>
@@ -319,6 +318,7 @@ function UnifiedTweakCard({
               <CategoryIcon category={tweak.category} className="h-3.5 w-3.5 shrink-0" />
             )}
             <span className="min-w-0 truncate">{taxonomyLabel}</span>
+            <ArrowUpRight className="h-3 w-3 shrink-0" aria-hidden="true" />
           </button>
         </div>
 
@@ -481,4 +481,25 @@ function UnifiedTweakCard({
   );
 }
 
-export default UnifiedTweakCard;
+const MemoizedTweakCard = memo(UnifiedTweakCard);
+const TWEAK_CARD_ACTIONS = [
+  'onToggle', 'onExecute', 'onSelect', 'onRange', 'onOpenDetails',
+  'onOpenSubcategory', 'onOpenTechnicalDetails', 'onToggleFavorite', 'onRetryState'
+];
+
+function TweakCard(props) {
+  const actionsRef = useRef(props);
+  useLayoutEffect(() => {
+    actionsRef.current = props;
+  });
+
+  // App status updates recreate callbacks even for unchanged rows. Keep the
+  // memo boundary stable while forwarding every action to the latest commit.
+  const actions = useMemo(() => Object.fromEntries(TWEAK_CARD_ACTIONS.map((name) => [
+    name, (...args) => actionsRef.current[name]?.(...args)
+  ])), []);
+
+  return <MemoizedTweakCard {...props} {...actions} />;
+}
+
+export default TweakCard;

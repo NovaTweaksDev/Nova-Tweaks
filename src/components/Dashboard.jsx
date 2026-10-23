@@ -1,4 +1,5 @@
 import i18n from '../i18n';
+import { shouldAppendMonitoringSample } from '../utils/monitoringDisplay.mjs';
 import { useEffect, useMemo, useState } from 'react';
 import {
   CartesianGrid,
@@ -248,9 +249,10 @@ function normalizeSystemDetection(payload) {
 }
 
 function clampPercent(value) {
+  if (value === null || value === undefined || value === '') return null;
   const number = Number(value);
   if (!Number.isFinite(number)) {
-    return 0;
+    return null;
   }
   return Math.max(0, Math.min(100, number));
 }
@@ -263,10 +265,12 @@ function formatTime(timestamp) {
 }
 
 function formatPercent(value) {
+  if (value === null || value === undefined) return '—';
   return `${Math.round(value)}%`;
 }
 
 function formatGigabytes(value) {
+  if (value === null || value === undefined) return '—';
   const number = Number(value);
   if (!Number.isFinite(number) || number < 0) {
     return '0.00 GB';
@@ -485,6 +489,7 @@ function formatLocalizedNumber(value, locale, maximumFractionDigits) {
 }
 
 function formatRate(value, locale) {
+  if (value === null || value === undefined) return '—';
   const number = normalizeRateBytes(value);
   return formatRateBitsDetailed(number, locale);
 }
@@ -507,17 +512,18 @@ function formatRateBitsDetailed(value, locale) {
 }
 
 function normalizeMetrics(metrics) {
-  const memoryNumber = Number(metrics?.memoryUsedGB ?? metrics?.memoryUsage ?? metrics?.memory);
+  const memoryValue = metrics?.memoryUsedGB ?? metrics?.memoryUsage ?? metrics?.memory;
+  const memoryNumber = memoryValue == null ? NaN : Number(memoryValue);
 
   return {
     cpu: clampPercent(metrics?.cpu ?? metrics?.cpuLoad),
     cpuTemp: normalizeTemperature(metrics?.cpuTemp),
-    memory: Number.isFinite(memoryNumber) ? Math.max(0, memoryNumber) : 0,
+    memory: Number.isFinite(memoryNumber) ? Math.max(0, memoryNumber) : null,
     gpu: clampPercent(metrics?.gpu ?? metrics?.gpuLoad),
     gpuTemp: normalizeTemperature(metrics?.gpuTemp),
-    networkIn: Math.max(0, Number(metrics?.networkIn) || 0),
-    networkOut: Math.max(0, Number(metrics?.networkOut) || 0),
-    timestamp: Number(metrics?.timestamp) || Date.now()
+    networkIn: metrics?.networkIn == null || !Number.isFinite(Number(metrics.networkIn)) ? null : Math.max(0, Number(metrics.networkIn)),
+    networkOut: metrics?.networkOut == null || !Number.isFinite(Number(metrics.networkOut)) ? null : Math.max(0, Number(metrics.networkOut)),
+    timestamp: metrics?.measuredAt ?? metrics?.timestamp ?? null
   };
 }
 
@@ -548,14 +554,14 @@ function appendHistory(previous, sample) {
 function createInitialMetricsState() {
   return {
     current: {
-      cpu: 0,
+      cpu: null,
       cpuTemp: null,
-      memory: 0,
-      gpu: 0,
+      memory: null,
+      gpu: null,
       gpuTemp: null,
-      networkIn: 0,
-      networkOut: 0,
-      timestamp: Date.now()
+      networkIn: null,
+      networkOut: null,
+      timestamp: null
     },
     history: {
       timestamps: [],
@@ -584,33 +590,6 @@ const dashboardRuntimeCache = {
     gpu: null
   }
 };
-
-function createFallbackMetrics(previous) {
-  const baseline = previous || {
-    cpu: 35,
-    memory: 12.5,
-    gpu: 28,
-    networkIn: 40 * 1024,
-    networkOut: 12 * 1024
-  };
-
-  const cpu = clampPercent(baseline.cpu + (Math.random() * 10 - 5));
-  const memory = Math.max(0, baseline.memory + (Math.random() * 0.3 - 0.15));
-  const gpu = clampPercent(baseline.gpu + (Math.random() * 12 - 6));
-  const networkIn = Math.max(0, baseline.networkIn + (Math.random() * 80 * 1024 - 40 * 1024));
-  const networkOut = Math.max(0, baseline.networkOut + (Math.random() * 30 * 1024 - 15 * 1024));
-
-  return {
-    cpu,
-    cpuTemp: null,
-    memory,
-    gpu,
-    gpuTemp: null,
-    networkIn,
-    networkOut,
-    timestamp: Date.now()
-  };
-}
 
 function formatUptime(milliseconds) {
   const totalMinutes = Math.max(1, Math.floor(milliseconds / 60000));
@@ -680,7 +659,7 @@ function formatWindowsVersion(metadata, fallback) {
 
 function DashboardTopIcon({ icon: Icon, tone = 'accent' }) {
   return (
-    <IconContainer className={`dashboard-top-row-icon dashboard-top-row-icon--${tone}`}>
+    <IconContainer tone={tone} className={`ui-panel-heading-icon dashboard-top-row-icon dashboard-top-row-icon--${tone}`}>
       <Icon {...LUCIDE_ICON_PROPS} aria-hidden="true" />
     </IconContainer>
   );
@@ -861,12 +840,9 @@ function OverviewMetricCard({ icon: Icon, label, value, detail, detailIcon: Deta
     <article className="dashboard-metric-card ui-card-subtle min-h-[128px] p-4 pb-5">
       <div className="flex items-center justify-between gap-3">
         <IconContainer
-          className="h-10 w-10"
-          style={{
-            color: accent,
-            background: `color-mix(in srgb, ${accent} 9%, var(--surface-elevated))`,
-            borderColor: `color-mix(in srgb, ${accent} 18%, var(--border))`
-          }}
+          tone="accent"
+          className="ui-section-icon"
+          style={{ '--section-icon-tone': accent }}
         >
           <Icon {...LUCIDE_ICON_PROPS} className="h-[18px] w-[18px]" aria-hidden="true" />
         </IconContainer>
@@ -889,7 +865,7 @@ function OverviewMetricCard({ icon: Icon, label, value, detail, detailIcon: Deta
 function DashboardSectionTitle({ icon: Icon, title }) {
   return (
     <div className="dashboard-section-title flex items-center gap-2.5">
-      <IconContainer className="dashboard-section-title__icon h-8 w-8 shrink-0 text-[var(--accent)]">
+      <IconContainer tone="accent" className="ui-panel-heading-icon dashboard-section-title__icon">
         <Icon {...LUCIDE_ICON_PROPS} className="h-4 w-4" aria-hidden="true" />
       </IconContainer>
       <h2 className="text-[18px] font-semibold text-[var(--text-primary)]">{title}</h2>
@@ -920,7 +896,7 @@ function HardwareIcon({ type, className = 'h-5 w-5' }) {
 function HardwareStatusTile({ card, unavailableLabel }) {
   return (
     <div className={`dashboard-top-row-hardware-tile ${card.detected ? 'is-detected' : ''}`}>
-      <IconContainer className={`dashboard-top-row-hardware-icon ${card.detected ? 'is-detected' : ''}`}>
+      <IconContainer tone={card.detected ? 'accent' : 'neutral'} className={`ui-section-icon ui-section-icon--compact dashboard-top-row-hardware-icon ${card.detected ? 'is-detected' : ''}`}>
         <HardwareIcon type={card.icon} className="h-4 w-4" />
       </IconContainer>
       <div className="dashboard-top-row-hardware-copy">
@@ -1288,50 +1264,23 @@ function Dashboard({
   }, []);
 
   useEffect(() => {
-    let fallbackTimer = null;
-    let unsubscribe = () => {};
-
-    const pushMetrics = (incoming) => {
-      const sample = normalizeMetrics(incoming);
+    const unsubscribe = window.desktopApi?.onMetricsUpdate?.((incoming) => {
       setMetricsState((previous) => {
+        const status = incoming?.sampleKind === 'status' || incoming?.monitoring === 'offline';
+        if (!status && !shouldAppendMonitoringSample(incoming, previous.lastMeasurement)) return previous;
+        const sample = normalizeMetrics(status ? null : incoming);
         const next = {
           current: sample,
-          history: appendHistory(previous.history, sample)
+          history: status ? previous.history : appendHistory(previous.history, sample),
+          lastMeasurement: status ? previous.lastMeasurement : {
+            sampleId: incoming.sampleId, measuredAt: sample.timestamp
+          }
         };
         dashboardRuntimeCache.metricsState = next;
         return next;
       });
-    };
-
-    async function bootstrapMetrics() {
-      if (window.desktopApi?.onMetricsUpdate) {
-        unsubscribe = window.desktopApi.onMetricsUpdate((payload) => {
-          pushMetrics(payload);
-        });
-        return;
-      }
-
-      fallbackTimer = window.setInterval(() => {
-        setMetricsState((previous) => {
-          const next = createFallbackMetrics(previous.current);
-          const nextState = {
-            current: next,
-            history: appendHistory(previous.history, next)
-          };
-          dashboardRuntimeCache.metricsState = nextState;
-          return nextState;
-        });
-      }, 2000);
-    }
-
-    void bootstrapMetrics();
-
-    return () => {
-      unsubscribe();
-      if (fallbackTimer) {
-        window.clearInterval(fallbackTimer);
-      }
-    };
+    });
+    return () => unsubscribe?.();
   }, []);
 
   useEffect(() => {

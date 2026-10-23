@@ -57,6 +57,9 @@ test('worker revalidates signed tweak parameter boundaries independently', () =>
   assert.throws(() => validateTweakParams({ State: 'On', Silent: true, Command: 'whoami' }, artifact, 'On'), {
     code: 'REMOTE_TWEAK_UNKNOWN_PARAMETER'
   });
+  assert.throws(() => validateTweakParams({ State: 'On', Silent: true }, artifact, 'Check'), {
+    code: 'ADMIN_BROKER_INVALID_PAYLOAD'
+  });
 });
 
 test('accepts only normalized Windows SID syntax for the originating user', () => {
@@ -202,7 +205,8 @@ test('worker keeps an isolated tweak artifact until script execution completes',
   }
 });
 
-test('packaged worker accepts a bundled tweak verified by the embedded local manifest', async () => {
+for (const action of ['On', 'Check']) {
+test(`packaged worker accepts manifest-verified bundled ${action} without changing the requested state`, async () => {
   const tweakId = 'clear_clipboard_history';
   const scriptFileName = 'clear_clipboard_history.ps1';
   const content = fs.readFileSync(
@@ -217,7 +221,7 @@ test('packaged worker accepts a bundled tweak verified by the embedded local man
     artifactVersion: 'bundled-1.0.0',
     scriptFileName,
     sha256,
-    allowedActions: ['On'],
+    allowedActions: [action],
     allowedParameters: [],
     requiresAdmin: true,
     requiresReboot: false,
@@ -232,14 +236,17 @@ test('packaged worker accepts a bundled tweak verified by the embedded local man
       getVersion: () => '1.0.0'
     },
     scriptRunnerFactory: () => ({
-      runScript: async () => ({ ok: true, exitCode: 0, stdout: '', stderr: '' })
+      runScript: async ({ params }) => {
+        assert.deepEqual(params, { State: action, Silent: true });
+        return { ok: true, exitCode: 0, stdout: '', stderr: '' };
+      }
     })
   });
 
   try {
     const result = await handler.handle('tweak.execute', {
-      action: 'On',
-      params: { State: 'On', Silent: true },
+      action,
+      params: { State: action, Silent: true },
       trustMode: 'bundled-integrity',
       artifact: {
         ...signedPayload,
@@ -253,11 +260,19 @@ test('packaged worker accepts a bundled tweak verified by the embedded local man
     handler.dispose();
   }
 });
+}
 
 test('game tuning refuses an unknown originating user before touching settings', async () => {
   const handler = createDefaultOperationHandler();
   try {
     await assert.rejects(handler.handle('game.configure', { executablePath: 'C:\\Games\\Example.exe' }), { code: 'ADMIN_BROKER_USER_SCOPE_UNSUPPORTED' });
+  } finally { handler.dispose(); }
+});
+
+test('Game Mode broker validates the fixed service contract before spawning commands', async () => {
+  const handler = createDefaultOperationHandler({ app: { isPackaged: false, getAppPath: () => process.cwd(), getVersion: () => '1.0.0' } });
+  try {
+    await assert.rejects(handler.handle('gamemode.services', { action: 'read', names: ['WinDefend'] }), { code: 'ADMIN_BROKER_INVALID_PAYLOAD' });
   } finally { handler.dispose(); }
 });
 

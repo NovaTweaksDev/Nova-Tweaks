@@ -26,7 +26,7 @@ import {
   Trash2,
   Wrench
 } from 'lucide-react';
-import { Button, ListSkeleton, LoadingIndicator, LoadingSpinner, PageHeadingSignal, PageSection, PageShell, SegmentedControl, Skeleton, Switch } from './ui';
+import { Button, IconContainer, ListSkeleton, LoadingIndicator, LoadingSpinner, PageHeadingSignal, PageSection, PageShell, SegmentedControl, Skeleton, Switch } from './ui';
 import { useAppPortalContainer } from './ui/useAppPortalContainer';
 import {
   APPS_LIST_HEADER_PADDING_CLASS,
@@ -324,9 +324,9 @@ function StatCard({ icon: Icon, label, value, detail, loading = false }) {
   return (
     <article className="apps-stat-card w-full rounded-xl border border-[var(--border)] bg-[color:color-mix(in_srgb,var(--surface)_82%,var(--surface-strong)_18%)] p-4 text-left">
       <div className="flex items-start gap-4">
-        <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[color:color-mix(in_srgb,var(--accent)_12%,var(--border))] bg-[color:color-mix(in_srgb,var(--accent)_14%,var(--surface-strong)_86%)] text-[var(--accent)]">
+        <IconContainer tone="accent" className="ui-section-icon">
           <Icon className="h-5 w-5" />
-        </span>
+        </IconContainer>
         <div className="min-w-0">
           <p className="text-sm font-medium text-[var(--text-muted)]">{label}</p>
           <p className="mt-2 text-3xl font-semibold leading-none text-[var(--text-primary)] [font-variant-numeric:tabular-nums]">{loading ? <Skeleton className="h-7 w-16" /> : value}</p>

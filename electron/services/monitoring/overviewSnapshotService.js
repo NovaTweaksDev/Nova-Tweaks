@@ -2,6 +2,7 @@ const os = require('os');
 const { execFile } = require('child_process');
 const { collectOverviewSensors } = require('./metricsParser');
 const { createNetworkQualityService } = require('./networkQualityService');
+const { readMeasurement, isNewMeasurement } = require('./samplePolicy');
 const { resolveWindowsSystemExecutable } = require('../security/systemExecutables');
 
 const HISTORY_LIMIT = 90;
@@ -116,7 +117,7 @@ function pushHistory(historyMap, key, value, timestamp) {
 
   const history = historyMap.get(key);
   const numeric = toNumberOrNull(value);
-  if (numeric !== null) {
+  if (numeric !== null && Number.isFinite(timestamp) && timestamp > 0 && (!history.length || timestamp > history[history.length - 1].timestamp)) {
     history.push({ timestamp, value: numeric });
     if (history.length > HISTORY_LIMIT) {
       history.splice(0, history.length - HISTORY_LIMIT);
@@ -332,6 +333,7 @@ function createOverviewSnapshotService(options = {}) {
   });
 
   const historyMap = new Map();
+  let lastHistoryMeasurement = null;
   let previousCpuTimes = null;
   let previousNetworkStats = new Map();
   let previousProcessStats = new Map();
@@ -376,7 +378,7 @@ function createOverviewSnapshotService(options = {}) {
     return windowsQueryPromise;
   }
 
-  function buildNetworkSnapshot(windowsNetwork, metrics, timestamp) {
+  function buildNetworkSnapshot(windowsNetwork, metrics, timestamp, historyTimestamp) {
     const adapters = normalizeArray(windowsNetwork)
       .filter((adapter) => adapter && typeof adapter === 'object')
       .map((adapter) => {
@@ -408,8 +410,8 @@ function createOverviewSnapshotService(options = {}) {
           linkSpeedMbps: toNumberOrNull(adapter.linkSpeed) !== null ? toNumberOrNull(adapter.linkSpeed) / 1_000_000 : null,
           downloadMbps,
           uploadMbps,
-          history: pushHistory(historyMap, `network:${key}:download`, downloadMbps, timestamp),
-          uploadHistory: pushHistory(historyMap, `network:${key}:upload`, uploadMbps, timestamp)
+          history: pushHistory(historyMap, `network:${key}:download`, downloadMbps, historyTimestamp),
+          uploadHistory: pushHistory(historyMap, `network:${key}:upload`, uploadMbps, historyTimestamp)
         };
       });
 
@@ -431,8 +433,8 @@ function createOverviewSnapshotService(options = {}) {
         linkSpeedMbps: null,
         downloadMbps: lhmDownload !== null ? (lhmDownload * 8) / 1_000_000 : null,
         uploadMbps: lhmUpload !== null ? (lhmUpload * 8) / 1_000_000 : null,
-        history: pushHistory(historyMap, 'network:lhm:download', lhmDownload !== null ? (lhmDownload * 8) / 1_000_000 : null, timestamp),
-        uploadHistory: pushHistory(historyMap, 'network:lhm:upload', lhmUpload !== null ? (lhmUpload * 8) / 1_000_000 : null, timestamp)
+        history: pushHistory(historyMap, 'network:lhm:download', lhmDownload !== null ? (lhmDownload * 8) / 1_000_000 : null, historyTimestamp),
+        uploadHistory: pushHistory(historyMap, 'network:lhm:upload', lhmUpload !== null ? (lhmUpload * 8) / 1_000_000 : null, historyTimestamp)
       }];
     }
 
@@ -559,7 +561,8 @@ function createOverviewSnapshotService(options = {}) {
   }
 
   async function buildSnapshot({ rawLhmPayload, metrics, refreshRateMs } = {}) {
-    const timestamp = Date.now();
+    const measurement = readMeasurement(metrics);
+    const timestamp = measurement?.measuredAt ?? Date.now();
     const errors = [];
     const lhm = collectOverviewSensors(rawLhmPayload);
     const lhmHardware = lhm.hardware || [];
@@ -568,6 +571,9 @@ function createOverviewSnapshotService(options = {}) {
     const systemDetection = systemDetectionService?.getSnapshot
       ? await systemDetectionService.getSnapshot().catch(() => null)
       : null;
+    const freshMeasurement = readMeasurement(metrics);
+    const historyTimestamp = isNewMeasurement(freshMeasurement, lastHistoryMeasurement) ? freshMeasurement.measuredAt : null;
+    if (historyTimestamp !== null) lastHistoryMeasurement = freshMeasurement;
     const { usagePercent: osCpuUsage, nextCpuTimes } = calculateCpuUsage(previousCpuTimes);
     previousCpuTimes = nextCpuTimes;
 
@@ -590,7 +596,7 @@ function createOverviewSnapshotService(options = {}) {
       cores: physicalCores,
       threads: logicalProcessors || os.cpus()?.length || null,
       sensors: cpuSensors.slice(0, 24),
-      history: pushHistory(historyMap, 'cpu:usage', cpuUsage, timestamp)
+      history: pushHistory(historyMap, 'cpu:usage', cpuUsage, historyTimestamp)
     };
 
     const primaryGpuName = String(systemDetection?.gpu?.primary || '').toLowerCase();
@@ -622,13 +628,13 @@ function createOverviewSnapshotService(options = {}) {
         fanRpm: firstSensorValue(sensors, 'Fan', ['fan 1', 'gpu fan']),
         clockMHz: firstSensorValue(sensors, 'Clock', ['gpu core', 'core']),
         sensors: sensors.slice(0, 24),
-        history: pushHistory(historyMap, `gpu:${hardware.id || index}`, usage, timestamp)
+        history: pushHistory(historyMap, `gpu:${hardware.id || index}`, usage, historyTimestamp)
       };
     });
 
     const networkQuality = networkQualityService.getLatest();
     const network = prioritizeQualityAdapter(
-      buildNetworkSnapshot(windowsSnapshot?.network, metrics, timestamp),
+      buildNetworkSnapshot(windowsSnapshot?.network, metrics, timestamp, historyTimestamp),
       networkQuality
     );
     const storage = buildStorage(windowsSnapshot?.drives, lhmHardware);
@@ -662,7 +668,7 @@ function createOverviewSnapshotService(options = {}) {
           .filter((hardware) => hardware.type === 'memory' && String(hardware.id || '').toLowerCase().includes('/memory/dimm'))
           .flatMap((hardware) => hardware.sensors)
       ),
-      history: pushHistory(historyMap, 'memory:usage', memoryUsagePercent, timestamp)
+      history: pushHistory(historyMap, 'memory:usage', memoryUsagePercent, historyTimestamp)
     };
 
     return {

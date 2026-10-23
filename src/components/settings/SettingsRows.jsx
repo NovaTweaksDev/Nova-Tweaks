@@ -1,14 +1,14 @@
 import { CheckCircle2 } from 'lucide-react';
-import { Button, LoadingSpinner, Select, Switch } from '../ui';
+import { Button, IconContainer, LoadingSpinner, Select, Switch } from '../ui';
 import { joinClasses } from '../ui/classNames';
 
 function SettingsSection({ icon: Icon, title, description, children, className = '' }) {
   return (
     <section className={joinClasses('settings-section rounded-xl border border-[var(--border)] bg-[color:color-mix(in_srgb,var(--surface)_88%,var(--surface-elevated)_12%)] shadow-[var(--card-shadow-panel)]', className)}>
       <div className="flex items-start gap-3 border-b border-[var(--border-subtle)] px-4 py-4">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[color:color-mix(in_srgb,var(--accent)_22%,var(--border))] bg-[color:color-mix(in_srgb,var(--accent)_10%,var(--surface)_90%)] text-[var(--accent)]">
+        <IconContainer tone="accent" className="ui-panel-heading-icon">
           <Icon className="h-5 w-5" />
-        </span>
+        </IconContainer>
         <div className="min-w-0">
           <h2 className="text-base font-semibold tracking-normal text-[var(--text-primary)]">{title}</h2>
           {description ? <p className="mt-1 text-sm leading-5 text-[var(--text-muted)]">{description}</p> : null}
@@ -45,9 +45,9 @@ function SettingsRow({
     <div className={joinClasses('grid gap-3 px-4 py-3.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center', disabled ? 'opacity-60' : '', className)}>
       <div className="flex min-w-0 items-start gap-3">
         {Icon ? (
-          <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-muted)]">
+          <IconContainer className="ui-section-icon ui-section-icon--compact mt-0.5">
             <Icon className="h-4 w-4" />
-          </span>
+          </IconContainer>
         ) : null}
         <div className="min-w-0">
           <p className="text-sm font-semibold text-[var(--text-primary)]">{title}</p>

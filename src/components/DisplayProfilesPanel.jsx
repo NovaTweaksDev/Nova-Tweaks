@@ -105,8 +105,13 @@ export default function DisplayProfilesPanel({ visible, gamePath = '', onChooseE
   }
   return <>
     <div hidden={!visible} className="display-profiles-panel">
-      <section className="display-profiles-intro">
-        <div><h2>{t('displayProfiles.title')}</h2><p>{t('displayProfiles.description')}</p></div>
+      <section className="display-profiles-intro game-mode-card">
+        <div className="game-mode-control-center__identity">
+          <span className="game-mode-game-icon game-mode-game-icon--hero" aria-hidden="true">
+            <Monitor strokeWidth={1.8} />
+          </span>
+          <div className="min-w-0"><h2>{t('displayProfiles.title')}</h2><p>{t('displayProfiles.description')}</p></div>
+        </div>
         <div className="display-profile-actions">
           <Button variant="secondary" leftIcon={<RefreshCw size={16} />} disabled={locked} onClick={() => run('refreshDisplayProfiles')}>{t('displayProfiles.refresh')}</Button>
           <Button variant="primary" leftIcon={<Save size={16} />} disabled={locked || Boolean(transaction && transaction.status !== 'active') || !state.displays.length || Boolean(state.warning)} onClick={() => openCapture()}>{t('displayProfiles.capture')}</Button>

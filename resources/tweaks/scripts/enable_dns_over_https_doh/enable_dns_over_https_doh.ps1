@@ -24,7 +24,7 @@ $KnownDohServers = @(
 function Get-ActiveDnsServerAddresses {
   $servers = @()
 
-  $dnsInfo = Get-DnsClientServerAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object {
+  $dnsInfo = Get-DnsClientServerAddress -AddressFamily IPv4 -ErrorAction Stop | Where-Object {
     $_.ServerAddresses -and $_.ServerAddresses.Count -gt 0
   }
 
@@ -63,15 +63,15 @@ function Disable-DohServerAutoUpgrade([string]$serverAddress, [string]$template)
 }
 
 function Get-DohApplied {
-  $activeServers = Get-ActiveDnsServerAddresses
+  $activeServers = @(Get-ActiveDnsServerAddresses)
 
   if (-not $activeServers -or $activeServers.Count -eq 0) {
     return $false
   }
 
-  foreach ($server in $activeServers) {
-    $config = Get-KnownDohConfig $server
-    if ($null -ne $config -and $config.AutoUpgrade) {
+  $dohServers = @(Get-DnsClientDohServerAddress -ErrorAction Stop)
+  foreach ($config in $dohServers) {
+    if ($config.ServerAddress -in $activeServers -and $config.AutoUpgrade) {
       return $true
     }
   }

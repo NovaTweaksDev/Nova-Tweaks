@@ -1,4 +1,5 @@
 import { useTweakCatalogActions } from './hooks/useTweakCatalogActions';
+import { isTweakStateBlocked, mergeTweakState, takeAdminStateRetryTargets } from './utils/tweakState.mjs';
 import { useMonitoringActions } from './hooks/useMonitoringActions';
 import { useAppManagementActions } from './hooks/useAppManagementActions';
 import { useAppSettingsActions } from './hooks/useAppSettingsActions';
@@ -18,7 +19,7 @@ import CommandPalette from './components/CommandPalette';
 import { DotsMenuIcon } from './components/AppIcons';
 import { SUPPORT_URL } from './supportConfig';
 import { Button, ListSkeleton, LoadingIndicator, ModalShell, PageSection, Skeleton } from './components/ui';
-import { CheckCircle2, CircleX, LayoutGrid, Loader2, Minus, RefreshCw, RotateCcw, Search, ShieldCheck, SlidersHorizontal, Square, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CircleX, LayoutGrid, Loader2, Minus, RefreshCw, RotateCcw, Search, ShieldCheck, SlidersHorizontal, Square, X } from 'lucide-react';
 import { getOrderedSubcategories, normalizeTweakTaxonomy } from './constants/tweakTaxonomy';
 import { normalizeTweakProfiles } from './constants/tweakProfiles';
 import {
@@ -536,7 +537,7 @@ function GlobalOperationStatus({ execution, operation, t, suppressed = false }) 
     return null;
   }
   const executionActive = ['running', 'success', 'error'].includes(execution?.status);
-  const operationActive = ['running', 'success', 'error'].includes(operation?.status);
+  const operationActive = ['running', 'success', 'warning', 'error'].includes(operation?.status);
   if (!executionActive && !operationActive) {
     return null;
   }
@@ -564,8 +565,9 @@ function GlobalOperationStatus({ execution, operation, t, suppressed = false }) 
     ? 'nova-toast--success'
     : status === 'error'
       ? 'nova-toast--error'
+      : status === 'warning' ? 'nova-toast--warning'
       : 'nova-toast--loading';
-  const Icon = status === 'success' ? CheckCircle2 : status === 'error' ? CircleX : Loader2;
+  const Icon = status === 'success' ? CheckCircle2 : status === 'error' ? CircleX : status === 'warning' ? AlertTriangle : Loader2;
   const operationSteps = !executionActive && Array.isArray(operation?.steps) ? operation.steps : [];
   const operationProgress = !executionActive && Number.isFinite(Number(operation?.progress))
     ? Math.max(0, Math.min(1, Number(operation.progress)))
@@ -579,7 +581,7 @@ function GlobalOperationStatus({ execution, operation, t, suppressed = false }) 
         </span>
         <div className="min-w-0">
           <p className="truncate text-[0.8rem] font-semibold leading-tight text-[var(--text-primary)]">{label}</p>
-          <p className="mt-1 line-clamp-2 text-[0.7rem] leading-snug text-[var(--text-muted)]">{message}</p>
+          <p title={message} className={`mt-1 ${status === 'warning' ? 'line-clamp-4' : 'line-clamp-2'} text-[0.7rem] leading-snug text-[var(--text-muted)]`}>{message}</p>
         </div>
       </div>
       {operationSteps.length > 0 ? (
@@ -591,7 +593,7 @@ function GlobalOperationStatus({ execution, operation, t, suppressed = false }) 
             {operationSteps.map((step) => (
               <li key={step.id} data-status={step.status}>
                 <span className="nova-toast-progress__step-icon" aria-hidden="true">
-                  {step.status === 'success' ? <CheckCircle2 /> : step.status === 'error' ? <CircleX /> : step.status === 'running' ? <Loader2 className="animate-spin" /> : <span />}
+                  {step.status === 'success' ? <CheckCircle2 /> : step.status === 'error' ? <CircleX /> : step.status === 'warning' ? <AlertTriangle /> : step.status === 'running' ? <Loader2 className="animate-spin" /> : <span />}
                 </span>
                 <span>{step.label}</span>
               </li>
@@ -707,8 +709,9 @@ function toBackupTweakEntry(tweak) {
     name: String(tweak?.name || '').trim(),
     category: String(tweak?.category || '').trim(),
     subcategory: String(tweak?.subcategory || '').trim(),
-    currentState: normalizeTweakState(tweak?.currentState),
-    status: String(tweak?.status || '').trim() || normalizeTweakState(tweak?.currentState),
+    currentState: isTweakStateBlocked(tweak) || tweak?.checked === false ? null : normalizeTweakState(tweak?.currentState),
+    checked: tweak?.checked,
+    status: isTweakStateBlocked(tweak) || tweak?.checked === false ? 'unknown' : String(tweak?.status || '').trim() || normalizeTweakState(tweak?.currentState),
     containerType: String(tweak?.containerType || '').trim(),
     profileLabel: String(tweak?.profile?.label || '').trim(),
     selectedResolution: typeof tweak?.selectedResolution === 'string' && tweak.selectedResolution.trim()
@@ -739,25 +742,13 @@ function normalizeTweakForUi(tweak) {
     profiles: normalizeTweakProfiles(normalized.profiles),
     lastUpdated: normalizeLastUpdated(normalized),
     last_updated: normalizeLastUpdated(normalized),
-    currentState: normalizeTweakState(tweak.currentState),
+    currentState: tweak.currentState === null ? null : normalizeTweakState(tweak.currentState),
     status: tweak.status || normalizeTweakState(tweak.currentState)
   };
 }
 
 function mergeTweakRuntimeState(incomingTweak, previousTweak, includeState) {
-  if (!previousTweak || includeState) {
-    return incomingTweak;
-  }
-
-  return {
-    ...incomingTweak,
-    currentState: normalizeTweakState(previousTweak.currentState),
-    status: previousTweak.status || normalizeTweakState(previousTweak.currentState),
-    selectedOption: previousTweak.selectedOption || incomingTweak.selectedOption,
-    selectedResolution: previousTweak.selectedResolution || incomingTweak.selectedResolution,
-    currentResolution: previousTweak.currentResolution || incomingTweak.currentResolution,
-    currentValue: normalizeOptionalNumber(previousTweak.currentValue) ?? incomingTweak.currentValue
-  };
+  return mergeTweakState(incomingTweak, previousTweak, includeState);
 }
 
 function createOneClickOptimizationState(overrides = {}) {
@@ -830,6 +821,10 @@ function App() {
   const [updateNotesLoading, setUpdateNotesLoading] = useState(false);
   const [updateNotes, setUpdateNotes] = useState(null);
   const [tweaks, setTweaks] = useState([]);
+  const tweaksRef = useRef(tweaks);
+  tweaksRef.current = tweaks;
+  const stateChecksRef = useRef({ pending: new Map(), versions: new Map() });
+  const adminStateRetryIdsRef = useRef(new Set());
   const [checkingStateTweakIds, setCheckingStateTweakIds] = useState([]);
   const [isLoadingTweaks, setIsLoadingTweaks] = useState(false);
   const [isRefreshingTweakStates, setIsRefreshingTweakStates] = useState(false);
@@ -1415,7 +1410,7 @@ function App() {
   }, [execution.startedAt, execution.status]);
 
   useEffect(() => {
-    if (globalOperation.status !== 'success' && globalOperation.status !== 'error') {
+    if (!['success', 'warning', 'error'].includes(globalOperation.status)) {
       return undefined;
     }
 
@@ -1425,7 +1420,7 @@ function App() {
           ? { id: '', label: '', message: '', status: 'idle', startedAt: null, endedAt: null }
           : previous
       );
-    }, globalOperation.status === 'error' ? 6200 : 4200);
+    }, globalOperation.status === 'success' ? 4200 : 6200);
 
     return () => window.clearTimeout(timeoutId);
   }, [globalOperation.id, globalOperation.status]);
@@ -1698,9 +1693,17 @@ function App() {
     activeAppsLoadRequestRef, setAppsError, setInstalledApps, setIsLoadingApps, setIsLoadingAppDetails, didBootstrapRef, pushToast, t, hasLoadedAppsRef, installedApps, setStartupEntriesError, setStartupEntries, setIsLoadingStartupEntries, hasLoadedStartupEntriesRef
   });
 
-  const { loadTweaks, refreshTweaksTwoPhase } = useTweakCatalogActions({
-    tweakReloadBlockedUntilRef, pushToast, t, activeTweaksLoadRequestRef, stateRefreshCounterRef, setIsRefreshingTweakStates, setIsLoadingTweaks, setTweaksError, setTweaks, didBootstrapRef, getStoredRebootPendingIds, normalizeTweakForUi, mergeTweakRuntimeState, hasLoadedTweaksRef, hasLoadedTweakStatesRef, getTweakRateLimitDelay, setTweakReloadBlockedUntil, activeTweaksRefreshPromiseRef, requiresRendererTweakStateCheck, setCheckingStateTweakIds, activeStateRefreshRunRef
+  const { loadTweaks, refreshTweaksTwoPhase, retryTweakState } = useTweakCatalogActions({
+    tweakReloadBlockedUntilRef, pushToast, t, activeTweaksLoadRequestRef, stateRefreshCounterRef, setIsRefreshingTweakStates, setIsLoadingTweaks, setTweaksError, setTweaks, didBootstrapRef, getStoredRebootPendingIds, normalizeTweakForUi, mergeTweakRuntimeState, hasLoadedTweaksRef, hasLoadedTweakStatesRef, getTweakRateLimitDelay, setTweakReloadBlockedUntil, activeTweaksRefreshPromiseRef, requiresRendererTweakStateCheck, setCheckingStateTweakIds, activeStateRefreshRunRef, stateChecksRef
   });
+
+  useEffect(() => {
+    // A startup check may finish before the administrator session is ready.
+    // Reuse the single-check path so versions and in-flight checks stay shared.
+    for (const tweak of takeAdminStateRetryTargets(tweaks, isAdmin === true, adminStateRetryIdsRef.current)) {
+      void retryTweakState(tweak);
+    }
+  }, [isAdmin, tweaks, retryTweakState]);
 
   useEffect(() => {
     if (!didBootstrapRef.current || isBootstrapLoading) {
@@ -2926,6 +2929,12 @@ function App() {
   }
 
   async function toggleTweak(tweak, nextEnabled, options = {}) {
+    const currentTweak = tweaksRef.current.find((item) => String(item.id) === String(tweak.id)) || tweak;
+    if (isTweakStateBlocked(currentTweak) || stateChecksRef.current.pending.has(String(tweak.id))) {
+      const message = t('tweaks.stateCheck.blocked');
+      if (!options.suppressNotifications) pushToast(message, 'warning');
+      return { ok: false, code: 'TWEAK_STATE_UNAVAILABLE', message, skipped: true };
+    }
     function buildExecutionErrorToast(result, fallbackCode = 'EXECUTION_FAILED') {
       const code = String(result?.code || fallbackCode || '').trim();
       if (code === 'ADMIN_BROKER_CANCELLED') {
@@ -3123,6 +3132,13 @@ function App() {
       }
     }
 
+    const latestTweak = tweaksRef.current.find((item) => String(item.id) === String(tweak.id)) || tweak;
+    if (isTweakStateBlocked(latestTweak) || stateChecksRef.current.pending.has(String(tweak.id))) {
+      const message = t('tweaks.stateCheck.blocked');
+      if (!suppressNotifications) pushToast(message, 'warning');
+      return { ok: false, code: 'TWEAK_STATE_UNAVAILABLE', message, skipped: true };
+    }
+    stateChecksRef.current.versions.set(String(tweak.id), (stateChecksRef.current.versions.get(String(tweak.id)) || 0) + 1);
     setExecution({
       open: false,
       status: 'running',
@@ -3187,6 +3203,7 @@ function App() {
       }
 
       const successful = Boolean(result?.ok);
+      const resolvedCurrentState = normalizeTweakState(result?.currentState || targetState);
       const endedAt = Date.now();
       let completeDeferredSuccess = null;
       const executionMessage = successful ? '' : buildExecutionErrorToast(result, 'EXECUTION_FAILED');
@@ -3208,7 +3225,6 @@ function App() {
 
       if (successful) {
         if (!isStatelessExecution) {
-          const currentState = normalizeTweakState(result?.currentState || targetState);
         const resolvedSelectedOption =
           typeof result?.selectedOption === 'string' && result.selectedOption.trim()
             ? result.selectedOption.trim()
@@ -3250,8 +3266,8 @@ function App() {
               item.id === tweak.id
                 ? {
                     ...item,
-                    currentState,
-                    status: currentState,
+                    currentState: resolvedCurrentState,
+                    status: resolvedCurrentState,
                     ...(isTimerResolutionTweak
                       ? {
                           selectedResolution:
@@ -3343,7 +3359,7 @@ function App() {
       return {
         ...normalizedResult,
         ...(!isStatelessExecution
-          ? { currentState: normalizeTweakState(result?.currentState || targetState) }
+          ? { currentState: resolvedCurrentState }
           : {}),
         ...(completeDeferredSuccess
           ? { completeDeferredSuccess }
@@ -3583,12 +3599,13 @@ function App() {
       storage: t('tweaks.oneClick.storage.title')
     };
     const label = labels[optimizationId] || optimizationId;
-    const { targets, runnable, alreadyApplied } = partitionOneClickOptimizationTargets(tweaks, optimizationId);
+    const { targets, runnable, alreadyApplied, unavailable } = partitionOneClickOptimizationTargets(tweaks, optimizationId);
+    if (unavailable.length) pushToast(t('tweaks.stateCheck.skipped', { count: unavailable.length }), 'warning');
     const incompatible = runnable.filter((tweak) => (
       getTweakCompatibilityState(tweak, systemDetection).status === 'warning'
     ));
     const executable = runnable.filter((tweak) => !incompatible.includes(tweak));
-    const skippedBeforeRun = alreadyApplied.length + incompatible.length;
+    const skippedBeforeRun = alreadyApplied.length + incompatible.length + unavailable.length;
 
     if (!targets.length) {
       setOneClickOptimization(createOneClickOptimizationState({
@@ -3698,6 +3715,7 @@ function App() {
 
     let successful = 0;
     let failed = 0;
+    let skippedDuringRun = 0;
     const failures = [];
     let successfulRestartRequired = false;
     for (const [index, tweak] of executable.entries()) {
@@ -3733,6 +3751,9 @@ function App() {
       if (result?.ok) {
         successful += 1;
         successfulRestartRequired ||= normalizeRebootRequired(tweak);
+      } else if (result?.skipped) {
+        skippedDuringRun += 1;
+        failures.push(`${tweak.name || tweak.id}: ${result.message || t('tweaks.stateCheck.blocked')}`);
       } else {
         failed += 1;
         failures.push(`${tweak.name || tweak.id}: ${result?.message || result?.code || t('automation.actionFailed')}`);
@@ -3744,7 +3765,7 @@ function App() {
       }));
     }
 
-    const skipped = skippedBeforeRun;
+    const skipped = skippedBeforeRun + skippedDuringRun;
     const completionPhase = failed === 0 ? "success" : successful > 0 ? 'partial' : "error";
     const summaryMessage = [t('tweaks.oneClick.summary', { successful, failed, skipped }), ...failures].join('\n');
     setOneClickOptimization(createOneClickOptimizationState({
@@ -3781,14 +3802,12 @@ function App() {
 
   const handleRestoreBackup = useBackupRestore(async (job) => {
     await loadAppSettings();
-    const result = await window.desktopApi.listTweaks();
+    const result = await loadTweaks({ includeState: true, background: true });
     if (result?.ok && Array.isArray(result.tweaks)) {
       for (const step of job.steps.filter((entry) => entry.changed && entry.requiresRestart)) {
         const tweak = result.tweaks.find((entry) => entry.id === step.id);
         if (tweak) await rememberRebootPendingTweak(tweak);
       }
-      const rebootPendingIds = new Set(getStoredRebootPendingIds());
-      setTweaks(result.tweaks.map((tweak) => ({ ...normalizeTweakForUi(tweak), rebootPending: rebootPendingIds.has(String(tweak.id)) })));
       hasLoadedTweaksRef.current = true;
     }
   });
@@ -3811,7 +3830,7 @@ function App() {
 
     if (window.desktopApi?.listTweaks) {
       try {
-        const result = await window.desktopApi.listTweaks();
+        const result = await loadTweaks({ includeState: true, background: true });
         if (result?.ok && Array.isArray(result.tweaks) && result.tweaks.length) {
           const rebootPendingSet = new Set(rebootPendingTweakIds.map((id) => String(id)));
           const normalizedTweaks = result.tweaks.map((tweak) => {
@@ -3821,7 +3840,6 @@ function App() {
               rebootPending: rebootPendingSet.has(String(normalized.id))
             };
           });
-          setTweaks(normalizedTweaks);
           hasLoadedTweaksRef.current = true;
           snapshotTweaks = normalizedTweaks;
         }
@@ -4094,6 +4112,7 @@ function App() {
               availableTags={availableTweakTags}
               loading={tweaksPanelLoading}
               refreshingStates={isRefreshingTweakStates}
+              onRetryState={retryTweakState}
               reloadDisabled={tweakReloadBlockedUntil > Date.now()}
               checkingStateTweakIds={checkingStateTweakIds}
               errorCode={tweaksError}

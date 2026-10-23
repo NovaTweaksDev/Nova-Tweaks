@@ -1,3 +1,5 @@
+import { isTweakStateBlocked } from './tweakState.mjs';
+
 export const ONE_CLICK_OPTIMIZATIONS = Object.freeze({
   cleanup: Object.freeze({
     id: 'cleanup',
@@ -74,8 +76,10 @@ export function partitionOneClickOptimizationTargets(tweaks, optimizationId) {
   const targets = getOneClickOptimizationTargets(tweaks, optimizationId);
   const runnable = [];
   const alreadyApplied = [];
+  const unavailable = [];
 
   for (const tweak of targets) {
+    if (isTweakStateBlocked(tweak)) { unavailable.push(tweak); continue; }
     const state = String(tweak?.currentState || tweak?.status || '').trim().toLowerCase();
     if (state === 'enabled' && !isOneClickRepeatableAction(tweak)) {
       alreadyApplied.push(tweak);
@@ -84,5 +88,5 @@ export function partitionOneClickOptimizationTargets(tweaks, optimizationId) {
     }
   }
 
-  return { targets, runnable, alreadyApplied };
+  return { targets, runnable, alreadyApplied, unavailable };
 }

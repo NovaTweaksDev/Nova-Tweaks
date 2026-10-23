@@ -2,7 +2,9 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFile } = require('child_process');
+const { readMeasurement, isNewMeasurement, networkMeasurementTime } = require('../monitoring/samplePolicy');
 const { createMonitoringProviderManager } = require('./monitoringProviderManager');
+const { createSessionStatistics, averageLowestSorted, percentileSorted, LIVE_SAMPLE_LIMIT } = require('./sessionStatistics');
 const { resolveWindowsSystemExecutable } = require('../security/systemExecutables');
 
 const SESSION_SCHEMA_VERSION = 1;
@@ -11,6 +13,7 @@ const SESSION_REPORT_LIMIT = 25;
 const SESSION_REPORT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const PROCESS_WATCH_INTERVAL_MS = 2500;
 const CAPTURE_POLL_INTERVAL_MS = 500;
+const STATISTICS_WARNING = 'Exact frame statistics unavailable. Session averages and peaks were retained.';
 
 function toFiniteNumber(value) {
   if (value === null || value === undefined || value === '') {
@@ -86,38 +89,12 @@ function createEmptyHistory() {
   };
 }
 
-function average(values) {
-  const numericValues = values.map(toFiniteNumber).filter((value) => value !== null);
-  if (!numericValues.length) {
-    return null;
-  }
-  return numericValues.reduce((total, value) => total + value, 0) / numericValues.length;
-}
-
 function percentile(values, percentileValue) {
-  const numericValues = values.map(toFiniteNumber).filter((value) => value !== null).sort((left, right) => left - right);
-  if (!numericValues.length) {
-    return null;
-  }
-  const index = Math.min(
-    numericValues.length - 1,
-    Math.max(0, Math.ceil((percentileValue / 100) * numericValues.length) - 1)
-  );
-  return numericValues[index];
+  return percentileSorted(values.map(toFiniteNumber).filter((value) => value !== null).sort((left, right) => left - right), percentileValue);
 }
 
 function averageLowestPercent(values, percent) {
-  const numericValues = values.map(toFiniteNumber).filter((value) => value !== null).sort((left, right) => left - right);
-  if (!numericValues.length) {
-    return null;
-  }
-  const count = Math.max(1, Math.ceil(numericValues.length * (percent / 100)));
-  return average(numericValues.slice(0, count));
-}
-
-function maxValue(values) {
-  const numericValues = values.map(toFiniteNumber).filter((value) => value !== null);
-  return numericValues.length ? Math.max(...numericValues) : null;
+  return averageLowestSorted(values.map(toFiniteNumber).filter((value) => value !== null).sort((left, right) => left - right), percent);
 }
 
 function isProcessRunning(processId) {
@@ -363,17 +340,11 @@ function createGameSessionManager(options = {}) {
   let capturePollTimer = null;
   let latestOverview = null;
   let latestMetrics = null;
-  const samples = {
-    fps: [],
-    frametime: [],
-    cpu: [],
-    gpu: [],
-    gpuTemp: [],
-    ramMB: [],
-    vramMB: [],
-    latency: [],
-    packetLoss: []
-  };
+  let lastReceivedMeasurement = null;
+  let lastRecordedMeasurement = null;
+  let lastNetworkMeasurementAt = null;
+  let statistics = createSessionStatistics({ captureRoot, nowProvider: now });
+  let stopPromise = null;
   const processPeaks = new Map();
 
   function getSessionsRoot() {
@@ -412,10 +383,16 @@ function createGameSessionManager(options = {}) {
     onUpdate?.(getState());
   }
 
+  function disposeStatistics() {
+    try { statistics.dispose(); }
+    catch (error) { logger?.warn?.('Unable to remove temporary session statistics.', { message: error.message }); }
+  }
+
   function resetAggregates() {
-    for (const key of Object.keys(samples)) {
-      samples[key] = [];
-    }
+    lastRecordedMeasurement = null;
+    lastNetworkMeasurementAt = null;
+    disposeStatistics();
+    statistics = createSessionStatistics({ captureRoot, nowProvider: now });
     processPeaks.clear();
   }
 
@@ -436,6 +413,7 @@ function createGameSessionManager(options = {}) {
     }
 
     const warnings = [];
+    if (activeSession.statisticsWarning) addUniqueMessage(warnings, activeSession.statisticsWarning);
     const captureStatus = captureService.getStatus();
     if (captureStatus.status === 'unavailable') {
       addUniqueMessage(warnings, 'FPS monitoring unavailable: PresentMon Service/API helper is not bundled with this build.');
@@ -443,7 +421,7 @@ function createGameSessionManager(options = {}) {
       addUniqueMessage(warnings, `FPS monitoring unavailable${captureStatus.message ? `: ${captureStatus.message}` : '.'}`);
     } else if (captureStatus.status === 'no_data') {
       addUniqueMessage(warnings, captureStatus.message || 'No frame data has arrived from PresentMon Service.');
-    } else if (['starting', 'connected', 'running'].includes(captureStatus.status) && !samples.fps.length) {
+    } else if (['starting', 'connected', 'running'].includes(captureStatus.status) && !statistics.aggregates.fps.count) {
       addUniqueMessage(
         warnings,
         captureStatus.message
@@ -452,13 +430,13 @@ function createGameSessionManager(options = {}) {
       );
     }
 
-    if (!samples.gpuTemp.length) {
+    if (!statistics.aggregates.gpuTemp.count) {
       addUniqueMessage(warnings, 'GPU temperature sensor unavailable.');
     }
-    if (!samples.vramMB.length) {
+    if (!statistics.aggregates.vramMB.count) {
       addUniqueMessage(warnings, 'VRAM usage sensor unavailable.');
     }
-    if (!samples.latency.length) {
+    if (!statistics.aggregates.latency.count) {
       addUniqueMessage(warnings, 'Network latency probe unavailable.');
     }
 
@@ -486,7 +464,7 @@ function createGameSessionManager(options = {}) {
       addUniqueMessage(insights, `${highCpuProcess.name} reached ${roundOrNull(highCpuProcess.cpuPercent, 0)}% CPU usage during the session.`);
     }
 
-    const gpuMaxTempC = maxValue(samples.gpuTemp);
+    const gpuMaxTempC = statistics.aggregates.gpuTemp.max;
     if (gpuMaxTempC !== null) {
       addUniqueMessage(
         insights,
@@ -496,22 +474,22 @@ function createGameSessionManager(options = {}) {
       );
     }
 
-    const ramPeak = maxValue(samples.ramMB);
+    const ramPeak = statistics.aggregates.ramMB.max;
     if (ramPeak !== null) {
       addUniqueMessage(insights, `RAM peak was ${formatGbFromMb(ramPeak)} GB during the session.`);
     }
 
-    const vramPeak = maxValue(samples.vramMB);
+    const vramPeak = statistics.aggregates.vramMB.max;
     if (vramPeak !== null) {
       addUniqueMessage(insights, `VRAM peak was ${formatGbFromMb(vramPeak)} GB during the session.`);
     }
 
-    const latencyPeak = maxValue(samples.latency);
+    const latencyPeak = statistics.aggregates.latency.max;
     if (latencyPeak !== null && latencyPeak >= 120) {
       addUniqueMessage(insights, `Network latency spiked to ${roundOrNull(latencyPeak, 0)} ms during the session.`);
     }
 
-    const packetLossPeak = maxValue(samples.packetLoss);
+    const packetLossPeak = statistics.aggregates.packetLoss.max;
     if (packetLossPeak !== null && packetLossPeak > 0) {
       addUniqueMessage(insights, 'Packet loss detected during the session.');
     }
@@ -523,30 +501,27 @@ function createGameSessionManager(options = {}) {
     activeSession.insights = insights;
   }
 
-  function updateMetrics() {
-    if (!activeSession) {
-      return;
-    }
-
-    const frametimeValues = samples.frametime.filter((value) => toFiniteNumber(value) !== null);
-    const avgFrametime = average(frametimeValues);
+  function updateMetrics(finalDistribution = null) {
+    if (!activeSession) return;
+    const distribution = finalDistribution || statistics.liveDistribution();
+    if (statistics.getFailure()) activeSession.statisticsWarning = STATISTICS_WARNING;
     activeSession.metrics = {
-      avgFps: roundOrNull(average(samples.fps), 1),
-      currentFps: roundOrNull(samples.fps.length ? samples.fps[samples.fps.length - 1] : null, 1),
-      onePercentLow: roundOrNull(averageLowestPercent(samples.fps, 1), 1),
-      pointOnePercentLow: roundOrNull(averageLowestPercent(samples.fps, 0.1), 1),
-      avgFrametimeMs: roundOrNull(avgFrametime, 2),
-      p95FrametimeMs: roundOrNull(percentile(frametimeValues, 95), 2),
-      p99FrametimeMs: roundOrNull(percentile(frametimeValues, 99), 2),
-      worstFrametimeMs: roundOrNull(maxValue(frametimeValues), 2),
-      stutterCount: frametimeValues.filter((value) => value >= Math.max(50, (avgFrametime || 0) * 2)).length,
-      cpuAvgPercent: roundOrNull(average(samples.cpu), 1),
-      gpuAvgPercent: roundOrNull(average(samples.gpu), 1),
-      gpuMaxTempC: roundOrNull(maxValue(samples.gpuTemp), 0),
-      ramPeakMB: roundOrNull(maxValue(samples.ramMB), 0),
-      vramPeakMB: roundOrNull(maxValue(samples.vramMB), 0),
-      avgLatencyMs: roundOrNull(average(samples.latency), 1),
-      packetLossPercent: roundOrNull(average(samples.packetLoss), 2)
+      avgFps: roundOrNull(statistics.mean('fps'), 1),
+      currentFps: roundOrNull(statistics.aggregates.fps.last, 1),
+      onePercentLow: roundOrNull(distribution.onePercentLow, 1),
+      pointOnePercentLow: roundOrNull(distribution.pointOnePercentLow, 1),
+      avgFrametimeMs: roundOrNull(statistics.mean('frametime'), 2),
+      p95FrametimeMs: roundOrNull(distribution.p95FrametimeMs, 2),
+      p99FrametimeMs: roundOrNull(distribution.p99FrametimeMs, 2),
+      worstFrametimeMs: roundOrNull(statistics.aggregates.frametime.max, 2),
+      stutterCount: distribution.stutterCount,
+      cpuAvgPercent: roundOrNull(statistics.mean('cpu'), 1),
+      gpuAvgPercent: roundOrNull(statistics.mean('gpu'), 1),
+      gpuMaxTempC: roundOrNull(statistics.aggregates.gpuTemp.max, 0),
+      ramPeakMB: roundOrNull(statistics.aggregates.ramMB.max, 0),
+      vramPeakMB: roundOrNull(statistics.aggregates.vramMB.max, 0),
+      avgLatencyMs: roundOrNull(statistics.mean('latency'), 1),
+      packetLossPercent: roundOrNull(statistics.mean('packetLoss'), 2)
     };
     activeSession.captureStatus = captureService.getStatus().status;
     updateDuration();
@@ -587,14 +562,31 @@ function createGameSessionManager(options = {}) {
   }
 
   function handleMetrics(metrics) {
-    latestMetrics = metrics || null;
-    latestOverview = metrics?.overview || null;
+    if (metrics?.sampleKind === 'status' || metrics?.monitoring === 'offline') {
+      latestMetrics = null;
+      latestOverview = null;
+      if (activeSession) {
+        activeSession.live = Object.fromEntries(Object.keys(activeSession.live || {}).map((key) => [key, null]));
+        emitUpdate();
+      }
+      return;
+    }
+    const measurement = readMeasurement(metrics, now());
+    if (!isNewMeasurement(measurement, lastReceivedMeasurement)) return;
+    lastReceivedMeasurement = measurement;
+    latestMetrics = metrics;
+    latestOverview = metrics.overview || null;
+    recordMetrics(metrics);
+  }
 
+  function recordMetrics(metrics) {
     if (!activeSession || activeSession.sessionStatus !== 'recording') {
       return;
     }
-
-    const timestamp = Number(metrics?.timestamp) || now();
+    const measurement = readMeasurement(metrics, now());
+    if (!isNewMeasurement(measurement, lastRecordedMeasurement)) return;
+    lastRecordedMeasurement = measurement;
+    const timestamp = measurement.measuredAt;
     const overview = latestOverview;
     const primaryGpu = getPrimaryGpu(overview);
     const networkQuality = getNetworkQuality(overview);
@@ -604,33 +596,36 @@ function createGameSessionManager(options = {}) {
     const ramMB = nonNegativeOrNull(overview?.memory?.usedGB) !== null ? overview.memory.usedGB * 1024 : null;
     const totalRamMB = nonNegativeOrNull(overview?.memory?.totalGB) !== null ? overview.memory.totalGB * 1024 : null;
     const vramMB = nonNegativeOrNull(primaryGpu?.memoryUsedMB);
-    const latencyMs = nonNegativeOrNull(networkQuality?.latencyMs);
-    const packetLossPercent = nonNegativeOrNull(networkQuality?.packetLossPercent);
+    const networkAt = networkMeasurementTime(networkQuality, now());
+    const latencyMs = networkAt === null ? null : nonNegativeOrNull(networkQuality?.latencyMs);
+    const packetLossPercent = networkAt === null ? null : nonNegativeOrNull(networkQuality?.packetLossPercent);
+    const newNetworkMeasurement = networkAt !== null && (lastNetworkMeasurementAt === null || networkAt > lastNetworkMeasurementAt);
 
     if (cpuUsage !== null) {
-      samples.cpu.push(cpuUsage);
+      statistics.add('cpu', cpuUsage);
       pushHistory(activeSession.history, 'cpu', cpuUsage, timestamp);
     }
     if (gpuUsage !== null) {
-      samples.gpu.push(gpuUsage);
+      statistics.add('gpu', gpuUsage);
       pushHistory(activeSession.history, 'gpu', gpuUsage, timestamp);
     }
     if (gpuTemp !== null) {
-      samples.gpuTemp.push(gpuTemp);
+      statistics.add('gpuTemp', gpuTemp);
     }
     if (ramMB !== null) {
-      samples.ramMB.push(ramMB);
+      statistics.add('ramMB', ramMB);
     }
     if (vramMB !== null) {
-      samples.vramMB.push(vramMB);
+      statistics.add('vramMB', vramMB);
     }
-    if (latencyMs !== null) {
-      samples.latency.push(latencyMs);
-      pushHistory(activeSession.history, 'latency', latencyMs, timestamp);
+    if (newNetworkMeasurement && latencyMs !== null) {
+      statistics.add('latency', latencyMs);
+      pushHistory(activeSession.history, 'latency', latencyMs, networkAt);
     }
-    if (packetLossPercent !== null) {
-      samples.packetLoss.push(packetLossPercent);
+    if (newNetworkMeasurement && packetLossPercent !== null) {
+      statistics.add('packetLoss', packetLossPercent);
     }
+    if (newNetworkMeasurement) lastNetworkMeasurementAt = networkAt;
 
     activeSession.live = {
       cpuUsagePercent: roundOrNull(cpuUsage, 1),
@@ -659,19 +654,13 @@ function createGameSessionManager(options = {}) {
       const timestamp = Number(sample?.timestamp) || now();
       const fps = nonNegativeOrNull(sample?.fps);
       const frametime = nonNegativeOrNull(sample?.frametimeMs);
+      statistics.addFrame(fps, frametime);
       if (fps !== null) {
-        samples.fps.push(fps);
         pushHistory(activeSession.history, 'fps', fps, timestamp);
       }
       if (frametime !== null) {
-        samples.frametime.push(frametime);
         pushHistory(activeSession.history, 'frametime', frametime, timestamp);
       }
-    }
-
-    if (captureSamples.length) {
-      updateMetrics();
-      emitUpdate();
     }
   }
 
@@ -681,8 +670,7 @@ function createGameSessionManager(options = {}) {
     }
     capturePollTimer = setInterval(() => {
       ingestCaptureSamples(captureService.readSamples());
-      if (activeSession) {
-        activeSession.captureStatus = captureService.getStatus().status;
+      if (activeSession?.sessionStatus === 'recording') {
         updateMetrics();
         emitUpdate();
       }
@@ -798,8 +786,16 @@ function createGameSessionManager(options = {}) {
 
     if (fs.existsSync(captureRoot)) {
       for (const entry of fs.readdirSync(captureRoot, { withFileTypes: true })) {
+        const capturePath = path.resolve(captureRoot, entry.name);
+        if (entry.isDirectory() && /^\.nova-session-stats-[a-z0-9]{6}$/i.test(entry.name)) {
+          try {
+            if (path.dirname(capturePath) === captureRootResolved && !statistics.ownsDirectory(capturePath) && fs.statSync(capturePath).mtimeMs < cutoff) {
+              fs.rmSync(capturePath, { recursive: true, force: true });
+            }
+          } catch (_error) {}
+          continue;
+        }
         if (!entry.isFile()) continue;
-        const capturePath = path.join(captureRoot, entry.name);
         try {
           if (fs.statSync(capturePath).mtimeMs < cutoff) {
             fs.rmSync(capturePath, { force: true });
@@ -850,6 +846,7 @@ function createGameSessionManager(options = {}) {
     autoRestore = false,
     autoStarted = false
   } = {}) {
+    if (stopPromise) await stopPromise;
     if (activeSession?.sessionStatus === 'recording') {
       return activeSession;
     }
@@ -886,6 +883,8 @@ function createGameSessionManager(options = {}) {
         ? overviewTotalMemoryGB * 1024
         : getTotalSystemMemoryMB()
     });
+    activeSession.frameStatisticsScope = 'recent';
+    activeSession.frameStatisticsSampleLimit = LIVE_SAMPLE_LIMIT;
     activeSession.autoStarted = Boolean(autoStarted);
     activeSession.restore = {
       autoRestore: Boolean(autoRestore),
@@ -904,7 +903,7 @@ function createGameSessionManager(options = {}) {
     onRecordingStateChange?.(true);
 
     if (latestMetrics) {
-      handleMetrics(latestMetrics);
+      recordMetrics(latestMetrics);
     } else {
       updateMetrics();
     }
@@ -913,11 +912,22 @@ function createGameSessionManager(options = {}) {
   }
 
   async function stopSession({ reason = 'manual' } = {}) {
-    if (!activeSession) {
-      return null;
+    if (stopPromise) return stopPromise;
+    if (!activeSession) return null;
+    const operation = finishSession(reason);
+    stopPromise = operation;
+    try { return await operation; }
+    catch (error) { statistics.invalidate(error); throw error; }
+    finally {
+      disposeStatistics();
+      if (stopPromise === operation) stopPromise = null;
     }
+  }
 
+  async function finishSession(reason) {
     const sessionToStop = activeSession;
+    stopCapturePolling();
+    stopProcessWatcher();
     if (sessionToStop.sessionStatus === 'recording') {
       ingestCaptureSamples(captureService.readSamples());
       await captureService.stop();
@@ -925,21 +935,27 @@ function createGameSessionManager(options = {}) {
       sessionToStop.endedAt = new Date(now()).toISOString();
       sessionToStop.sessionStatus = 'stopped';
       sessionToStop.stopReason = normalizeString(reason) || 'manual';
-      sessionToStop.captureStatus = captureService.getStatus().status;
-      updateMetrics();
+      let distribution;
+      try {
+        distribution = await statistics.finalize();
+        sessionToStop.frameStatisticsScope = 'session';
+      } catch (error) {
+        distribution = { onePercentLow: null, pointOnePercentLow: null, p95FrametimeMs: null, p99FrametimeMs: null, stutterCount: null };
+        sessionToStop.frameStatisticsScope = 'unavailable';
+        sessionToStop.statisticsWarning = STATISTICS_WARNING;
+        logger?.warn?.('Unable to finalize session frame statistics.', { message: error.message });
+      }
+      updateMetrics(distribution);
       saveReport(sessionToStop);
     }
-
     activeSession = null;
-    stopCapturePolling();
-    stopProcessWatcher();
     onRecordingStateChange?.(false);
     emitUpdate();
     return lastReport;
   }
 
   async function retryCapture() {
-    if (!activeSession || activeSession.sessionStatus !== 'recording') {
+    if (stopPromise || !activeSession || activeSession.sessionStatus !== 'recording') {
       return getState();
     }
 
@@ -968,6 +984,7 @@ function createGameSessionManager(options = {}) {
   }
 
   async function clearLocalData() {
+    if (stopPromise) await stopPromise;
     stopProcessWatcher();
     stopCapturePolling();
     try {

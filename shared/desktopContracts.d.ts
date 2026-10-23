@@ -1,4 +1,23 @@
+export interface MonitoringSampleMetadata {
+  sampleKind: 'measurement' | 'heartbeat' | 'status';
+  sampleId: number | null;
+  measuredAt: number | null;
+  emittedAt: number;
+  timestamp: number;
+}
+
 export type TweakState = 'enabled' | 'disabled';
+export type TweakStateCheckStatus = 'pending' | 'verified' | 'failed' | 'unsupported';
+export interface TweakStateCheck {
+  id: string;
+  currentState: TweakState | null;
+  checked: boolean;
+  stateCheckStatus: TweakStateCheckStatus;
+  stateCheckError: { code: string; message?: string } | null;
+}
+export interface TweakStateApi {
+  checkTweakState(payload: { id: string }): Promise<IpcResult<{ tweak: TweakStateCheck }>>;
+}
 export interface TweakRequest {
   id: string;
   targetState?: TweakState;
@@ -74,4 +93,24 @@ export interface DisplayProfileApi {
   keepCurrentDisplayState(): Promise<IpcResult<{ state: DisplayProfileState }>>;
   onDisplayProfileUpdate(callback: (state: DisplayProfileState) => void): () => void;
 }
-declare global { interface Window { desktopApi: RestoreApi & DisplayProfileApi; } }
+export interface GameModeBackgroundState {
+  phase: 'idle' | 'prepared' | 'active' | 'partial' | 'restored' | 'recovery_required';
+  pendingRestore: boolean;
+  hasSnapshot: boolean;
+  durationMs: number;
+  entries: { name: string; phase: 'untouched' | 'intent' | 'changed' | 'restoring' | 'restored' | 'skipped' | 'conflict'; code: string }[];
+  apps: { pid?: number; name: string; status: 'closed' | 'skipped'; code?: string }[];
+}
+export interface GameModeBackgroundResult {
+  ok: boolean;
+  code?: string;
+  message?: string;
+  state?: GameModeBackgroundState;
+}
+export interface GameModeBackgroundApi {
+  getGameModeBackgroundState(): Promise<GameModeBackgroundResult>;
+  prepareGameModeBackground(): Promise<GameModeBackgroundResult>;
+  applyGameModeBackground(): Promise<GameModeBackgroundResult>;
+  restoreGameModeBackground(): Promise<GameModeBackgroundResult>;
+}
+declare global { interface Window { desktopApi: RestoreApi & DisplayProfileApi & TweakStateApi & GameModeBackgroundApi; } }

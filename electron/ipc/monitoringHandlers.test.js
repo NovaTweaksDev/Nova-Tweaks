@@ -72,7 +72,7 @@ test('admin approval resumes subscribed monitoring once and respects disabled se
   const context = {
     pruneMetricsSubscribers() {}, pruneGameSessionSubscribers() {},
     broadcastAdminAccessState() {}, adminBrokerWasReady: false,
-    advancedSensorMonitoringEnabled: true,
+    isQuitting: false, advancedSensorMonitoringEnabled: true,
     monitoringManager: { start: async () => { starts += 1; }, stop: () => { stops += 1; } },
     metricsSubscriberIds: new Set([42]), settingsService: { getSettings: () => ({}) },
     gameSessionManager: null, ruleAutomationService: null, metricsLogger: { warn() {} }

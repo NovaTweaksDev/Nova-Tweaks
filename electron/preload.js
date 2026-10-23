@@ -100,6 +100,10 @@ contextBridge.exposeInMainWorld('desktopApi', {
   },
   getActiveGame: () => ipcRenderer.invoke('gamemode:active-game'),
   getGameModeState: () => ipcRenderer.invoke('gamemode:state'),
+  getGameModeBackgroundState: () => ipcRenderer.invoke('gamemode:background:state'),
+  prepareGameModeBackground: () => ipcRenderer.invoke('gamemode:background:prepare'),
+  applyGameModeBackground: () => ipcRenderer.invoke('gamemode:background:apply'),
+  restoreGameModeBackground: () => ipcRenderer.invoke('gamemode:background:restore'),
   setGameModeState: (payload) => ipcRenderer.invoke('gamemode:set-state', payload),
   applyGameModeSettings: (payload) => ipcRenderer.invoke('gamemode:apply-settings', payload),
   getGameSessionState: () => ipcRenderer.invoke('game-session:get-state'),
@@ -237,6 +241,13 @@ contextBridge.exposeInMainWorld('desktopApi', {
   },
   runExampleTweak: () => ipcRenderer.invoke('tweaks:run-example'),
   listTweaks: (options = {}) => ipcRenderer.invoke('tweaks:list', options),
+  checkTweakState: (payload) => ipcRenderer.invoke('tweaks:check-state', payload),
+  onTweakStateUpdated: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on('tweaks:state-updated', listener);
+    return () => ipcRenderer.removeListener('tweaks:state-updated', listener);
+  },
   reloadTweaks: () => ipcRenderer.invoke('tweaks:reload'),
   executeTweak: /** @param {import('../shared/desktopContracts').TweakRequest} payload */ (payload) => ipcRenderer.invoke('tweaks:execute', payload),
   listScripts: () => ipcRenderer.invoke('scripts:list'),

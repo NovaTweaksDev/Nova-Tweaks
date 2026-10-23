@@ -336,6 +336,8 @@ export function getActionType(tweak) {
 }
 
 export function getTweakStatusLabel(tweak) {
+  if (tweak?.stateCheckStatus === 'failed') return 'Unknown';
+  if (tweak?.stateCheckStatus === 'pending') return 'Checking';
   if (tweak?.rebootPending || tweak?.rebootRequiredPending) {
     return 'Reboot required';
   }

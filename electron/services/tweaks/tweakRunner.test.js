@@ -172,7 +172,78 @@ test('empty detection output is not marked as a verified disabled state', async 
   const fixture = createRemoteRunner({ getTweakScript: async () => createArtifactPayload(), scriptStdout: '' });
   const state = await fixture.runner.getCurrentState({ tweakId: 'windows_game_mode' });
   assert.equal(state.checked, false);
+  assert.equal(state.currentState, null);
+  assert.equal(state.stateCheckStatus, 'failed');
+  assert.equal(state.stateCheckError.code, 'TWEAK_STATE_UNAVAILABLE');
 });
+
+test('detection retains the script failure message instead of hiding the cause', async () => {
+  const fixture = createRemoteRunner({ getTweakScript: async () => createArtifactPayload(),
+    scriptStdout: JSON.stringify({ status: 'Error', message: 'Failed to query boot configuration.' }) });
+  const state = await fixture.runner.getCurrentState({ tweakId: 'windows_game_mode' });
+  assert.equal(state.currentState, null);
+  assert.equal(state.checked, false);
+  assert.equal(state.stateCheckError.message, 'Failed to query boot configuration.');
+});
+
+test('detection preserves a returned broker approval error without retrying locally', async () => {
+  const config = createConfig();
+  config.execution.actions.detect.requires_admin = true;
+  const fixture = createRemoteRunner({ config, isAdminProvider: () => false,
+    getTweakScript: async () => createArtifactPayload(),
+    privilegedExecutor: async () => ({ ok: false, code: 'ADMIN_BROKER_APPROVAL_REQUIRED', message: 'Administrator access is required.' }) });
+  const state = await fixture.runner.getCurrentState({ tweakId: config.id });
+  assert.equal(state.stateCheckError.code, 'ADMIN_BROKER_APPROVAL_REQUIRED');
+  assert.equal(state.stateCheckError.message, 'Administrator access is required.');
+  assert.equal(state.currentState, null);
+  assert.equal(fixture.calls.length, 0);
+});
+
+test('bundled boot checks route only Check through the existing broker without prompting', async () => {
+  const { createTweakCatalog } = require('../localTweaks/catalog');
+  const root = path.resolve(__dirname, '../../../resources/tweaks');
+  const catalog = createTweakCatalog({ configsDir: path.join(root, 'configs'), scriptsDir: path.join(root, 'scripts') });
+  const calls = [];
+  const runner = createTweakRunner({ localOnly: true, tweakCatalog: catalog, isAdminProvider: () => false,
+    remoteScriptsPath: path.join(root, 'scripts'),
+    remoteScriptRunner: { runScript: () => assert.fail('Boot status must not run unprivileged.') },
+    privilegedExecutor: async (operation, payload, options) => {
+      calls.push(payload.artifact.tweakId);
+      assert.equal(operation, 'tweak.execute');
+      assert.equal(payload.action, 'Check');
+      assert.deepEqual(payload.params, { State: 'Check', Silent: true });
+      assert.deepEqual(payload.artifact.allowedActions, ['Check']);
+      assert.equal(options.allowPrompt, false);
+      return { ok: true, stdout: '{"status":"Disabled"}' };
+    } });
+  const ids = ['disable_dynamic_tick', 'disable_hyper_v_hypervisor', 'disable_nx_dep', 'force_hpet',
+    'force_platform_tick', 'ignore_all_boot_failures', 'tsc_sync_policy_enhanced', 'use_legacy_boot_menu'];
+  for (const tweakId of ids) {
+    const state = await runner.getCurrentState({ tweakId });
+    assert.equal(state.currentState, 'disabled', `${tweakId}: ${JSON.stringify(state.stateCheckError)}`);
+    assert.equal(state.checked, true, tweakId);
+  }
+  assert.deepEqual(calls, ids);
+});
+
+for (const code of ['SCRIPT_TIMEOUT', 'SCRIPT_NOT_FOUND', 'ADMIN_BROKER_APPROVAL_REQUIRED']) {
+  test(`detection reports ${code} without inventing a disabled state or prompting`, async () => {
+    const config = createConfig();
+    config.execution.actions.detect.requires_admin = true;
+    const fixture = createRemoteRunner({ config, isAdminProvider: () => false,
+      getTweakScript: async () => createArtifactPayload(),
+      privilegedExecutor: async (_operation, _payload, options) => {
+        assert.equal(options.allowPrompt, false);
+        throw Object.assign(new Error('Detection unavailable'), { code });
+      }
+    });
+    const state = await fixture.runner.getCurrentState({ tweakId: config.id });
+    assert.equal(state.currentState, null);
+    assert.equal(state.checked, false);
+    assert.equal(state.stateCheckStatus, 'failed');
+    assert.equal(state.stateCheckError.code, code);
+  });
+}
 
 test('returns the detected option for status-capable one-shot selections', async () => {
   const config = createConfig({

@@ -16,6 +16,13 @@ const tweaks = [
   { id: 'cpu', category: 'Hardware', subcategory: 'CPU', recommended: false, containerType: 'normal_tweak' }
 ];
 
+test('one-click skips pending and failed stateful checks with a separate unavailable count', () => {
+  const blocked = ['pending', 'failed'].map((stateCheckStatus) => ({ ...tweaks[2], id: stateCheckStatus, stateCheckStatus }));
+  const result = partitionOneClickOptimizationTargets([...tweaks, ...blocked], 'network');
+  assert.deepEqual(result.unavailable.map((tweak) => tweak.id), ['pending', 'failed']);
+  assert.deepEqual(result.runnable.map((tweak) => tweak.id), ['network-dns']);
+});
+
 test('resolves only the four supported tab contexts', () => {
   assert.equal(getOneClickOptimizationForTab('General', 'Cleanup')?.id, 'cleanup');
   assert.equal(getOneClickOptimizationForTab('Network', 'DNS')?.id, 'network');

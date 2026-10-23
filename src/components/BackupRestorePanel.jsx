@@ -1,6 +1,6 @@
 import { useRestoreJobs } from '../hooks/useRestoreJobs';
 import i18n from '../i18n';
-import { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AlertTriangle,
@@ -25,7 +25,7 @@ import {
   X
 } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
-import { Button, LoadingSpinner, ModalShell, PageHeadingSignal, PageShell, Skeleton, StatusPill, Switch } from './ui';
+import { Button, IconContainer, LoadingSpinner, ModalShell, PageHeadingSignal, PageShell, Skeleton, StatusPill, Switch } from './ui';
 import { BACKUP_LIST_HEADER_DIVIDER_CLASS } from '../constants/listLayout';
 
 const PAGE_SIZE = 8;
@@ -220,9 +220,9 @@ function MetricCard({ icon: Icon, label, value, detail }) {
           </p>
           <p className="mt-2 truncate text-xs text-[var(--text-muted)]">{detail}</p>
         </div>
-        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[color:color-mix(in_srgb,var(--accent)_14%,var(--surface)_86%)] text-[var(--accent)]">
+        <IconContainer tone="accent" className="ui-section-icon">
           <Icon className="h-5 w-5" />
-        </span>
+        </IconContainer>
       </div>
     </article>
   );
@@ -251,9 +251,9 @@ function Panel({ title, description, children, icon: Icon }) {
     <section className="rounded-2xl border border-[color:color-mix(in_srgb,var(--border)_78%,transparent)] bg-[color:color-mix(in_srgb,var(--surface)_92%,var(--surface-strong)_8%)] p-4 shadow-[0_18px_48px_rgba(0,0,0,0.14)]">
       <div className="flex items-start gap-3">
         {Icon ? (
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[color:color-mix(in_srgb,var(--accent)_12%,var(--surface)_88%)] text-[var(--accent)]">
-            <Icon className="h-4 w-4" />
-          </span>
+          <IconContainer tone="accent" className="ui-panel-heading-icon">
+            <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+          </IconContainer>
         ) : null}
         <div className="min-w-0">
           <h2 className="text-base font-semibold tracking-normal text-[var(--text-primary)]">{title}</h2>
@@ -266,12 +266,6 @@ function Panel({ title, description, children, icon: Icon }) {
 }
 
 function QuickActionRow({ icon: Icon, title, description, onClick, disabled = false, loading = false, tone = 'neutral' }) {
-  const iconClass = tone === 'primary'
-    ? 'bg-[color:color-mix(in_srgb,var(--accent)_14%,var(--surface)_86%)] text-[var(--accent)]'
-    : tone === 'warning'
-      ? 'bg-[color:color-mix(in_srgb,var(--warning)_12%,var(--surface)_88%)] text-[var(--warning)]'
-      : 'bg-[color:color-mix(in_srgb,var(--surface-strong)_72%,var(--surface)_28%)] text-[var(--text-muted)]';
-
   return (
     <button
       type="button"
@@ -279,9 +273,9 @@ function QuickActionRow({ icon: Icon, title, description, onClick, disabled = fa
       disabled={disabled || loading}
       className="flex w-full items-center gap-3 rounded-xl border border-[var(--border)] bg-[color:color-mix(in_srgb,var(--surface)_86%,var(--surface-strong)_14%)] px-3 py-2 text-left transition hover:border-[color:color-mix(in_srgb,var(--accent)_42%,var(--border)_58%)] hover:bg-[color:color-mix(in_srgb,var(--accent)_6%,var(--surface)_94%)] disabled:cursor-not-allowed disabled:opacity-55"
     >
-      <span className={joinClasses('inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', iconClass)}>
-        {loading ? <LoadingSpinner /> : <Icon className="h-4 w-4" />}
-      </span>
+      <IconContainer tone={tone === 'primary' ? 'accent' : tone} className="ui-section-icon ui-section-icon--compact">
+        {loading ? <LoadingSpinner /> : <Icon className="h-[18px] w-[18px]" aria-hidden="true" />}
+      </IconContainer>
       <span className="min-w-0">
         <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{title}</span>
         <span className="mt-0.5 block truncate text-[11px] text-[var(--text-muted)]">{description}</span>
@@ -311,6 +305,8 @@ function BackupRestorePanel({
   const [filter, setFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [openMenuId, setOpenMenuId] = useState('');
+  const openMenuRef = useRef(null);
+  const openMenuTriggerRef = useRef(null);
   const [detailsBackupId, setDetailsBackupId] = useState('');
   const [confirmState, setConfirmState] = useState({ open: false, kind: '', backupId: '', name: '' });
   const [createModal, setCreateModal] = useState({
@@ -327,6 +323,19 @@ function BackupRestorePanel({
   const [cleaning, setCleaning] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!openMenuId) return;
+
+    function handlePointerDown(event) {
+      if (!openMenuRef.current?.contains(event.target) && !openMenuTriggerRef.current?.contains(event.target)) {
+        setOpenMenuId('');
+      }
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    return () => document.removeEventListener('pointerdown', handlePointerDown, true);
+  }, [openMenuId]);
 
   const backups = useMemo(
     () => [...restorePoints, ...configBackups],
@@ -497,7 +506,7 @@ function BackupRestorePanel({
         subcategory,
         categoryKey: category.toLowerCase(),
         subcategoryKey: subcategory.toLowerCase(),
-        currentState: String(entry?.currentState || entry?.status || '').trim().toLowerCase(),
+        currentState: entry?.checked === false ? '' : String(entry?.currentState || entry?.status || '').trim().toLowerCase(),
         status: String(entry?.status || entry?.currentState || '').trim(),
         containerType: String(entry?.containerType || '').trim().toLowerCase(),
         profileLabel: String(entry?.profileLabel || '').trim(),
@@ -527,20 +536,24 @@ function BackupRestorePanel({
       (entry) => entry.currentState === 'enabled' && isRegistryBackedTweakEntry(entry)
     );
     const snapshot = {};
+    const verifiedSection = (entries, captureStatus) => {
+      const verified = entries.filter((entry) => ['enabled', 'disabled'].includes(entry.currentState));
+      return buildSection(verified, !entries.length ? captureStatus : !verified.length ? 'unavailable' : verified.length < entries.length ? 'partial' : captureStatus);
+    };
 
     for (const scopeId of scopeIds) {
       if (scopeId === 'tweakStates') {
-        snapshot[scopeId] = buildSection(snapshotTweaks, hasTweakSource ? 'complete' : 'unavailable');
+        snapshot[scopeId] = verifiedSection(snapshotTweaks, hasTweakSource ? 'complete' : 'unavailable');
       } else if (scopeId === 'powerPlans') {
-        snapshot[scopeId] = buildSection(powerPlanTweaks, hasTweakSource ? 'complete' : 'unavailable');
+        snapshot[scopeId] = verifiedSection(powerPlanTweaks, hasTweakSource ? 'complete' : 'unavailable');
       } else if (scopeId === 'timerProfiles') {
-        snapshot[scopeId] = buildSection(timerTweaks, hasTweakSource ? 'complete' : 'unavailable');
+        snapshot[scopeId] = verifiedSection(timerTweaks, hasTweakSource ? 'complete' : 'unavailable');
       } else if (scopeId === 'registryChanges') {
-        snapshot[scopeId] = buildSection(registryBackedTweaks, hasTweakSource ? 'complete' : 'unavailable');
+        snapshot[scopeId] = verifiedSection(registryBackedTweaks, hasTweakSource ? 'complete' : 'unavailable');
       } else if (scopeId === 'serviceTweaks') {
-        snapshot[scopeId] = buildSection(serviceTweaks, hasTweakSource ? 'partial' : 'unavailable');
+        snapshot[scopeId] = verifiedSection(serviceTweaks, hasTweakSource ? 'partial' : 'unavailable');
       } else if (scopeId === 'bootBcd') {
-        snapshot[scopeId] = buildSection(
+        snapshot[scopeId] = verifiedSection(
           snapshotTweaks.filter((entry) => BOOT_SCOPE_CATEGORIES.has(entry.categoryKey) || BOOT_SCOPE_SUBCATEGORIES.has(entry.subcategoryKey)),
           hasTweakSource ? 'partial' : 'unavailable'
         );
@@ -1132,7 +1145,7 @@ function BackupRestorePanel({
                 <div className="space-y-3 p-5">
                   {Array.from({ length: 5 }).map((_, index) => (
                     <div key={index} className="grid min-h-16 grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-3 rounded-xl border border-[var(--border-subtle)] px-4 py-3 xl:grid-cols-[2.25rem_minmax(130px,1fr)_118px_70px_90px_90px_86px]">
-                      <Skeleton className="h-9 w-9 rounded-xl" />
+                      <Skeleton className="h-9 w-9 rounded-full" />
                       <span className="grid gap-2">
                         <Skeleton className="h-3 w-32 max-w-full" />
                         <Skeleton className="h-2.5 w-48 max-w-[80%]" />
@@ -1161,8 +1174,8 @@ function BackupRestorePanel({
                       >
                         <div className="min-w-0">
                           <div className="flex items-center justify-center gap-3">
-                            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-strong)] text-[var(--text-secondary)]">
-                              {backup.origin === 'windows' ? <ShieldCheck className="h-4 w-4" /> : <DatabaseBackup className="h-4 w-4" />}
+                            <span className={`backup-icon h-9 w-9 ${backup.origin === 'windows' ? 'backup-icon--system' : 'backup-icon--primary'}`}>
+                              {backup.origin === 'windows' ? <ShieldCheck className="h-[18px] w-[18px]" aria-hidden="true" /> : <DatabaseBackup className="h-[18px] w-[18px]" aria-hidden="true" />}
                             </span>
                             <div className="min-w-0">
                               <p className="truncate text-sm font-semibold text-[var(--text-primary)]" title={backup.name}>
@@ -1193,16 +1206,18 @@ function BackupRestorePanel({
                           </button>
                           <button
                             type="button"
+                            ref={openMenuId === backup.id ? openMenuTriggerRef : null}
                             onClick={() => setOpenMenuId((previous) => previous === backup.id ? '' : backup.id)}
                             disabled={busy}
                             className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
                             aria-label={`More actions for ${backup.name}`}
+                            aria-expanded={openMenuId === backup.id}
                           >
                             <MoreHorizontal className="h-4 w-4" />
                           </button>
 
                           {openMenuId === backup.id ? (
-                            <div className={joinClasses(
+                            <div ref={openMenuRef} className={joinClasses(
                               'absolute right-0 z-30 w-48 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-[0_18px_54px_rgba(0,0,0,0.28)]',
                               menuOpensUpward ? 'bottom-11' : 'top-11'
                             )}>

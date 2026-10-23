@@ -27,6 +27,7 @@ const {
 const { resolveWindowsSystemExecutable } = require('../security/systemExecutables');
 const { assertBundledTweakContent } = require('../security/bundledTweakIntegrity');
 const bundledTweakManifest = require('../../generated/bundled-tweaks-manifest');
+const { createBackgroundServiceControl } = require('../gamemode/backgroundServiceControl');
 
 function argumentValue(argv, name) {
   const index = argv.indexOf(name);
@@ -133,7 +134,7 @@ function createDefaultOperationHandler(options = {}) {
     const artifactInput = payload?.artifact;
     const action = String(payload?.action || '').trim();
     const params = payload?.params;
-    if (!artifactInput || !['On', 'Off'].includes(action) || !params || typeof params !== 'object' || Array.isArray(params)) {
+    if (!artifactInput || !['Check', 'On', 'Off'].includes(action) || !params || typeof params !== 'object' || Array.isArray(params)) {
       throw new AdminBrokerProtocolError('The privileged tweak payload is invalid.', 'ADMIN_BROKER_INVALID_PAYLOAD');
     }
 
@@ -459,6 +460,7 @@ function createDefaultOperationHandler(options = {}) {
 
   async function handle(operation, payload, timeoutMs) {
     switch (operation) {
+      case 'gamemode.services': return createBackgroundServiceControl()(payload);
       case 'tweak.execute': return executeTweak(payload, timeoutMs);
       case 'startup.setEnabled': return setMachineStartupState(payload);
       case 'game.configure': return configureGame(payload);

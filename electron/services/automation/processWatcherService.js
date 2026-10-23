@@ -499,6 +499,7 @@ function createProcessWatcherService(options = {}) {
 }
 
 module.exports = {
+  WINDOWS_PROCESS_SCRIPT,
   calculateAdaptiveMemoryThresholdMB,
   createProcessWatcherService,
   isProtectedProcess

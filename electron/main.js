@@ -16,6 +16,9 @@ const { execFileSync } = require('child_process');
 const { pathToFileURL } = require('url');
 const { app, BrowserWindow, Menu, Tray, Notification, clipboard, dialog, ipcMain, shell, webContents, nativeImage, screen, protocol, net } = require('electron');
 const { createLogger } = require('./logger');
+const { createAppShutdownHandler } = require('./services/appShutdown');
+const { createBackgroundMinimizationService } = require('./services/gamemode/backgroundMinimizationService');
+const { createBackgroundServiceControl } = require('./services/gamemode/backgroundServiceControl');
 const { getReleaseInfo } = require('./services/releaseInfo');
 const { createScriptRunner, ScriptRunnerError } = require('./services/script-runner');
 const { createMonitoringManager } = require('./services/monitoring/monitoringManager');
@@ -67,6 +70,11 @@ if (isPackagedSmoke) {
   if (!process.env.NOVA_SMOKE_USER_DATA) throw new Error('Smoke user-data directory is required.');
   app.setPath('userData', path.resolve(process.env.NOVA_SMOKE_USER_DATA));
   app.setPath('sessionData', app.getPath('userData'));
+} else if (!app.isPackaged) {
+  // A shared profile also shares Electron's single-instance lock. Development
+  // must open its own renderer instead of focusing an installed release.
+  app.setPath('userData', path.join(app.getPath('appData'), 'Nova Tweaks Development'));
+  app.setPath('sessionData', app.getPath('userData'));
 }
 const PRODUCT_NAME = 'Nova Tweaks';
 const LEGACY_PRODUCT_NAME = 'Nova Tweaks Local';
@@ -81,7 +89,7 @@ if (process.platform === 'win32' && process.windowsStore !== true) {
   app.setAppUserModelId(WINDOWS_APP_USER_MODEL_ID);
 }
 try {
-  if (!isPackagedSmoke) migrateLegacyUserData({
+  if (app.isPackaged && !isPackagedSmoke) migrateLegacyUserData({
     appDataPath: app.getPath('appData'),
     currentUserDataPath: app.getPath('userData'),
     legacyDirectoryName: LEGACY_PRODUCT_NAME
@@ -343,8 +351,6 @@ let scriptRunner = null;
 let monitoringManager = null;
 let gameSessionManager = null;
 let displayProfileService = null;
-let displayProfilesQuitReady = false;
-let displayProfilesQuitPending = false;
 let tweakRunner = null;
 let backendTweakCatalog = null;
 let appsManager = null;
@@ -358,6 +364,7 @@ let extendedNetworkTestService = null;
 let ruleAutomationService = null;
 let scheduledMaintenanceService = null;
 let adminBrokerManager = null;
+let backgroundMinimizationService = null;
 let adminBrokerWasReady = false;
 let latestUpdateCheck = null;
 const metricsSubscriberIds = new Set();
@@ -480,6 +487,7 @@ function normalizeGameModeRestoreSnapshot(value) {
       id,
       currentState,
       selectedOption: typeof entry?.selectedOption === 'string' ? entry.selectedOption.trim().slice(0, 160) : '',
+      ...(id === 'xbox_services' && entry.backgroundManaged === true ? { backgroundManaged: true } : {}),
       selectedResolution: typeof entry?.selectedResolution === 'string' ? entry.selectedResolution.trim().slice(0, 16) : ''
     }];
   });
@@ -897,7 +905,9 @@ function mergeTweakDetails(tweak, details = {}) {
     advancedInfo: source.advancedInfo || source.advanced_info || baseTweak.advancedInfo || baseTweak.advanced_info || null,
     ai: source.ai || baseTweak.ai || null,
     script: typeof source.script === 'string' ? source.script : typeof baseTweak.script === 'string' ? baseTweak.script : '',
-    ...(typeof source.currentState === 'string' ? { currentState: source.currentState } : {}),
+    ...(Object.prototype.hasOwnProperty.call(source, 'currentState') ? { currentState: source.currentState } : {}),
+    ...(typeof source.checked === 'boolean' ? { checked: source.checked } : {}),
+    ...(source.stateCheckStatus ? { stateCheckStatus: source.stateCheckStatus, stateCheckError: source.stateCheckError || null } : {}),
     ...(typeof source.status === 'string' ? { status: source.status } : {})
   };
 }
@@ -1030,7 +1040,7 @@ async function syncMonitoringSubscriptionState() {
     return;
   }
 
-  if (!advancedSensorMonitoringEnabled) {
+  if (isQuitting || !advancedSensorMonitoringEnabled) {
     monitoringManager.stop();
     return;
   }
@@ -1062,6 +1072,7 @@ function broadcastMetricsUpdate(metrics) {
 }
 
 function broadcastGameSessionUpdate(state = null) {
+  if (isQuitting) return;
   pruneGameSessionSubscribers();
   const payload = state || gameSessionManager?.getState?.() || null;
   ruleAutomationService?.handleGameState?.(payload);
@@ -2391,6 +2402,14 @@ function registerIpcHandlers() {
     }
   });
 
+  for (const action of ['state', 'prepare', 'apply', 'restore']) {
+    ipcMain.handle(`gamemode:background:${action}`, async () => {
+      if (!backgroundMinimizationService) return { ok: false, code: 'GAME_MODE_NOT_READY' };
+      if (action === 'state') return { ok: true, state: backgroundMinimizationService.getState() };
+      return backgroundMinimizationService[action]();
+    });
+  }
+
   ipcMain.handle('gamemode:set-state', async (_event, payload = {}) => {
     try {
       return {
@@ -2908,6 +2927,7 @@ if (!initializePrivilegeState()) {
     });
 
   app.whenReady().then(() => {
+    if (isQuitting) return;
     Menu.setApplicationMenu(null);
     if (process.platform === 'win32' && !isPackagedSmoke && process.windowsStore !== true) {
       removeLegacyStartMenuShortcut({ app, shell, logger });
@@ -3169,6 +3189,7 @@ if (!initializePrivilegeState()) {
       onUpdate: broadcastProcessAutomationUpdate,
       hasAdditionalDemand: () => displayProfileService?.needsProcessSnapshots?.() || false,
       onSnapshot: (processes) => {
+        if (isQuitting) return;
         ruleAutomationService?.handleProcessSnapshot?.(processes);
         void displayProfileService?.handleProcessSnapshot?.(processes);
       }
@@ -3199,6 +3220,7 @@ if (!initializePrivilegeState()) {
       allowDriverProvisionProvider: () => false,
       privilegedExecutor: (operation, payload, options) => adminBrokerManager.execute(operation, payload, options),
       onMetrics: (metrics) => {
+        if (isQuitting) return;
         broadcastMetricsUpdate(metrics);
         gameSessionManager?.handleMetrics?.(metrics);
         ruleAutomationService?.handleMetrics?.(metrics);
@@ -3213,6 +3235,27 @@ if (!initializePrivilegeState()) {
       automaticCheckDisabled: true,
       releasesUrl: RELEASES_URL
     };
+
+    const localServiceControl = createBackgroundServiceControl();
+    backgroundMinimizationService = createBackgroundMinimizationService({
+      journalPath: path.join(app.getPath('userData'), 'game-mode', 'background-journal.json'),
+      executionGate,
+      logger: appsLogger,
+      control: (payload) => isAdminSession ? localServiceControl(payload)
+        : adminBrokerManager.execute('gamemode.services', payload, { allowPrompt: false, reason: 'game-mode-background', timeoutMs: 24000 }),
+      getGames: async () => {
+        const detected = await appsManager.detectActiveGame();
+        const current = gameSessionManager?.getState?.()?.activeGame;
+        return [detected?.game || detected?.activeGame || detected, current].filter(Boolean);
+      }
+    });
+    // Recovery owns the execution gate before the renderer starts. Keep the
+    // window responsive while new activations remain blocked by that gate.
+    if (backgroundMinimizationService.getState().hasSnapshot || backgroundMinimizationService.getState().pendingRestore) {
+      void backgroundMinimizationService.recover().then((recovered) => {
+        if (!recovered.ok) appsLogger.warn('Game Mode recovery requires attention.', { code: recovered.code });
+      });
+    }
 
     registerIpcHandlers();
     createMainWindow();
@@ -3232,28 +3275,24 @@ if (!initializePrivilegeState()) {
   }
 }
 
-app.on('before-quit', (event) => {
-  if (displayProfileService && !displayProfilesQuitReady) {
-    event.preventDefault();
-    if (!displayProfilesQuitPending) {
-      displayProfilesQuitPending = true;
-      processWatcherService?.stop?.();
-      void displayProfileService.shutdown().finally(() => {
-        displayProfilesQuitReady = true;
-        app.quit();
-      });
-    }
-    return;
-  }
-  isQuitting = true;
-  clearInterval(automaticBackupTimer);
-  adminBrokerManager?.shutdown?.();
-  extendedNetworkTestService?.cancel?.();
-  scheduledMaintenanceService?.destroy?.();
-  processWatcherService?.stop?.();
-  void gameSessionManager?.stopSession?.({ reason: 'app-quit' });
-  void monitoringManager?.shutdown?.();
-});
+app.on('before-quit', createAppShutdownHandler({
+  app,
+  logger,
+  onBegin: () => {
+    isQuitting = true;
+    clearInterval(automaticBackupTimer);
+  },
+  getServices: () => ({
+    backgroundMinimizationService,
+    displayProfileService,
+    gameSessionManager,
+    monitoringManager,
+    adminBrokerManager,
+    processWatcherService,
+    extendedNetworkTestService,
+    scheduledMaintenanceService
+  })
+}));
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

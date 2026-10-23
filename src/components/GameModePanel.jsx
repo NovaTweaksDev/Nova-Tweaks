@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { Button, IconBadge, ModalShell, PageHeader, PageShell, PremiumBadge, SegmentedControl, StatusPill, Switch } from './ui';
 import DisplayProfilesPanel from './DisplayProfilesPanel';
+import GameModePresetInfo from './GameModePresetInfo';
 import {
   createPresetExecutionPlan,
   createPresetOperation,
@@ -43,6 +44,17 @@ import {
   isPresetTweakActive,
   normalizePresetId
 } from './gameModePresetPolicy.mjs';
+
+function formatBackgroundIncomplete(state, t, restoring = false) {
+  const incomplete = [
+    ...(state?.entries || []).filter((entry) => entry.code && entry.code !== 'ALREADY_DISABLED'),
+    ...(restoring ? [] : state?.apps || []).filter((entry) => entry.status !== 'closed')
+  ];
+  const names = incomplete.map((entry) => `${entry.name}: ${t(`gameMode.preset.background.reason.${entry.code}`, {
+    defaultValue: t('gameMode.preset.background.reason.unknown')
+  })}`).join('; ') || t('gameMode.preset.background.reason.unknown');
+  return t(restoring ? 'gameMode.preset.background.restoreIncomplete' : 'gameMode.preset.background.incomplete', { names });
+}
 
 const POLL_INTERVAL_MS = 5000;
 const STALE_GAME_KEEP_MS = 12000;
@@ -356,7 +368,7 @@ function GameModeSectionTitle({ title, subtitle, icon: Icon, actions = null }) {
     <div className="game-mode-section-title">
       <div className="game-mode-section-title__main">
         {Icon ? (
-          <IconBadge tone="accent" className="game-mode-section-title__icon">
+          <IconBadge tone="accent" className="ui-panel-heading-icon game-mode-section-title__icon">
             <Icon {...LUCIDE_ICON_PROPS} aria-hidden="true" />
           </IconBadge>
         ) : null}
@@ -402,12 +414,12 @@ function TuningRow({
 }) {
   return (
     <div className="game-mode-tuning-row">
-      <IconBadge tone="accent" className="game-mode-tuning-row__icon">
+      <IconBadge tone="accent" className="ui-section-icon ui-section-icon--compact game-mode-tuning-row__icon">
         <Icon {...LUCIDE_ICON_PROPS} aria-hidden="true" />
       </IconBadge>
       <p className="game-mode-tuning-row__title">{title}</p>
       <div className="game-mode-tuning-row__actions">
-        <StatusPill tone={statusTone}>{statusLabel}</StatusPill>
+        {statusLabel ? <StatusPill tone={statusTone}>{statusLabel}</StatusPill> : null}
         {children}
       </div>
     </div>
@@ -418,16 +430,10 @@ function RuntimeTuningCard({
   t,
   canUsePremium,
   hasDetectedGame,
-  gameName,
-  iconSource,
   hasPendingTuningChanges,
-  fullscreenToggleChanged,
   disableFullscreenOptimizations,
-  fullscreenToggleStateLabel,
   onFullscreenToggle,
-  priorityToggleChanged,
   preferHighPriority,
-  priorityToggleStateLabel,
   onPriorityToggle,
   affinityToggleChanged,
   logicalProcessorCount,
@@ -441,9 +447,6 @@ function RuntimeTuningCard({
   statusMessages
 }) {
   const subtitle = hasPendingTuningChanges ? t('gameMode.tuning.pendingSummary') : t('gameMode.tuning.noPendingChanges');
-  const actionHint = hasDetectedGame
-    ? t('gameMode.tuning.readyForGame', { gameName })
-    : t('gameMode.tuning.noGame');
 
   return (
     <section className="game-mode-card game-mode-runtime-card">
@@ -457,8 +460,6 @@ function RuntimeTuningCard({
         <TuningRow
           icon={MonitorCheck}
           title={t('gameMode.tuning.fullscreenOptimization')}
-          statusLabel={fullscreenToggleStateLabel}
-          statusTone={fullscreenToggleChanged ? 'warning' : disableFullscreenOptimizations ? 'accent' : 'neutral'}
         >
           <Switch
             checked={disableFullscreenOptimizations}
@@ -471,8 +472,6 @@ function RuntimeTuningCard({
         <TuningRow
           icon={Gauge}
           title={t('gameMode.tuning.highPriority')}
-          statusLabel={priorityToggleStateLabel}
-          statusTone={priorityToggleChanged ? 'warning' : preferHighPriority ? 'accent' : 'neutral'}
         >
           <Switch
             checked={preferHighPriority}
@@ -528,10 +527,6 @@ function RuntimeTuningCard({
             {t('gameMode.session.unlock', { defaultValue: 'Unlock' })}
           </Button>
         ) : null}
-        <p className={`game-mode-action-row__hint ${hasDetectedGame ? 'is-ready' : ''}`}>
-          {hasDetectedGame ? <GameIcon iconSource={iconSource} label={gameName} className="game-mode-game-icon--inline" /> : null}
-          {actionHint}
-        </p>
       </div>
 
       {applyMessage ? (
@@ -684,7 +679,7 @@ function LiveMetricCard({ icon: Icon, label, value, detail, premium = false, pri
   return (
     <div className={`game-mode-live-metric-card ${priority ? 'is-priority' : ''} ${unavailable ? 'is-empty' : ''}`}>
       <div className="game-mode-live-metric-card__top">
-        <IconBadge tone="accent" className="game-mode-live-metric-card__icon">
+        <IconBadge tone="accent" className="ui-section-icon game-mode-live-metric-card__icon">
           <Icon {...LUCIDE_ICON_PROPS} aria-hidden="true" />
         </IconBadge>
         <p className="game-mode-live-metric-card__label">{label}</p>
@@ -716,7 +711,7 @@ function LiveMetricsGroup({ title, description, actions = null, children }) {
 function MetricTile({ icon: Icon, label, value, detail, premium = false }) {
   return (
     <div className="game-mode-metric-tile">
-      <IconBadge tone="accent" className="game-mode-metric-tile__icon">
+      <IconBadge tone="accent" className="ui-section-icon game-mode-metric-tile__icon">
         <Icon {...LUCIDE_ICON_PROPS} aria-hidden="true" />
       </IconBadge>
       <div className="game-mode-metric-tile__body">
@@ -780,7 +775,9 @@ function LiveGameMetrics({
       icon: Activity,
       label: i18n.t('interfaceText.1_low_18710'),
       value: formatCapturedMetric(getSessionMetric(session, 'onePercentLow'), formatFps),
-      detail: i18n.t('interfaceText.real_frame_samples_05d75')
+      detail: session?.frameStatisticsScope === 'recent'
+        ? t('gameMode.frameStatistics.recentSamples', { count: session.frameStatisticsSampleLimit })
+        : i18n.t('interfaceText.real_frame_samples_05d75')
     },
     {
       icon: Network,
@@ -853,7 +850,7 @@ function LiveGameMetrics({
               {item.gameIcon && iconSource ? (
                 <GameIcon iconSource={iconSource} label={item.value} className="game-mode-game-icon--status" />
               ) : (
-                <IconBadge tone="accent" className="game-mode-live-status-item__icon">
+                <IconBadge tone="accent" className="ui-section-icon ui-section-icon--compact game-mode-live-status-item__icon">
                   <ItemIcon {...LUCIDE_ICON_PROPS} aria-hidden="true" />
                 </IconBadge>
               )}
@@ -868,7 +865,9 @@ function LiveGameMetrics({
 
       <LiveMetricsGroup
         title={i18n.t('interfaceText.primary_metrics_0ffef')}
-        description={i18n.t('interfaceText.frame_and_input_sensitive_signals_af5b3')}
+        description={recording && session?.frameStatisticsScope === 'recent'
+          ? t('gameMode.frameStatistics.liveWindow')
+          : i18n.t('interfaceText.frame_and_input_sensitive_signals_af5b3')}
         actions={<span className="game-mode-live-priority-pill"><Gauge {...LUCIDE_ICON_PROPS} aria-hidden="true" /> {i18n.t('interfaceText.priority_view_770f8')}</span>}
       >
         {primaryMetrics.map((metric) => (
@@ -1015,7 +1014,6 @@ function LivePerformanceGraph({ t, session }) {
 
 function ActiveGameProfileCard({
   t,
-  activeProfileLabel,
   gameName,
   iconSource,
   presetActive,
@@ -1025,7 +1023,6 @@ function ActiveGameProfileCard({
   gameModeButtonAria,
   onRunPreset,
   onRequestPremium,
-  session,
   canUsePremium
 }) {
   return (
@@ -1045,15 +1042,10 @@ function ActiveGameProfileCard({
           <p className="game-mode-profile-summary__value">
             {presetActive ? t('gameMode.preset.enabled') : t('gameMode.preset.disabled')}
           </p>
-          <p className="game-mode-profile-summary__profile">
-            {t('gameMode.preset.sessionProfile')}: {activeProfileLabel}
-          </p>
         </div>
-        <StatusPill tone={presetActive ? 'success' : 'neutral'}>
-          {presetActive ? t('gameMode.activeBadge') : t('gameMode.preset.inactiveBadge')}
-        </StatusPill>
       </div>
       <div className="game-mode-profile-orb-wrap">
+        <GameModePresetInfo t={t} definitions={GAME_MODE_PRESET_TWEAKS} />
         <GameModeOrb
           active={presetActive}
           pending={presetPending}
@@ -1065,10 +1057,6 @@ function ActiveGameProfileCard({
           onClick={canUsePremium ? onRunPreset : onRequestPremium}
           className="game-mode-profile-orb"
         />
-      </div>
-      <div className="game-mode-profile-restore">
-        <ShieldCheck {...LUCIDE_ICON_PROPS} aria-hidden="true" />
-        <span>{session?.restore?.message || i18n.t('interfaceText.auto_restore_after_gaming_is_prepared_for_temporary_profile_sessi_1a8d8')}</span>
       </div>
       {presetMessage ? (
         <p className={`game-mode-message game-mode-message--${presetTone}`}>
@@ -1313,7 +1301,7 @@ function SessionInsightsCard({ t, session, iconSource, onViewReport, onStartSess
 
       {!hasAnalysisData ? (
         <div className="game-mode-insight-empty">
-          <IconBadge tone="accent" className="game-mode-insight-empty__icon">
+          <IconBadge tone="accent" className="ui-section-icon game-mode-insight-empty__icon">
             <BarChart3 {...LUCIDE_ICON_PROPS} aria-hidden="true" />
           </IconBadge>
           <div className="game-mode-insight-empty__copy">
@@ -1451,7 +1439,7 @@ function LastSessionReportCard({ t, report, onViewReport, onExportReport, onOpen
       ) : (
         <div className="game-mode-report-empty">
           <div className="game-mode-report-empty__summary">
-            <IconBadge tone="neutral" className="game-mode-report-empty__icon">
+            <IconBadge tone="neutral" className="ui-section-icon game-mode-report-empty__icon">
               <FileText {...LUCIDE_ICON_PROPS} aria-hidden="true" />
             </IconBadge>
             <div className="min-w-0">
@@ -1796,16 +1784,6 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
     logicalProcessorCount > 0 &&
     !areProcessorListsEqual(affinitySelection, currentAffinityProcessors);
   const hasPendingTuningChanges = fullscreenToggleChanged || priorityToggleChanged || affinityToggleChanged;
-  const fullscreenToggleStateLabel = fullscreenToggleChanged
-    ? t('gameMode.tuning.state.pending')
-    : disableFullscreenOptimizations
-      ? t('gameMode.tuning.state.on')
-      : t('gameMode.tuning.state.off');
-  const priorityToggleStateLabel = priorityToggleChanged
-    ? t('gameMode.tuning.state.pending')
-    : preferHighPriority
-      ? t('gameMode.tuning.state.configured')
-      : t('gameMode.tuning.state.off');
   const affinityToggleStateLabel = affinityToggleChanged
     ? t('gameMode.tuning.state.pending')
     : formatAffinitySummary(currentAffinityProcessors, logicalProcessorCount, t);
@@ -1853,7 +1831,7 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
     }
   }
 
-  async function loadPresetCatalog() {
+  async function loadPresetCatalog({ includeState = true } = {}) {
     if (!window.desktopApi?.listTweaks) {
       return {
         ok: false,
@@ -1862,7 +1840,10 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
       };
     }
 
-    const result = await window.desktopApi.listTweaks();
+    const result = await window.desktopApi.listTweaks({
+      includeState,
+      ids: GAME_MODE_PRESET_TWEAKS.map((entry) => entry.id)
+    });
 
     if (!result?.ok) {
       return {
@@ -1896,6 +1877,18 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
 
   async function refreshPresetState() {
     try {
+      const persisted = await window.desktopApi?.getGameModeState?.();
+      const background = await window.desktopApi?.getGameModeBackgroundState?.();
+      if (persisted?.state?.restoreSnapshot?.length || background?.state?.pendingRestore) {
+        setPresetActive(true);
+        if (['partial', 'recovery_required'].includes(background?.state?.phase)) {
+          setPresetTone('warning');
+          setPresetMessage(background.state.phase === 'partial'
+            ? formatBackgroundIncomplete(background.state, t)
+            : t('gameMode.preset.background.recovery'));
+        }
+        return;
+      }
       const result = await loadPresetCatalog();
       if (!result.ok) {
         setPresetActive(false);
@@ -2114,7 +2107,8 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
       presetActive,
       presetDefinitions: GAME_MODE_PRESET_TWEAKS
     });
-    const shouldDisablePreset = presetOperation.disableRequested;
+    const operationStartedAt = Date.now();
+    let shouldDisablePreset = presetOperation.disableRequested;
     presetOperationInFlightRef.current = true;
     setPresetPending(true);
     setPresetMessage('');
@@ -2129,7 +2123,28 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
     });
 
     try {
-      const catalogResult = await loadPresetCatalog();
+      const persisted = await window.desktopApi?.getGameModeState?.();
+      let restoreSnapshot = Array.isArray(persisted?.state?.restoreSnapshot) ? persisted.state.restoreSnapshot : presetRestoreSnapshot;
+      const backgroundBefore = await window.desktopApi?.getGameModeBackgroundState?.();
+      shouldDisablePreset = shouldDisablePreset || restoreSnapshot.length > 0 || backgroundBefore?.state?.pendingRestore === true;
+      if (!window.desktopApi?.prepareGameModeBackground || !backgroundBefore?.ok) {
+        throw Object.assign(new Error('Game Mode background API unavailable'), { code: 'APP_RESTART_REQUIRED' });
+      }
+      const backgroundManaged = !shouldDisablePreset || restoreSnapshot.some((entry) => entry.id === 'xbox_services' && entry.backgroundManaged === true);
+      let backgroundResult;
+      async function runBackground(action) {
+        let result = await action();
+        if (['ADMIN_REQUIRED', 'ADMIN_BROKER_APPROVAL_REQUIRED'].includes(result?.code) && window.desktopApi?.requestAdminAccess) {
+          const approval = await window.desktopApi.requestAdminAccess({ reason: 'game-mode-background' });
+          result = approval?.ok ? await action() : approval;
+        }
+        return result;
+      }
+      if (shouldDisablePreset) {
+        // Restore services even if loading or restoring the old preset fails.
+        backgroundResult = await runBackground(() => window.desktopApi.restoreGameModeBackground());
+      }
+      const catalogResult = await loadPresetCatalog({ includeState: !shouldDisablePreset });
       if (!catalogResult.ok) {
         setPresetTone("error");
         const message = t('gameMode.preset.loadFailed', { code: catalogResult.code });
@@ -2153,7 +2168,6 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
       }
 
       const statefulTweaks = resolvedTweaks.filter(({ presetDefinition }) => presetDefinition.stateful !== false);
-      let restoreSnapshot = presetRestoreSnapshot;
       if (shouldDisablePreset && restoreSnapshot.length === 0 && window.desktopApi?.getGameModeState) {
         const persistedStateResult = await window.desktopApi.getGameModeState();
         if (persistedStateResult?.ok) {
@@ -2164,10 +2178,18 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
         }
       }
       if (!shouldDisablePreset && restoreSnapshot.length === 0) {
-        restoreSnapshot = createPresetRestoreSnapshot(resolvedTweaks);
+        restoreSnapshot = createPresetRestoreSnapshot(resolvedTweaks, { backgroundManaged: true });
         if (restoreSnapshot.length !== statefulTweaks.length) {
           const message = t('gameMode.preset.snapshotFailed');
           setPresetTone('error');
+          setPresetMessage(message);
+          onRuntimeStatusChange?.({ id: 'game-mode:preset', label: t('nav.gameMode'), message, status: 'error' });
+          return;
+        }
+        const prepared = await runBackground(() => window.desktopApi.prepareGameModeBackground());
+        if (!prepared?.ok) {
+          const message = t('gameMode.preset.background.failed', { code: prepared?.code || 'PREPARE_FAILED' });
+          setPresetTone('warning');
           setPresetMessage(message);
           onRuntimeStatusChange?.({ id: 'game-mode:preset', label: t('nav.gameMode'), message, status: 'error' });
           return;
@@ -2187,7 +2209,8 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
       const executionPlan = createPresetExecutionPlan({
         resolvedTweaks,
         disableRequested: shouldDisablePreset,
-        restoreSnapshot
+        restoreSnapshot,
+        backgroundManaged
       });
       if (!executionPlan.ok) {
         const message = t('gameMode.preset.snapshotFailed');
@@ -2199,6 +2222,7 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
       const tweaksToApply = executionPlan.entries;
 
       const failedTweaks = [];
+      const progressTotal = executionPlan.entries.length + (shouldDisablePreset ? 0 : 1);
       let progressSteps = tweaksToApply.map(({ tweak, presetDefinition }) => ({
         id: presetDefinition.id,
         label: tweak.name || presetDefinition.label || presetDefinition.id,
@@ -2224,7 +2248,7 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
           label: shouldDisablePreset ? t('gameMode.preset.restoring') : t('gameMode.preset.enabling'),
           message: t('gameMode.preset.progress', { current: index + 1, total: progressSteps.length }),
           status: 'running',
-          progress: index / progressSteps.length,
+          progress: index / progressTotal,
           steps: progressSteps
         });
         const result = await executeRemoteTweak({
@@ -2245,9 +2269,39 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
           label: shouldDisablePreset ? t('gameMode.preset.restoring') : t('gameMode.preset.enabling'),
           message: t('gameMode.preset.progress', { current: index + 1, total: progressSteps.length }),
           status: 'running',
-          progress: (index + 1) / progressSteps.length,
+          progress: (index + 1) / progressTotal,
           steps: progressSteps
         });
+      }
+
+      if (!shouldDisablePreset && failedTweaks.length === 0) {
+        onRuntimeStatusChange?.({ id: 'game-mode:preset', label: t('nav.gameMode'), message: t('gameMode.preset.background.running'), status: 'running', progress: tweaksToApply.length / progressTotal, steps: progressSteps });
+        backgroundResult = await runBackground(() => window.desktopApi.applyGameModeBackground());
+      }
+      let backgroundWarning = '';
+      if (backgroundResult) {
+        const backgroundSteps = [
+          ...(backgroundResult.state?.entries || []).map((entry) => ({
+            id: `service:${entry.name}`,
+            label: `${entry.name}: ${entry.code ? t(`gameMode.preset.background.reason.${entry.code}`, { defaultValue: t('gameMode.preset.background.reason.unknown') }) : t(`gameMode.preset.background.service.${entry.phase}`)}`,
+            status: entry.code && entry.code !== 'ALREADY_DISABLED'
+              ? entry.phase === 'skipped' ? 'warning' : 'error'
+              : entry.phase === 'changed' || entry.phase === 'restored' || entry.code === 'ALREADY_DISABLED' ? 'success' : 'error'
+          })),
+          ...(shouldDisablePreset ? [] : backgroundResult.state?.apps || []).map((entry) => ({
+            id: `app:${entry.pid || entry.name}`,
+            label: `${entry.name}: ${entry.code ? t(`gameMode.preset.background.reason.${entry.code}`, { defaultValue: t('gameMode.preset.background.reason.unknown') }) : t(`gameMode.preset.background.app.${entry.status}`)}`,
+            status: entry.status === 'closed' ? 'success' : 'warning'
+          }))
+        ];
+        progressSteps = [...progressSteps, ...backgroundSteps];
+        if (!backgroundResult.ok) {
+          if (backgroundResult.code === 'GAME_MODE_BACKGROUND_PARTIAL') {
+            backgroundWarning = formatBackgroundIncomplete(backgroundResult.state, t, shouldDisablePreset);
+          } else {
+            failedTweaks.push(t('gameMode.preset.background.failed', { code: backgroundResult.code || 'UNKNOWN' }));
+          }
+        }
       }
 
       if (shouldDisablePreset && failedTweaks.length === 0) {
@@ -2257,12 +2311,15 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
       }
 
       if (failedTweaks.length > 0) {
+        // Preserve the original snapshot, including after a partial activation.
+        setPresetActive(true);
         setPresetTone('warning');
-        setPresetMessage(t(shouldDisablePreset ? 'gameMode.preset.disableFailedTweaks' : 'gameMode.preset.failedTweaks', { names: failedTweaks.join(', ') }));
+        const failureMessage = [t(shouldDisablePreset ? 'gameMode.preset.disableFailedTweaks' : 'gameMode.preset.failedTweaks', { names: failedTweaks.join(', ') }), backgroundWarning].filter(Boolean).join(' ');
+        setPresetMessage(failureMessage);
         onRuntimeStatusChange?.({
           id: 'game-mode:preset',
           label: t('nav.gameMode'),
-          message: t(shouldDisablePreset ? 'gameMode.preset.disableFailedTweaks' : 'gameMode.preset.failedTweaks', { names: failedTweaks.join(', ') }),
+          message: failureMessage,
           status: 'error',
           progress: 1,
           steps: progressSteps
@@ -2270,27 +2327,35 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
         return;
       }
 
-      if (shouldDisablePreset) {
-        await persistPresetState({ active: false, restoreSnapshot: [] });
+      if (shouldDisablePreset && !backgroundWarning) {
+        const saved = await persistPresetState({ active: false, restoreSnapshot: [] });
+        if (!saved?.ok) throw new Error('Game Mode state persistence failed');
       } else {
         setPresetActive(true);
-        await persistPresetState({ active: true, restoreSnapshot });
+        const saved = await persistPresetState({ active: true, restoreSnapshot });
+        if (!saved?.ok) throw new Error('Game Mode state persistence failed');
       }
-      setPresetTone("success");
-      setPresetMessage('');
+      setPresetTone(backgroundWarning ? 'warning' : 'success');
+      setPresetMessage(backgroundWarning);
       onRuntimeStatusChange?.({
         id: 'game-mode:preset',
         label: t('nav.gameMode'),
-        message: t(shouldDisablePreset ? 'gameMode.preset.disabledSimple' : 'gameMode.preset.appliedSimple'),
-        status: 'success',
+        message: backgroundWarning || (backgroundResult?.state ? t('gameMode.preset.background.summary', {
+          services: backgroundResult.state.entries.filter((entry) => entry.phase === (shouldDisablePreset ? 'restored' : 'changed')).length,
+          apps: shouldDisablePreset ? 0 : backgroundResult.state.apps.filter((entry) => entry.status === 'closed').length,
+          seconds: ((Date.now() - operationStartedAt) / 1000).toFixed(1)
+        }) : t(shouldDisablePreset ? 'gameMode.preset.disabledSimple' : 'gameMode.preset.appliedSimple')),
+        status: backgroundWarning ? 'warning' : 'success',
         progress: 1,
         steps: progressSteps
       });
     } catch (_error) {
       setPresetTone("error");
-      const message = t(presetActive ? 'gameMode.preset.disableFailed' : 'gameMode.preset.failed');
+      const message = _error?.code === 'APP_RESTART_REQUIRED'
+        ? t('gameMode.preset.restartRequired')
+        : t(presetActive ? 'gameMode.preset.disableFailed' : 'gameMode.preset.failed');
       setPresetMessage(message);
-      setPresetActive(false);
+      await refreshPresetState();
       onRuntimeStatusChange?.({ id: 'game-mode:preset', label: t('nav.gameMode'), message, status: 'error' });
     } finally {
       presetOperationInFlightRef.current = false;
@@ -3005,7 +3070,6 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
           <div className="game-mode-two-column">
             <ActiveGameProfileCard
               t={t}
-              activeProfileLabel={activeProfileLabel}
               gameName={gameName}
               iconSource={iconSource}
               presetActive={presetActive}
@@ -3015,7 +3079,6 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
               gameModeButtonAria={gameModeButtonAria}
               onRunPreset={runGameModePreset}
               onRequestPremium={onRequestPremium}
-              session={activeSession}
               canUsePremium={canUsePremium}
             />
 
@@ -3023,16 +3086,10 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
               t={t}
               canUsePremium={canUsePremium}
               hasDetectedGame={hasDetectedGame}
-              gameName={gameName}
-              iconSource={iconSource}
               hasPendingTuningChanges={hasPendingTuningChanges}
-              fullscreenToggleChanged={fullscreenToggleChanged}
               disableFullscreenOptimizations={disableFullscreenOptimizations}
-              fullscreenToggleStateLabel={fullscreenToggleStateLabel}
               onFullscreenToggle={handleFullscreenToggle}
-              priorityToggleChanged={priorityToggleChanged}
               preferHighPriority={preferHighPriority}
-              priorityToggleStateLabel={priorityToggleStateLabel}
               onPriorityToggle={handlePriorityToggle}
               affinityToggleChanged={affinityToggleChanged}
               logicalProcessorCount={logicalProcessorCount}

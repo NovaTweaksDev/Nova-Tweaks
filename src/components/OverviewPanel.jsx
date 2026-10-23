@@ -1,4 +1,5 @@
 import i18n from '../i18n';
+import { shouldAppendMonitoringSample } from '../utils/monitoringDisplay.mjs';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
@@ -45,18 +46,10 @@ const OVERVIEW_CARD_STORAGE_KEY = 'nova-tweaks:overview-cards:v1';
 const OVERVIEW_SECTION_STORAGE_KEY = 'nova-tweaks:overview-sections:v1';
 const SESSION_CLEANED_BYTES_STORAGE_KEY = 'nova-tweaks:session-cleaned-bytes:v1';
 const SUMMARY_CARD_IDS = ['cpu', 'gpu', 'memory', 'vram', 'storage', 'network', 'uptime'];
-const SUMMARY_CARD_GRID_COLUMNS = {
-  cpu: 'minmax(6.25rem, 0.72fr)',
-  gpu: 'minmax(6.25rem, 0.72fr)',
-  memory: 'minmax(8.5rem, 1fr)',
-  vram: 'minmax(8.5rem, 1fr)',
-  storage: 'minmax(11.5rem, 1.42fr)',
-  network: 'minmax(9rem, 1.08fr)',
-  uptime: 'minmax(7.25rem, 0.82fr)'
-};
 
 const overviewRuntimeCache = {
   snapshot: null,
+  lastMeasurement: null,
   capturedAt: 0
 };
 
@@ -314,22 +307,29 @@ function Sparkline({ history = [], secondaryHistory = [], tone = 'accent', secon
   );
 }
 
-function SummaryTile({ metricId, icon: Icon, label, value, detail, tone = 'accent', loading = false }) {
+function SummaryTile({ metricId, icon: Icon, label, value, detail, tone = 'accent', loading = false, unavailable = false }) {
   const valueTitle = typeof value === 'string' || typeof value === 'number' ? String(value) : undefined;
+  const capacityPair = typeof value === 'string' && value.includes(' / ') ? value.split(' / ') : null;
+  const missingValue = unavailable || (typeof value === 'string' && value === i18n.t('interfaceText.n_a_08d2e'));
   return (
-    <article className={`overview-summary-tile overview-summary-tile--${metricId}`}>
-      <IconContainer className={`overview-summary-icon overview-summary-icon--${tone}`}>
-        <Icon {...LUCIDE_ICON_PROPS} />
-      </IconContainer>
-      <div className="overview-summary-copy">
-        <p className="overview-summary-label">{label}</p>
-        <p className="overview-summary-value" title={valueTitle}>
-          {loading ? <Skeleton className="h-3.5 w-16" /> : <AnimatedValue>{value}</AnimatedValue>}
-        </p>
-        <p className="overview-summary-detail" title={detail}>
-          {loading ? <Skeleton className="h-2.5 w-12" /> : detail || i18n.t('interfaceText.n_a_08d2e')}
+    <article className={`overview-summary-tile overview-summary-tile--${metricId} overview-instrument--${tone}`}>
+      <p className="overview-summary-label">{label}</p>
+      <div className="overview-instrument-dial">
+        <Icon {...LUCIDE_ICON_PROPS} className="overview-instrument-icon" aria-hidden="true" />
+        <p className="overview-summary-value" title={valueTitle} data-compact={!missingValue && !capacityPair && valueTitle?.length > 12 ? 'true' : undefined}>
+          {loading ? <Skeleton className="h-5 w-14" /> : missingValue ? (
+            <span aria-label={i18n.t('interfaceText.n_a_08d2e')}>—</span>
+          ) : capacityPair ? (
+            <AnimatedValue>
+              <span className="overview-instrument-primary">{capacityPair[0]}</span>
+              <span className="overview-instrument-capacity">/ {capacityPair[1]}</span>
+            </AnimatedValue>
+          ) : <AnimatedValue>{value}</AnimatedValue>}
         </p>
       </div>
+      <p className="overview-summary-detail" title={detail}>
+        {loading ? <Skeleton className="h-2.5 w-12" /> : detail || i18n.t('interfaceText.n_a_08d2e')}
+      </p>
     </article>
   );
 }
@@ -358,7 +358,7 @@ function OverviewSection({ id, icon: Icon, title, subtitle, meta, tone = 'accent
     <section className={`overview-section overview-section--${tone}`}>
       <div className="overview-section-layout">
         <header className="overview-section-intro">
-          <IconContainer className={`overview-section-icon overview-summary-icon--${tone}`}>
+          <IconContainer tone="accent" className={`ui-panel-heading-icon overview-section-icon overview-summary-icon--${tone}`}>
             <Icon {...LUCIDE_ICON_PROPS} />
           </IconContainer>
           <div className="overview-section-copy">
@@ -454,6 +454,23 @@ function OverviewPanel({ onNavigateSettings, advancedSensorsEnabled, adminReady,
     let disposed = false;
     let unsubscribe = null;
 
+    function acceptSnapshot(nextSnapshot) {
+      if (disposed || !nextSnapshot) return;
+      const status = nextSnapshot.sampleKind === 'status' || nextSnapshot.monitoring === 'offline';
+      if (!status && !shouldAppendMonitoringSample(nextSnapshot, overviewRuntimeCache.lastMeasurement)) {
+        setLoading(false);
+        return;
+      }
+      if (!status) overviewRuntimeCache.lastMeasurement = {
+        sampleId: nextSnapshot.sampleId, measuredAt: nextSnapshot.measuredAt ?? nextSnapshot.timestamp
+      };
+      overviewRuntimeCache.snapshot = nextSnapshot;
+      overviewRuntimeCache.capturedAt = Date.now();
+      setSnapshot(nextSnapshot);
+      setLoading(false);
+      setIpcError('');
+    }
+
     async function initializeMonitoring() {
       try {
         if (!window.desktopApi?.getMonitoringSnapshot) {
@@ -465,10 +482,7 @@ function OverviewPanel({ onNavigateSettings, advancedSensorsEnabled, adminReady,
         await window.desktopApi.setMonitoringRefreshRate?.({ refreshRateMs: 3000 });
         const result = await window.desktopApi.getMonitoringSnapshot();
         if (!disposed && result?.snapshot) {
-          overviewRuntimeCache.snapshot = result.snapshot;
-          overviewRuntimeCache.capturedAt = Date.now();
-          setSnapshot(result.snapshot);
-          setLoading(false);
+          acceptSnapshot(result.snapshot);
         }
         if (!disposed && result?.ok === false) {
           setIpcError(result.message || i18n.t('interfaceText.monitoring_is_unavailable_10ff2'));
@@ -477,15 +491,7 @@ function OverviewPanel({ onNavigateSettings, advancedSensorsEnabled, adminReady,
 
         await new Promise((resolve) => window.setTimeout(resolve, 250));
         if (disposed) return;
-        unsubscribe = window.desktopApi.onMonitoringUpdate?.((nextSnapshot) => {
-          if (!disposed && nextSnapshot) {
-            overviewRuntimeCache.snapshot = nextSnapshot;
-            overviewRuntimeCache.capturedAt = Date.now();
-            setSnapshot(nextSnapshot);
-            setLoading(false);
-            setIpcError('');
-          }
-        });
+        unsubscribe = window.desktopApi.onMonitoringUpdate?.(acceptSnapshot);
       } catch (error) {
         if (!disposed) {
           setIpcError(error?.message || i18n.t('interfaceText.monitoring_is_unavailable_10ff2'));
@@ -587,8 +593,8 @@ function OverviewPanel({ onNavigateSettings, advancedSensorsEnabled, adminReady,
   }
 
   const summaryCards = [
-    { id: 'cpu', icon: Cpu, label: 'CPU', value: <TemperatureValue value={snapshot?.cpu?.temperatureC} deviceType="cpu" />, detail: `${formatPercent(snapshot?.cpu?.usagePercent)} usage` },
-    { id: 'gpu', icon: Gpu, label: 'GPU', value: <TemperatureValue value={primaryGpu?.temperatureC} deviceType="gpu" />, detail: `${formatPercent(primaryGpu?.usagePercent)} usage`, tone: 'cyan' },
+    { id: 'cpu', icon: Cpu, label: 'CPU', value: <TemperatureValue value={snapshot?.cpu?.temperatureC} deviceType="cpu" />, detail: `${formatPercent(snapshot?.cpu?.usagePercent)} usage`, unavailable: toFiniteNumber(snapshot?.cpu?.temperatureC) === null },
+    { id: 'gpu', icon: Gpu, label: 'GPU', value: <TemperatureValue value={primaryGpu?.temperatureC} deviceType="gpu" />, detail: `${formatPercent(primaryGpu?.usagePercent)} usage`, tone: 'cyan', unavailable: toFiniteNumber(primaryGpu?.temperatureC) === null },
     { id: 'memory', icon: MemoryStick, label: 'RAM', value: formatGbPair(snapshot?.memory?.usedGB, snapshot?.memory?.totalGB), detail: `${formatPercent(snapshot?.memory?.usagePercent)} used`, tone: 'blue' },
     { id: 'vram', icon: Microchip, label: 'VRAM', value: formatGbPair(primaryGpu?.memoryUsedMB === null || primaryGpu?.memoryUsedMB === undefined ? null : primaryGpu.memoryUsedMB / 1024, primaryGpu?.memoryTotalMB === null || primaryGpu?.memoryTotalMB === undefined ? null : primaryGpu.memoryTotalMB / 1024), detail: primaryGpu?.memoryTotalMB ? `${formatPercent((primaryGpu.memoryUsedMB / primaryGpu.memoryTotalMB) * 100)} used` : i18n.t('interfaceText.n_a_08d2e') },
     { id: 'storage', icon: HardDrive, label: i18n.t('interfaceText.storage_9e092'), value: totalStorage.capacityGB ? formatGbPair(totalStorage.usedGB, totalStorage.capacityGB) : i18n.t('interfaceText.n_a_08d2e'), detail: `${formatPercent(totalStoragePercent)} used`, tone: 'blue' },
@@ -596,9 +602,6 @@ function OverviewPanel({ onNavigateSettings, advancedSensorsEnabled, adminReady,
     { id: 'uptime', icon: Timer, label: i18n.t('interfaceText.uptime_6aafa'), value: formatUptime(snapshot?.system?.uptimeSeconds), detail: snapshot?.system?.admin ? i18n.t('interfaceText.administrator_1eda2') : i18n.t('interfaceText.standard_user_a36db'), tone: 'pink' }
   ];
   const visibleSummaryCardItems = summaryCards.filter((card) => visibleSummaryCards.includes(card.id));
-  const summaryGridColumns = visibleSummaryCardItems
-    .map((card) => SUMMARY_CARD_GRID_COLUMNS[card.id])
-    .join(' ');
 
   function toggleSection(id) {
     setOpenSections((previous) => {
@@ -689,9 +692,9 @@ function OverviewPanel({ onNavigateSettings, advancedSensorsEnabled, adminReady,
         </button>
       </section>
 
-      <div className="overview-summary-strip" style={{ '--overview-summary-columns': summaryGridColumns }}>
+      <div className="overview-summary-strip" style={{ '--overview-summary-count': visibleSummaryCardItems.length }} tabIndex={0} role="group" aria-label={visibleSummaryCardItems.map((card) => card.label).join(', ')}>
         {visibleSummaryCardItems.map((card) => (
-          <SummaryTile key={card.id} metricId={card.id} loading={initialMonitoringLoad} icon={card.icon} label={card.label} value={card.value} detail={card.detail} tone={card.tone} />
+          <SummaryTile key={card.id} metricId={card.id} loading={initialMonitoringLoad} icon={card.icon} label={card.label} value={card.value} detail={card.detail} tone={card.tone} unavailable={card.unavailable} />
         ))}
       </div>
 

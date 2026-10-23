@@ -11,14 +11,17 @@ const actionSource = source.slice(
   source.indexOf('  async function applyTimerResolution(')
 );
 
-function fixture({ results, confirm = true, approval = { ok: true }, api = 'runTweak' }) {
+function fixture({ results, confirm = true, approval = { ok: true }, api = 'runTweak', stateCheckStatus, currentState = 'disabled' }) {
   const calls = [];
   const logs = [];
   const executionStates = [];
-  const tweak = { id: 'set_timer_resolution', name: 'Timer Resolution', containerType: 'timer_resolution' };
+  const tweak = { id: 'set_timer_resolution', name: 'Timer Resolution', containerType: 'timer_resolution', stateCheckStatus, currentState };
   let execution = {};
   let tweaks = [tweak];
   const context = {
+    tweaksRef: { get current() { return tweaks; } },
+    stateChecksRef: { current: { pending: new Map(), versions: new Map() } },
+    isTweakStateBlocked: (item) => ['pending', 'failed'].includes(item.stateCheckStatus),
     window: { desktopApi: { [api]: async (payload) => {
       calls.push({ type: 'execute', payload });
       return results.shift();
@@ -56,7 +59,21 @@ function fixture({ results, confirm = true, approval = { ok: true }, api = 'runT
   };
   const toggleTweak = vm.runInNewContext(`${actionSource}\ntoggleTweak;`, context);
   return { calls, logs, executionStates, getTweaks: () => tweaks,
-    run: (options = {}) => toggleTweak(tweak, true, { params: { Resolution: '0.5' }, ...options }) };
+    run: (options = {}, nextEnabled = true) => toggleTweak(tweak, nextEnabled, { params: { Resolution: '0.5' }, ...options }) };
+}
+
+for (const nextEnabled of [true, false]) {
+  for (const currentState of ['enabled', 'disabled', undefined]) {
+    test(`requested ${nextEnabled ? 'enabled' : 'disabled'}: return and central state honor ${currentState || 'missing result state'}`, async () => {
+      const scriptResult = { ok: true, ...(currentState ? { currentState } : {}) };
+      const f = fixture({ results: [scriptResult], currentState: nextEnabled ? 'disabled' : 'enabled' });
+      const result = await f.run({}, nextEnabled);
+      const expected = currentState || (nextEnabled ? 'enabled' : 'disabled');
+      assert.equal(result.currentState, expected);
+      assert.equal(f.getTweaks()[0].currentState, expected);
+      assert.equal(f.getTweaks()[0].status, expected);
+    });
+  }
 }
 
 for (const api of ['runTweak', 'apiExecuteTweak', 'executeTweak']) {
@@ -72,6 +89,16 @@ for (const api of ['runTweak', 'apiExecuteTweak', 'executeTweak']) {
     assert.deepEqual(f.logs.map((entry) => entry.result), ['success']);
     assert.equal(f.executionStates.includes('error'), false);
     assert.equal(f.getTweaks()[0].selectedResolution, '0.5');
+  });
+}
+
+for (const stateCheckStatus of ['pending', 'failed']) {
+  test(`shared execution path rejects ${stateCheckStatus} checks, including silent bulk actions`, async () => {
+    const f = fixture({ stateCheckStatus, results: [{ ok: true }] });
+    const result = await f.run({ suppressNotifications: true });
+    assert.equal(result.code, 'TWEAK_STATE_UNAVAILABLE');
+    assert.equal(result.skipped, true);
+    assert.equal(f.calls.length, 0);
   });
 }
 

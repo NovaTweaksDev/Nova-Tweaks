@@ -1,4 +1,6 @@
 import i18n from '../i18n';
+import { isTweakStateBlocked } from '../utils/tweakState.mjs';
+import TweakStateNotice from './TweakStateNotice';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
@@ -46,7 +48,7 @@ import MopSparklesIcon from './MopSparklesIcon';
 import UnifiedTweakCard from './UnifiedTweakCard';
 import TweakDetailPanel from './TweakDetailPanel';
 import NetworkTestModal from './NetworkTestModal';
-import { Button, LoadingIndicator, ModalShell, PageHeadingSignal, PageShell, PremiumBadge } from './ui';
+import { Button, IconContainer, LoadingIndicator, ModalShell, PageHeadingSignal, PageShell, PremiumBadge } from './ui';
 import { getOrderedCategories, getOrderedSubcategories } from '../constants/tweakTaxonomy';
 import { TWEAK_PROFILE_DEFINITIONS, normalizeTweakProfiles } from '../constants/tweakProfiles';
 import { getContainerType, normalizePremium, normalizeRecommended, normalizeRequiresAdmin } from '../utils/tweakMetadata';
@@ -98,9 +100,9 @@ function CollapsibleDashboardPanel({ id, icon: Icon, title, subtitle, summary, o
         aria-expanded={open}
         aria-controls={id}
       >
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[color:color-mix(in_srgb,var(--accent)_22%,var(--border))] bg-[color:color-mix(in_srgb,var(--accent)_11%,var(--surface-elevated)_89%)] text-[var(--accent)]">
+        <IconContainer tone="accent" className="ui-panel-heading-icon">
           <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
-        </span>
+        </IconContainer>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold text-[var(--text-primary)]">{title}</span>
           <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">{subtitle}</span>
@@ -119,7 +121,6 @@ function CollapsibleDashboardPanel({ id, icon: Icon, title, subtitle, summary, o
 
 function MetricCard({ icon: Icon, label, value, detail, active = false, onClick = null, loading = false }) {
   const { t } = useTranslation();
-  const toneClass = 'text-[var(--accent)] bg-[color:color-mix(in_srgb,var(--accent)_14%,var(--surface-strong)_86%)] border-[color:color-mix(in_srgb,var(--accent)_18%,var(--border))]';
 
   return (
     <button
@@ -131,9 +132,9 @@ function MetricCard({ icon: Icon, label, value, detail, active = false, onClick 
       } ${active ? 'border-[color:color-mix(in_srgb,var(--accent)_44%,var(--border))]' : ''}`}
     >
       <div className="flex items-start gap-4">
-        <span className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border ${toneClass}`}>
+        <IconContainer tone="accent" className="ui-section-icon">
           <Icon className="h-5 w-5" />
-        </span>
+        </IconContainer>
         <div className="min-w-0">
           <p className="text-sm font-medium text-[var(--text-muted)]">{label}</p>
           {loading ? (
@@ -350,11 +351,11 @@ function getTechnicalSummary(detailItems, t) {
 
 function TweakInfoSection({ icon: Icon, title, tone = 'accent', children }) {
   return (
-    <section className={`tweak-info-section tweak-info-section--${tone}`}>
+    <section className="tweak-info-section">
       <div className="tweak-info-section-header">
-        <span className="tweak-info-section-icon" aria-hidden="true">
-          <Icon className="h-4 w-4" strokeWidth={1.9} />
-        </span>
+        <IconContainer tone={tone} className="ui-section-icon ui-section-icon--compact">
+          <Icon className="h-4 w-4" aria-hidden="true" />
+        </IconContainer>
         <h3 className="tweak-info-section-title">{title}</h3>
       </div>
       <div className="tweak-info-section-body">{children}</div>
@@ -377,9 +378,9 @@ function WarningList({ tweak }) {
     <div className="tweak-info-row-stack">
       {entries.map((entry) => (
         <article key={`${entry.title}-${entry.description}`} className="tweak-info-row">
-          <span className="tweak-info-row-icon" aria-hidden="true">
-            <CircleAlert className="h-4 w-4" strokeWidth={1.9} />
-          </span>
+          <IconContainer tone="warning" className="ui-section-icon ui-section-icon--compact">
+            <CircleAlert className="h-4 w-4" aria-hidden="true" />
+          </IconContainer>
           <div className="min-w-0 flex-1">
             <h4 className="tweak-info-row-title">{entry.title}</h4>
             <p className="tweak-info-row-description">{entry.description}</p>
@@ -409,7 +410,7 @@ function CompatibilityList({ groups }) {
             {group.items.map((item) => (
               <span key={`${group.label}-${item}`} className="tweak-info-compat-pill">
                 <Check className="h-3.5 w-3.5 shrink-0 text-[var(--success)]" />
-                <span className="truncate">{item}</span>
+                <span className="min-w-0 break-words">{item}</span>
               </span>
             ))}
           </div>
@@ -527,10 +528,11 @@ function QuickActionsPanel({
 }) {
   const { t } = useTranslation();
   const [bulkAction, setBulkAction] = useState('');
+  const [expanded, setExpanded] = useState(false);
   const restorePointEnabled = typeof onCreateRestorePoint === 'function';
   const optimization = getOneClickOptimizationForTab(selectedCategory, selectedSubcategory);
   const optimizationTargets = useMemo(
-    () => optimization ? getOneClickOptimizationTargets(rawTweaks, optimization.id) : [],
+    () => optimization ? getOneClickOptimizationTargets(rawTweaks, optimization.id).filter((tweak) => !isTweakStateBlocked(tweak)) : [],
     [optimization, rawTweaks]
   );
   const optimizationIcons = {
@@ -548,6 +550,7 @@ function QuickActionsPanel({
   const enabledTargets = useMemo(() => (
     toggleableTweaks.filter((tweak) => String(tweak?.currentState || tweak?.status || '').toLowerCase() === 'enabled')
   ), [toggleableTweaks]);
+  const blockedCount = rawTweaks.filter(isTweakStateBlocked).length;
   const canRunBulk = typeof onToggleTweak === 'function';
 
   async function runBulkAction(action, targets, nextEnabled) {
@@ -568,9 +571,21 @@ function QuickActionsPanel({
   return (
     <aside className="ui-right-panel p-5">
       <div className="tech-panel-header">
-        <h3 className="tech-panel-title text-base font-semibold text-[var(--text-primary)]">{t('tweaks.quickActions.title')}</h3>
+        <h3 className="w-full">
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls="tweak-quick-actions-content"
+            onClick={() => setExpanded((previous) => !previous)}
+            className="flex w-full items-center justify-between gap-3 rounded text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
+          >
+            <span className="tech-panel-title text-base font-semibold text-[var(--text-primary)]">{t('tweaks.quickActions.title')}</span>
+            <ChevronDown className={`h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} aria-hidden="true" />
+          </button>
+        </h3>
       </div>
-      <div className="mt-4 space-y-3">
+      <div id="tweak-quick-actions-content" hidden={!expanded} className="mt-4 space-y-3">
+        {blockedCount > 0 ? <p className="text-xs text-[var(--warning)]">{t('tweaks.stateCheck.skipped', { count: blockedCount })}</p> : null}
         {String(selectedCategory || '').toLowerCase() === 'network' ? (
           <button
             type="button"
@@ -717,6 +732,7 @@ function TweakProfilesPanel({
   onToggleExpanded,
   canUsePremium,
   onToggleTweak,
+  onRetryState,
   onApplyTimerResolution,
   onApplyPowerPlan,
   onApplyOneShotSelection,
@@ -834,7 +850,12 @@ function TweakProfilesPanel({
       return;
     }
 
-    const jobs = selectedEntries.map(({ tweak, profileEntry }) => {
+    const runnableSelected = selectedEntries.filter(({ tweak }) => !isTweakStateBlocked(tweak));
+    if (!runnableSelected.length) {
+      setResults(selectedEntries.map(({ tweak }) => ({ tweak, ok: false, status: 'skipped', message: t('tweaks.stateCheck.blocked') })));
+      return;
+    }
+    const jobs = runnableSelected.map(({ tweak, profileEntry }) => {
       const containerType = normalizeContainerType(tweak?.containerType);
       let params = {};
       if (containerType === 'timer_resolution') {
@@ -857,7 +878,7 @@ function TweakProfilesPanel({
       })));
       return;
     }
-    const requiresAdmin = Boolean(preflight.requiresAdmin || selectedEntries.some(({ tweak }) => normalizeRequiresAdmin(tweak)));
+    const requiresAdmin = Boolean(preflight.requiresAdmin || runnableSelected.some(({ tweak }) => normalizeRequiresAdmin(tweak)));
     if (requiresAdmin && !hasAdminAccess) {
       const approval = await onRequestAdminAccess?.({ reason: 'tweak-profile' });
       if (!approval?.ok) {
@@ -889,11 +910,16 @@ function TweakProfilesPanel({
           continue;
         }
 
+        if (isTweakStateBlocked(tweak)) {
+          nextResults.push({ tweak, ok: false, status: 'skipped', message: t('tweaks.stateCheck.blocked') });
+          setResults([...nextResults]);
+          continue;
+        }
         const result = await applyProfileEntry(tweak, profileEntry);
         nextResults.push({
           tweak,
           ok: Boolean(result?.ok),
-          status: result?.ok ? "success" : 'failed',
+          status: result?.ok ? "success" : result?.skipped ? 'skipped' : 'failed',
           message: result?.message || result?.code || ''
         });
         setResults([...nextResults]);
@@ -1134,7 +1160,8 @@ function TweakProfilesPanel({
       >
         {detailTweak ? (
           <TweakDetailPanel
-            tweak={detailTweak}
+            tweak={rawTweaks.find((item) => item.id === detailTweak?.id) || detailTweak}
+            onRetryState={onRetryState}
             onClose={() => setDetailTweak(null)}
             showRiskLabels={showRiskLabels}
             showCategoryAccent={false}
@@ -1175,6 +1202,7 @@ function TweaksPanel({
   availableTags = [],
   loading,
   refreshingStates,
+  onRetryState,
   reloadDisabled = false,
   checkingStateTweakIds = [],
   errorCode,
@@ -1473,6 +1501,7 @@ function TweaksPanel({
         isSelected={activeDetailTweak?.id === tweak.id}
         disabled={isCheckingState}
         isCheckingState={isCheckingState}
+        onRetryState={onRetryState}
         showCategoryAccent={categoryMode}
       />
     );
@@ -1621,6 +1650,7 @@ function TweaksPanel({
 
             <TweakProfilesPanel
               rawTweaks={rawTweaks}
+              onRetryState={onRetryState}
               expanded={profilesExpanded}
               onToggleExpanded={() => setProfilesExpanded((value) => !value)}
               canUsePremium={canUsePremium}
@@ -1858,6 +1888,7 @@ function TweaksPanel({
                     { value: 'all', label: t('tweaks.filters.all') },
                     { value: 'enabled', label: t('tweaks.state.enabled'), icon: Check },
                     { value: 'disabled', label: t('tweaks.state.disabled'), icon: X },
+                    { value: 'unknown', label: t('tweakDetails.unknown'), icon: CircleAlert },
                     { value: 'reboot_required', label: t('tweaks.rebootRequired') }
                   ]}
                 />
@@ -1915,6 +1946,7 @@ function TweaksPanel({
           <div className="tweaks-side-panel min-w-0 space-y-4 lg:sticky">
             <TweakDetailPanel
               tweak={activeDetailTweak}
+              onRetryState={onRetryState}
               onClose={() => setSelectedDetailTweak(null)}
               onOpenTechnicalDetails={setTechnicalTweak}
               showRiskLabels={showRiskLabels}
@@ -1978,7 +2010,10 @@ function TweaksPanel({
         ) : null}
       >
         {technicalTweak ? (
-          <SecondaryTweakDetails tweak={technicalTweak} showCompatibilityWarnings={showCompatibilityWarnings} />
+          <>
+            <TweakStateNotice tweak={rawTweaks.find((item) => item.id === technicalTweak.id) || technicalTweak} onRetry={onRetryState} />
+            <SecondaryTweakDetails tweak={rawTweaks.find((item) => item.id === technicalTweak.id) || technicalTweak} showCompatibilityWarnings={showCompatibilityWarnings} />
+          </>
         ) : null}
       </ModalShell>
     </PageShell>

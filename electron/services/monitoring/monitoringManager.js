@@ -458,6 +458,7 @@ async function startLhmProcess(executablePath, logger) {
 
 function createOfflinePayload(message = 'LibreHardwareMonitor endpoint is offline.') {
   return {
+    sampleKind: 'status', sampleId: null, measuredAt: null, emittedAt: Date.now(),
     monitoring: 'offline',
     message,
     cpuLoad: null,
@@ -471,11 +472,12 @@ function createOfflinePayload(message = 'LibreHardwareMonitor endpoint is offlin
   };
 }
 
-function createOnlinePayload(normalizedMetrics) {
+function createOnlinePayload(normalizedMetrics, measuredAt, sampleId) {
   return {
     monitoring: 'online',
     ...normalizedMetrics,
-    timestamp: Date.now()
+    sampleKind: 'measurement', sampleId, measuredAt, emittedAt: measuredAt,
+    timestamp: measuredAt
   };
 }
 
@@ -513,13 +515,30 @@ function createMonitoringManager(options = {}) {
 
   let latest = createOfflinePayload('Monitoring not initialized yet.');
   let timer = null;
-  let startPromise = null;
-  let pollInProgress = false;
+  let startOperation = null;
+  let pollOperation = null;
+  let shutdownPromise = null;
+  let ensureSidecarStopped = false;
+  let desiredRunning = false;
+  let runGeneration = 0;
+  let sampleSequence = 0;
   let consecutiveFailures = 0;
   let bootstrapPending = true;
   let pawnIoReady = null;
   let sensorDriverProvisionAttempted = false;
   let managedLhmRunning = false;
+
+  function isCurrentRun(generation) {
+    return desiredRunning && generation === runGeneration;
+  }
+
+  function assertCurrentRun(generation) {
+    if (!isCurrentRun(generation)) {
+      const error = new Error('Monitoring was stopped.');
+      error.code = 'MONITORING_STOPPED';
+      throw error;
+    }
+  }
 
   async function requiresSensorDriver(forceRefresh = false) {
     if (forceRefresh || pawnIoReady === null) {
@@ -529,10 +548,11 @@ function createMonitoringManager(options = {}) {
     return !pawnIoReady;
   }
 
-  async function ensureSensorDriverReady() {
+  async function ensureSensorDriverReady(generation) {
     if (process.platform !== 'win32' || sensorDriverProvisionAttempted || !(await requiresSensorDriver())) {
       return;
     }
+    assertCurrentRun(generation);
     if (!allowDriverProvisionProvider()) {
       return;
     }
@@ -563,12 +583,15 @@ function createMonitoringManager(options = {}) {
     }
   }
 
-  async function startManagedLhmProcess() {
+  async function startManagedLhmProcess(generation) {
+    assertCurrentRun(generation);
     assertMonitoringRuntimeIntegrity(runtimeRootForExecutable(executablePath));
     if (process.platform === 'win32' && !isAdminProvider()) {
       if (!privilegedExecutor) {
         throw new Error('Administrator broker is unavailable for LibreHardwareMonitor.');
       }
+      // A launch may succeed even if its broker response fails; shutdown must still clean it up.
+      managedLhmRunning = true;
       const result = await privilegedExecutor(
         'monitoring.startSidecar',
         { executablePath },
@@ -581,6 +604,7 @@ function createMonitoringManager(options = {}) {
       return;
     }
 
+    managedLhmRunning = true;
     await startLhmProcess(executablePath, logger);
   }
 
@@ -593,17 +617,19 @@ function createMonitoringManager(options = {}) {
     }
   }
 
-  async function waitForEndpoint(timeoutMs = STARTUP_TIMEOUT_MS) {
+  async function waitForEndpoint(generation, timeoutMs = STARTUP_TIMEOUT_MS) {
     const startedAt = Date.now();
 
     while (Date.now() - startedAt < timeoutMs) {
-      if (await probeEndpoint()) {
-        return true;
-      }
+      assertCurrentRun(generation);
+      const ready = await probeEndpoint();
+      assertCurrentRun(generation);
+      if (ready) return true;
 
       await sleep(STARTUP_RETRY_DELAY_MS);
     }
 
+    assertCurrentRun(generation);
     return false;
   }
 
@@ -613,7 +639,8 @@ function createMonitoringManager(options = {}) {
     return stopped;
   }
 
-  async function ensureLhmReady() {
+  async function ensureLhmReady(generation) {
+    assertCurrentRun(generation);
     if (!executablePath) {
       executablePath = resolveLhmExecutablePath(app, logger);
     }
@@ -623,21 +650,25 @@ function createMonitoringManager(options = {}) {
     }
 
     ensureConfigFile(executablePath, logger, lhmAuthentication);
-    await ensureSensorDriverReady();
+    await ensureSensorDriverReady(generation);
+    assertCurrentRun(generation);
 
     if (bootstrapPending) {
       bootstrapPending = false;
       if (await probeEndpoint()) {
         managedLhmRunning = true;
+        assertCurrentRun(generation);
         return;
       }
+      assertCurrentRun(generation);
       const stopped = await killLhmProcesses(logger, { allowElevation: true, privilegedExecutor });
+      assertCurrentRun(generation);
       if (!stopped) {
         throw new Error('An existing LibreHardwareMonitor process could not be stopped.');
       }
-      await startManagedLhmProcess();
-      managedLhmRunning = true;
-      const ready = await waitForEndpoint();
+      await startManagedLhmProcess(generation);
+      assertCurrentRun(generation);
+      const ready = await waitForEndpoint(generation);
       if (!ready) {
         await cleanUpFailedStart();
         throw new Error('LHM endpoint did not become ready after cold start.');
@@ -646,10 +677,11 @@ function createMonitoringManager(options = {}) {
     }
 
     const running = await isLhmRunning();
+    assertCurrentRun(generation);
     if (!running) {
-      await startManagedLhmProcess();
-      managedLhmRunning = true;
-      const ready = await waitForEndpoint();
+      await startManagedLhmProcess(generation);
+      assertCurrentRun(generation);
+      const ready = await waitForEndpoint(generation);
       if (!ready) {
         await cleanUpFailedStart();
         throw new Error('LHM started but endpoint did not become ready.');
@@ -657,17 +689,21 @@ function createMonitoringManager(options = {}) {
       return;
     }
 
-    if (!(await probeEndpoint())) {
+    const reachable = await probeEndpoint();
+    assertCurrentRun(generation);
+    if (!reachable) {
       logger?.warn?.('LHM process is running but endpoint is unreachable. Restarting LHM.');
+      assertCurrentRun(generation);
       const stopped = await killLhmProcesses(logger, { allowElevation: true, privilegedExecutor });
+      assertCurrentRun(generation);
       if (!stopped) {
         throw new Error('The unresponsive LibreHardwareMonitor process could not be stopped.');
       }
       managedLhmRunning = false;
-      await startManagedLhmProcess();
-      managedLhmRunning = true;
+      await startManagedLhmProcess(generation);
 
-      const ready = await waitForEndpoint();
+      assertCurrentRun(generation);
+      const ready = await waitForEndpoint(generation);
       if (!ready) {
         await cleanUpFailedStart();
         throw new Error('LHM endpoint is unreachable after restart.');
@@ -675,16 +711,35 @@ function createMonitoringManager(options = {}) {
     }
   }
 
-  async function pollOnce() {
-    if (pollInProgress) {
-      const heartbeat = { ...latest, timestamp: Date.now() };
-      latest = heartbeat;
+  async function pollOnce(generation = runGeneration) {
+    if (!isCurrentRun(generation) || shutdownPromise) return latest;
+    if (pollOperation) {
+      if (pollOperation.generation !== generation) {
+        // A restarted run must wait for the cancelled query, then fetch its own first sample.
+        await pollOperation.promise.catch(() => {});
+        return pollOnce(generation);
+      }
+      const emittedAt = Date.now();
+      const heartbeat = { ...latest, sampleKind: 'heartbeat', emittedAt,
+        overview: latest.overview ? { ...latest.overview, sampleKind: 'heartbeat', emittedAt } : null };
       onMetrics?.(heartbeat);
-      return latest;
+      return heartbeat;
     }
+    const operation = { generation, promise: null };
+    pollOperation = operation;
+    operation.promise = runPoll(generation);
+    try {
+      return await operation.promise;
+    } catch (error) {
+      if (!isCurrentRun(generation)) return latest;
+      throw error;
+    } finally {
+      if (pollOperation === operation) pollOperation = null;
+    }
+  }
 
+  async function runPoll(generation) {
     const cycleStartedAt = Date.now();
-    pollInProgress = true;
 
     try {
       if (process.platform === 'win32' && !isAdminAccessReady()) {
@@ -692,17 +747,19 @@ function createMonitoringManager(options = {}) {
         error.code = 'ADMIN_BROKER_APPROVAL_REQUIRED';
         throw error;
       }
-      await ensureLhmReady();
+      await ensureLhmReady(generation);
+      assertCurrentRun(generation);
 
       const raw = await lhmClient.fetchWithRetry({
         timeoutMs: 3000,
         maxRetries: 2,
         retryDelayMs: 250
       });
-
+      assertCurrentRun(generation);
+      const measuredAt = Date.now();
       const normalized = metricsService.normalize(raw);
-      const onlinePayload = createOnlinePayload(normalized);
-      latest = {
+      const onlinePayload = createOnlinePayload(normalized, measuredAt, ++sampleSequence);
+      const next = {
         ...onlinePayload,
         overview: await overviewSnapshotService.buildSnapshot({
           rawLhmPayload: raw,
@@ -710,10 +767,16 @@ function createMonitoringManager(options = {}) {
           refreshRateMs: intervalMs
         })
       };
+      assertCurrentRun(generation);
+      next.emittedAt = Date.now();
+      next.overview = { ...next.overview, sampleKind: next.sampleKind, sampleId: next.sampleId,
+        measuredAt: next.measuredAt, timestamp: next.timestamp, emittedAt: next.emittedAt };
+      latest = next;
       consecutiveFailures = 0;
       onMetrics?.(latest);
       return latest;
     } catch (error) {
+      if (!isCurrentRun(generation)) return latest;
       const waitingForAdmin = error.code === 'ADMIN_BROKER_APPROVAL_REQUIRED';
       if (waitingForAdmin) {
         consecutiveFailures = 0;
@@ -731,10 +794,11 @@ function createMonitoringManager(options = {}) {
         consecutiveFailures = 0;
         await killLhmProcesses(logger, { allowElevation: true, privilegedExecutor });
         managedLhmRunning = false;
+        if (!isCurrentRun(generation)) return latest;
       }
 
       const offlinePayload = createOfflinePayload(error.message || 'LibreHardwareMonitor endpoint is offline.');
-      latest = {
+      const next = {
         ...offlinePayload,
         code: error.code || 'MONITORING_ERROR',
         overview: await overviewSnapshotService.buildSnapshot({
@@ -743,6 +807,11 @@ function createMonitoringManager(options = {}) {
           refreshRateMs: intervalMs
         })
       };
+      if (!isCurrentRun(generation)) return latest;
+      next.emittedAt = Date.now();
+      next.overview = { ...next.overview, sampleKind: 'status', sampleId: null, measuredAt: null,
+        timestamp: next.timestamp, emittedAt: next.emittedAt };
+      latest = next;
       onMetrics?.(latest);
       return latest;
     } finally {
@@ -753,76 +822,103 @@ function createMonitoringManager(options = {}) {
           monitoring: latest?.monitoring || 'unknown'
         });
       }
-      pollInProgress = false;
     }
   }
 
   async function start() {
-    if (timer) {
-      return true;
+    if (!desiredRunning) {
+      desiredRunning = true;
+      runGeneration += 1;
     }
-    if (startPromise) {
-      const started = await startPromise;
-      if (!started && latest?.code === 'ADMIN_BROKER_APPROVAL_REQUIRED' && isAdminAccessReady()) {
+    const generation = runGeneration;
+    if (shutdownPromise) await shutdownPromise;
+    if (!isCurrentRun(generation)) return false;
+    if (timer) return true;
+    if (startOperation) {
+      const operation = startOperation;
+      let started;
+      try {
+        started = await operation.promise;
+      } catch (error) {
+        if (operation.generation === generation && isCurrentRun(generation)) throw error;
+        started = false;
+      }
+      if (!isCurrentRun(generation)) return false;
+      if (operation.generation !== generation ||
+          (!started && latest?.code === 'ADMIN_BROKER_APPROVAL_REQUIRED' && isAdminAccessReady())) {
         return start();
       }
       return started;
     }
 
-    startPromise = (async () => {
+    const operation = { generation, promise: null };
+    startOperation = operation;
+    operation.promise = (async () => {
       logger?.info?.('Starting monitoring manager (LHM-only).', {
         intervalMs,
         endpoint: lhmClient.endpoint
       });
 
-      const initialMetrics = await pollOnce();
+      const initialMetrics = await pollOnce(generation);
+      if (!isCurrentRun(generation)) return false;
       if (initialMetrics?.monitoring !== 'online') {
         logger?.warn?.('Monitoring manager was not scheduled because LHM is unavailable.');
         return false;
       }
 
       timer = setInterval(() => {
-        void pollOnce();
+        void pollOnce(generation);
       }, intervalMs);
-
       return true;
     })();
 
     try {
-      return await startPromise;
+      return await operation.promise;
     } finally {
-      startPromise = null;
+      if (startOperation === operation) startOperation = null;
     }
   }
 
   function stop() {
-    if (!timer) {
-      return;
-    }
-
-    clearInterval(timer);
+    desiredRunning = false;
+    runGeneration += 1;
+    if (timer) clearInterval(timer);
     timer = null;
     logger?.info?.('Monitoring manager stopped.');
   }
 
   async function shutdown(options = {}) {
     stop();
-    let sidecarStopped = true;
-    if (managedLhmRunning) {
-      sidecarStopped = await killLhmProcesses(logger, {
-        allowElevation: options.ensureProcessStopped === true,
-        privilegedExecutor
-      });
-      managedLhmRunning = !sidecarStopped;
+    ensureSidecarStopped ||= options.ensureProcessStopped === true;
+    if (shutdownPromise) return shutdownPromise;
+    const pending = [startOperation?.promise, pollOperation?.promise].filter(Boolean);
+    const operation = (async () => {
+      // Sidecar startup may already be in flight. Drain it before terminating the process.
+      await Promise.allSettled(pending);
+      let sidecarStopped = true;
+      if (managedLhmRunning) {
+        const allowElevation = ensureSidecarStopped;
+        sidecarStopped = await killLhmProcesses(logger, { allowElevation, privilegedExecutor });
+        // A concurrent explicit shutdown can request stronger cleanup while taskkill is pending.
+        if (!sidecarStopped && !allowElevation && ensureSidecarStopped) {
+          sidecarStopped = await killLhmProcesses(logger, { allowElevation: true, privilegedExecutor });
+        }
+        managedLhmRunning = !sidecarStopped;
+      }
+      if (sidecarStopped) bootstrapPending = true;
+      latest = createOfflinePayload('Advanced sensor monitoring is disabled.');
+      onMetrics?.(latest);
+      return { sidecarStopped };
+    })();
+    shutdownPromise = operation;
+    try {
+      return await operation;
+    } finally {
+      if (shutdownPromise === operation) {
+        shutdownPromise = null;
+        ensureSidecarStopped = false;
+      }
     }
-    if (sidecarStopped) {
-      bootstrapPending = true;
-    }
-    latest = createOfflinePayload('Advanced sensor monitoring is disabled.');
-    onMetrics?.(latest);
-    return {
-      sidecarStopped
-    };
   }
 
   function getLatest() {
@@ -837,9 +933,10 @@ function createMonitoringManager(options = {}) {
 
     intervalMs = Math.max(1000, Math.min(10000, Math.trunc(normalizedInterval)));
     if (timer) {
+      const generation = runGeneration;
       clearInterval(timer);
       timer = setInterval(() => {
-        void pollOnce();
+        void pollOnce(generation);
       }, intervalMs);
     }
 

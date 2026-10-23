@@ -1,6 +1,7 @@
 const { normalizeRiskLevel, normalizeContainerType, normalizeBulletpoints, normalizeCompactDescription, normalizeStatusLabels, normalizeCtaLabels, normalizeUiConfig, normalizeMetrics, normalizeSelections, normalizeRangeConfig, normalizeSelectedOption, normalizeResolutionValue } = require('./metadataNormalization');
 const { resolveExecutionTimeout } = require('./executionTimeout');
 const fs = require('fs');
+const { failedTweakState } = require('./tweakStateResult');
 const path = require('path');
 const crypto = require('crypto');
 const {
@@ -1019,6 +1020,8 @@ function createTweakRunner({
         currentState: 'disabled',
         status: 'disabled',
         checked: false,
+        stateCheckStatus: 'unsupported',
+        stateCheckError: null,
         selectedOption: '',
         currentValue: configResult.currentValue,
         selectedResolution: '',
@@ -1032,15 +1035,7 @@ function createTweakRunner({
         action: 'detect'
       });
       if (executionPlan.requiresAdmin && typeof isAdminProvider === 'function' && !isAdminProvider() && typeof privilegedExecutor !== 'function') {
-        return buildTweakPresentation(configResult, {
-          currentState: 'disabled',
-          status: 'disabled',
-          checked: false,
-          selectedOption: '',
-          currentValue: configResult.currentValue,
-          selectedResolution: '',
-          currentResolution: ''
-        });
+        throw new TweakRunnerError('Administrator access is required to verify this state.', 'ADMIN_REQUIRED');
       }
 
       const check = await (executionPlan.requiresAdmin && typeof isAdminProvider === 'function' && !isAdminProvider()
@@ -1057,8 +1052,11 @@ function createTweakRunner({
         result,
         parsedOutput: parseScriptStateFromStdout(result?.stdout)
       }));
-      if (!['enabled', 'disabled'].includes(check?.parsedOutput?.state)) {
-        throw new TweakRunnerError('State detection did not return a valid tweak state.', 'TWEAK_STATE_UNAVAILABLE');
+      if (check.result?.ok === false || !['enabled', 'disabled'].includes(check?.parsedOutput?.state)) {
+        throw new TweakRunnerError(
+          check.parsedOutput?.message || check.result?.message || 'State detection did not return a valid tweak state.',
+          check.parsedOutput?.code || check.result?.code || 'TWEAK_STATE_UNAVAILABLE'
+        );
       }
       const state = normalizeBooleanState(check.parsedOutput.state);
       const selectedOption = normalizeSelectedOption(check?.parsedOutput?.selectedOption);
@@ -1071,6 +1069,8 @@ function createTweakRunner({
         currentState: state,
         status: state,
         checked: true,
+        stateCheckStatus: 'verified',
+        stateCheckError: null,
         checkScript: executionPlan.scriptRelativePath,
         checkStdout: check.result?.stdout || '',
         selectedOption,
@@ -1079,23 +1079,16 @@ function createTweakRunner({
         currentResolution
       });
     } catch (error) {
-      logger?.warn?.('Check script failed. Falling back to disabled state.', {
+      logger?.warn?.('Check script failed. Tweak state is unknown.', {
         tweakId: String(tweakId),
         checkScript: configResult?.execution?.script || configResult?.script || '',
         message: error?.message || 'check failed'
       });
 
-      const rangeUnavailable = configResult.containerType === 'range_selection';
       return buildTweakPresentation(configResult, {
-        currentState: 'disabled',
-        status: rangeUnavailable ? 'unavailable' : 'disabled',
-        checked: false,
+        ...failedTweakState(error),
         checkScript: configResult?.execution?.script || configResult?.script || '',
-        selectedOption: '',
-        currentValue: rangeUnavailable ? null : configResult.currentValue,
-        unavailable: rangeUnavailable,
-        selectedResolution: '',
-        currentResolution: ''
+        unavailable: configResult.containerType === 'range_selection'
       });
     }
   }

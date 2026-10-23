@@ -916,6 +916,14 @@
     }
   },
   "tweaks": {
+    "stateCheck": {
+      "failed": "Status unbekannt – Prüfung fehlgeschlagen",
+      "checking": "Status wird geprüft…",
+      "retry": "Erneut prüfen",
+      "lastConfirmed": "Zuletzt bestätigt: {{state}} (veraltet)",
+      "blocked": "Prüfe den Status dieses Tweaks erneut, bevor du ihn änderst.",
+      "skipped": "{{count}} Tweaks wegen ungeprüftem Status übersprungen."
+    },
     "title": "Tweaks Panel",
     "description": "Tweak-Definitionen filtern, Tweak-Status umschalten und Script-Ausgaben prüfen.",
     "pageTitle": "Tweaks",
@@ -1607,6 +1615,10 @@
     }
   },
   "gameMode": {
+    "frameStatistics": {
+      "recentSamples": "Letzte {{count}} Messwerte, alle 5 s",
+      "liveWindow": "Live-Lows basieren auf den letzten Messwerten. Der Abschlussbericht umfasst die gesamte Sitzung."
+    },
     "premiumBadge": "Premium",
     "activeBadge": "Aktiv",
     "buttonAria": "Nova Game Mode Startbutton",
@@ -1663,6 +1675,90 @@
       }
     },
     "preset": {
+      "background": {
+        "running": "Hintergrunddienste und Apps werden minimiert …",
+        "failed": "Hintergrund-Minimierung nicht vollständig ({{code}})",
+        "incomplete": "Game Mode angewendet. Hintergrund-Minimierung nicht vollständig: {{names}}.",
+        "restoreIncomplete": "Game-Mode-Wiederherstellung nicht vollständig: {{names}}.",
+        "summary": "{{services}} Dienste verarbeitet · {{apps}} Apps geschlossen · {{seconds}} s",
+        "service": {
+          "untouched": "Unverändert",
+          "intent": "Wiederherstellung offen",
+          "changed": "Gestoppt und deaktiviert",
+          "restored": "Wiederhergestellt",
+          "skipped": "Übersprungen",
+          "conflict": "Wiederherstellung offen",
+          "restoring": "Wiederherstellung läuft"
+        },
+        "app": {
+          "closed": "Geschlossen",
+          "skipped": "Nicht geschlossen"
+        },
+        "recovery": "Die Wiederherstellung der Hintergrunddienste ist noch offen. Schalte Game Mode aus, um sie erneut zu versuchen.",
+        "reason": {
+          "unknown": "Nicht vollständig ausgeführt",
+          "ALREADY_DISABLED": "Bereits deaktiviert",
+          "SERVICE_DEPENDENTS_RUNNING": "Wegen laufender abhängiger Dienste übersprungen",
+          "SERVICE_STATE_CONFLICT": "Extern verändert; nicht überschrieben",
+          "SERVICE_UNAVAILABLE": "Dienst derzeit nicht verfügbar",
+          "SERVICE_RESTORE_FAILED": "Wiederherstellung noch offen",
+          "SERVICE_CHANGE_FAILED": "Änderung fehlgeschlagen",
+          "SERVICE_VERIFICATION": "Zielzustand nicht bestätigt",
+          "PROCESS_IDENTITY_CHANGED": "Prozess hat sich geändert; übersprungen",
+          "APP_CLOSE_UNSUPPORTED": "Normales Beenden nicht verfügbar",
+          "PROCESS_UNAVAILABLE": "Prozess nicht mehr verfügbar",
+          "APP_STILL_RUNNING": "App bleibt geöffnet oder wartet auf Bestätigung",
+          "PROTECTED_PROCESS": "Spiel oder geschützter Prozess; beibehalten",
+          "PROCESS_OWNER_UNVERIFIED": "Benutzer nicht sicher zugeordnet; übersprungen",
+          "PROCESS_IDENTITY_MISSING": "Prozess nicht sicher identifiziert; übersprungen",
+          "PROCESS_ANCESTRY_UNVERIFIED": "Prozesszugehörigkeit unklar; übersprungen",
+          "APP_SCAN_FAILED": "Apps konnten nicht zuverlässig ermittelt werden",
+          "APP_CLOSURE_CANCELLED": "Wegen App-Ende abgebrochen"
+        }
+      },
+      "info": {
+        "badge": "Info",
+        "title": "Was Game Mode verändert",
+        "restore": "Beim Ausschalten werden die gesicherten Dienstzustände und Preset-Einstellungen wiederhergestellt. Geschlossene Apps bleiben geschlossen. Das Leeren des Standby-Speichers ist eine einmalige Aktion.",
+        "items": {
+          "nova_ultimate_powerplan": {
+            "title": "Nova Powerplan",
+            "description": "Aktiviert den Nova-Energiesparplan mit Fokus auf Prozessorleistung statt Energiesparen."
+          },
+          "clear_standby_list": {
+            "title": "Standby-Speicher leeren",
+            "description": "Leert einmalig zwischengespeicherte Speicherseiten. Windows baut den Cache anschließend wieder auf."
+          },
+          "xbox_services": {
+            "title": "Xbox-Dienste",
+            "description": "Deaktiviert Xbox-Dienste vorübergehend. Anmeldung, Cloud-Saves und Controller-Funktionen können eingeschränkt sein."
+          },
+          "windows_game_mode": {
+            "title": "Windows Game Mode",
+            "description": "Aktiviert den Windows-Spielmodus."
+          },
+          "set_timer_resolution": {
+            "title": "Timer-Auflösung",
+            "description": "Fordert eine System-Timer-Auflösung von 0,5 ms an und prüft, ob sie wirksam ist."
+          },
+          "set_dns_provider": {
+            "title": "Cloudflare DNS",
+            "description": "Setzt den DNS-Anbieter auf 1.1.1.1 / 1.0.0.1. Das erhöht nicht die Internetbandbreite."
+          },
+          "hardware_accelerated_gpu": {
+            "title": "GPU-Scheduling",
+            "description": "Aktiviert hardwarebeschleunigte GPU-Planung auf unterstützten Systemen. Die Änderung erfordert einen Neustart."
+          },
+          "background_services": {
+            "title": "Hintergrunddienste minimieren",
+            "description": "Pausiert Diagnose, SysMain, Suchindexierung, Druck/Fax, Standort, Insider/Demo, Remote-Registry sowie Touch-/Stift-, Smartcard- und Bluetooth-Dienste. Zugehörige Funktionen können während Game Mode ausfallen; laufende abhängige Dienste werden nicht mitgestoppt."
+          },
+          "background_apps": {
+            "title": "Hintergrund-Apps schließen",
+            "description": "Fordert bekannte Cloud-Clients, Browser, Kommunikations- und Aufnahme-Apps zum normalen Beenden auf. Discord bleibt ausdrücklich geöffnet. Gespräche und Aufnahmen anderer Apps können enden. Apps mit Rückfragen bleiben geöffnet und werden nicht erzwungen beendet."
+          }
+        }
+      },
       "running": "Game Mode wird angewendet...",
       "applied": "Game Mode angewendet ({{total}} Schritte).",
       "partial": "Teilweise angewendet ({{completed}}/{{total}}).",

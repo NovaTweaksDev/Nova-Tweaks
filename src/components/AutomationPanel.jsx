@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, PageHeader, PageShell, StatusPill, Switch } from './ui';
+import { Button, IconContainer, PageHeader, PageShell, StatusPill, Switch } from './ui';
 import AutomationAccordionSection from './AutomationAccordionSection';
 import RuleAutomationSection from './RuleAutomationSection';
 import ScheduledMaintenanceSection from './ScheduledMaintenanceSection';
@@ -96,7 +96,7 @@ function DetectionRule({ icon: Icon, title, description, enabled, onEnabledChang
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[color:color-mix(in_srgb,var(--surface)_72%,transparent)] p-3.5">
       <div className="flex items-start gap-3">
-        <span className="rounded-lg bg-[color:color-mix(in_srgb,var(--accent)_13%,transparent)] p-2 text-[var(--accent)]"><Icon className="h-4 w-4" /></span>
+        <IconContainer tone="accent" className="ui-section-icon ui-section-icon--compact"><Icon className="h-4 w-4" /></IconContainer>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0"><h3 className="text-sm font-semibold">{title}</h3><p className="mt-0.5 line-clamp-2 text-xs leading-4 text-[var(--text-muted)]">{description}</p></div>
@@ -119,7 +119,7 @@ function CompactDisclosure({ icon: Icon, title, summary, open, onToggle, actions
           aria-expanded={open}
           onClick={onToggle}
         >
-          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-elevated)] text-[var(--text-muted)]"><Icon className="h-4 w-4" /></span>
+          <IconContainer tone="accent" className="ui-panel-heading-icon"><Icon className="h-4 w-4" /></IconContainer>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold">{title}</span>
             <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">{summary}</span>

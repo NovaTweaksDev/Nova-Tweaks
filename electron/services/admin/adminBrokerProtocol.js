@@ -4,6 +4,7 @@ const PROTOCOL_VERSION = 1;
 
 const ALLOWED_OPERATIONS = new Set([
   'tweak.execute',
+  'gamemode.services',
   'startup.setEnabled',
   'apps.uninstall',
   'game.configure',

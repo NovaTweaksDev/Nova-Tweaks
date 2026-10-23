@@ -1,6 +1,6 @@
 import { Copy, ExternalLink, Mail, MessageCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '../ui';
+import { Button, IconContainer } from '../ui';
 
 const DISCORD_URL = 'https://discord.gg/AkH2jJsF3M';
 const SUPPORT_EMAIL = 'support@nova-tweaks.com';
@@ -11,9 +11,9 @@ function ContactSupportCard({ onOpenDiscord, onOpenEmail, onCopy }) {
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[color:color-mix(in_srgb,var(--surface)_88%,var(--surface-elevated)_12%)] p-4 shadow-[var(--card-shadow-panel)]">
       <div className="flex items-start gap-3">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[color:color-mix(in_srgb,var(--accent)_22%,var(--border))] bg-[color:color-mix(in_srgb,var(--accent)_10%,var(--surface)_90%)] text-[var(--accent)]">
+        <IconContainer tone="accent" className="ui-panel-heading-icon">
           <MessageCircle className="h-5 w-5" />
-        </span>
+        </IconContainer>
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-[var(--text-primary)]">{t('settingsPanel.support.title')}</h2>
           <p className="mt-1 text-sm leading-5 text-[var(--text-muted)]">

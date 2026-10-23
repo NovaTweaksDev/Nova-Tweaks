@@ -162,3 +162,44 @@ test('shows network quality on the adapter selected by the active default route'
   assert.equal(snapshot.network[0].interfaceName, 'Ethernet');
   assert.equal(snapshot.networkQuality.gatewayTarget, '192.168.1.1');
 });
+
+
+test('overview histories skip duplicate, heartbeat, status and stale data without zero samples', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: 100000 });
+  const service = createService(async () => ({ network: [], processes: [] }));
+  const timestamp = Date.now();
+  const metrics = { sampleKind: 'measurement', sampleId: 1, measuredAt: timestamp, timestamp, cpuLoad: 30, memoryUsedGB: 4 };
+  const build = (sample) => service.buildSnapshot({ metrics: sample, rawLhmPayload: createLhmPayload() });
+  const first = await build(metrics);
+  assert.equal(first.cpu.history.length, 1);
+  for (const sample of [metrics, { ...metrics, sampleKind: 'heartbeat' },
+    { sampleKind: 'status', monitoring: 'offline' }, { ...metrics, sampleId: 2, measuredAt: timestamp - 20000 }]) {
+    const next = await build(sample);
+    assert.deepEqual(next.cpu.history, first.cpu.history);
+    assert.deepEqual(next.memory.history, first.memory.history);
+  }
+  t.mock.timers.tick(20000);
+  const next = await build({ ...metrics, sampleId: 3, measuredAt: Date.now(), cpuLoad: 0 });
+  assert.equal(next.cpu.history.length, 2);
+  assert.equal(next.cpu.history.at(-1).value, 0);
+});
+
+
+test('overview enrichment that outlives freshness does not append a historical sample', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: 100000 });
+  let release;
+  let entered;
+  const started = new Promise((resolve) => { entered = resolve; });
+  const service = createService(async () => {
+    entered();
+    await new Promise((resolve) => { release = resolve; });
+    return {};
+  });
+  const pending = service.buildSnapshot({ metrics: { timestamp: Date.now(), cpuLoad: 90 } });
+  await started;
+  t.mock.timers.tick(15001);
+  release();
+  const snapshot = await pending;
+  assert.equal(snapshot.timestamp, 100000);
+  assert.deepEqual(snapshot.cpu.history, []);
+});

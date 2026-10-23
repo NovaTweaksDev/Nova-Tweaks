@@ -179,11 +179,12 @@ function createAdminBrokerManager(options = {}) {
   }
 
   async function defaultLaunchBroker({ pipeName, brokerSessionId }) {
+    const executeFile = options.execFile || execFile;
     const executablePath = process.execPath;
     const appPath = app?.getAppPath?.() || process.cwd();
     const originUserSid = app?.isPackaged
       ? ''
-      : await resolveCurrentWindowsUserSid(options.powerShellPath || 'powershell.exe', options.execFile || execFile);
+      : await resolveCurrentWindowsUserSid(options.powerShellPath || 'powershell.exe', executeFile);
     const workerArgs = app?.isPackaged
       ? ['--nova-admin-broker-worker', '--broker-pipe', pipeName, '--broker-session', brokerSessionId]
       : [
@@ -218,7 +219,7 @@ function createAdminBrokerManager(options = {}) {
         'if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) { exit 17 }'
       ].join('; ');
       await new Promise((resolve, reject) => {
-        execFile(options.powerShellPath || 'powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', signatureCommand], {
+        executeFile(options.powerShellPath || 'powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', signatureCommand], {
           env: { ...process.env, NOVA_BROKER_HOST: nativeHostPath },
           windowsHide: true,
           timeout: 15000
@@ -233,14 +234,15 @@ function createAdminBrokerManager(options = {}) {
       'utf8'
     ).toString('base64');
     const command = [
+      "$ErrorActionPreference = 'Stop'",
       `$arguments = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encodedLaunchArguments}'))`,
-      `$process = Start-Process -FilePath '${escapePowerShellSingleQuoted(launchPath)}' -ArgumentList $arguments -WorkingDirectory '${escapePowerShellSingleQuoted(path.dirname(launchPath))}' -Verb RunAs -WindowStyle Hidden -PassThru`,
+      `$process = Start-Process -FilePath '${escapePowerShellSingleQuoted(launchPath)}' -ArgumentList $arguments -WorkingDirectory '${escapePowerShellSingleQuoted(path.dirname(launchPath))}' -Verb RunAs -WindowStyle Hidden -PassThru -ErrorAction Stop`,
       'if ($process.WaitForExit(1500)) { Write-Error "Administrator broker host exited with code $($process.ExitCode)."; exit $process.ExitCode }',
       '$process.Id'
     ].join('; ');
 
     await new Promise((resolve, reject) => {
-      execFile(
+      executeFile(
         options.powerShellPath || 'powershell.exe',
         ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', command],
         { windowsHide: true, timeout: CONNECT_TIMEOUT_MS },
@@ -276,9 +278,11 @@ function createAdminBrokerManager(options = {}) {
 
     startPromise = new Promise((resolve, reject) => {
       let settled = false;
+      let startupTimer = null;
       const finishReject = (error) => {
         if (settled) return;
         settled = true;
+        clearTimeout(startupTimer);
         const wrapped = error instanceof AdminBrokerError
           ? error
           : new AdminBrokerError(error?.message || 'Administrator broker failed to start.', error?.code || 'ADMIN_BROKER_UNAVAILABLE');
@@ -286,9 +290,10 @@ function createAdminBrokerManager(options = {}) {
         closeTransport({ code: wrapped.code, message: wrapped.message, preserveStatus: true });
         reject(wrapped);
       };
-      let finishResolve = (state) => {
+      const finishResolve = (state) => {
         if (settled) return;
         settled = true;
+        clearTimeout(startupTimer);
         resolve(state);
       };
 
@@ -333,13 +338,10 @@ function createAdminBrokerManager(options = {}) {
         void launchBroker({ pipeName, brokerSessionId: sessionId, reason }).catch(finishReject);
       });
 
-      const timer = setTimeout(() => {
+      startupTimer = setTimeout(() => {
         finishReject(new AdminBrokerError('Administrator broker startup timed out.', 'ADMIN_BROKER_TIMEOUT'));
       }, CONNECT_TIMEOUT_MS);
-      timer.unref?.();
-      const clearStartupTimer = () => clearTimeout(timer);
-      const originalResolve = finishResolve;
-      finishResolve = (state) => { clearStartupTimer(); originalResolve(state); };
+      startupTimer.unref?.();
     }).finally(() => {
       startPromise = null;
     });

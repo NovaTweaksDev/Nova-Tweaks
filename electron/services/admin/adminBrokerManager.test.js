@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const net = require('node:net');
+const { execFile } = require('node:child_process');
 
 const { createLineDecoder, encodeMessage, PROTOCOL_VERSION } = require('./adminBrokerProtocol');
 const {
@@ -148,6 +149,45 @@ test('keeps the cancelled state and allows a later explicit retry', async () => 
   await assert.rejects(manager.ensureReady(), { code: 'ADMIN_BROKER_CANCELLED' });
   assert.equal(launches, 2);
   manager.shutdown();
+});
+
+test('manual and startup UAC denial stop the real PowerShell launcher without waiting for a handshake', {
+  skip: process.platform !== 'win32', timeout: 10000
+}, async (t) => {
+  const states = [];
+  let launches = 0;
+  const manager = createAdminBrokerManager({
+    app: { isPackaged: false, getAppPath: () => process.cwd() },
+    platform: 'win32',
+    onStateChange: state => states.push(state.status),
+    // No pipe or elevated process is needed to exercise launch rejection.
+    createServer: () => ({ once() {}, listen(_pipe, ready) { queueMicrotask(ready); }, close() {} }),
+    execFile(file, args, options, callback) {
+      if (args.at(-1).includes('WindowsIdentity')) {
+        callback(null, 'S-1-5-21-100-200-300-1001');
+        return;
+      }
+      launches++;
+      // Shadow only Start-Process, preserving PowerShell's real non-terminating
+      // error semantics. This simulates No without showing UAC or elevating.
+      const simulateDenial = [
+        'function Start-Process {',
+        '[CmdletBinding()] param([string]$FilePath, [string]$ArgumentList, [string]$WorkingDirectory, [string]$Verb, [string]$WindowStyle, [switch]$PassThru)',
+        "Write-Error 'Simulated UAC denial'",
+        '}'
+      ].join('\n');
+      execFile(file, [...args.slice(0, -1), `${simulateDenial}\n${args.at(-1)}`], options, callback);
+    }
+  });
+  t.after(() => manager.shutdown());
+  for (const reason of ['manual', 'startup']) {
+    await assert.rejects(manager.ensureReady({ reason, explicitApproval: true }), { code: 'ADMIN_BROKER_CANCELLED' });
+    assert.equal(manager.getState().status, 'cancelled');
+    assert.equal(manager.getState().ready, false);
+    assert.equal(manager.getState().pendingCount, 0);
+  }
+  assert.equal(launches, 2, 'a new explicit request is allowed immediately after cancellation');
+  assert.deepEqual(states, ['starting', 'cancelled', 'starting', 'cancelled']);
 });
 
 test('delivers simultaneous operations to the worker in FIFO order', async (t) => {
