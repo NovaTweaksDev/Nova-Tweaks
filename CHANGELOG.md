@@ -6,7 +6,7 @@ This file records changes described by the project's public Git tags and GitHub 
 
 No changes recorded yet.
 
-## 1.1.0 - 2026-10-23
+## 1.1.0 - 2026-10-24
 
 ### Changed
 
@@ -14,6 +14,8 @@ No changes recorded yet.
 - Improved monitoring history, unavailable metric handling, and shutdown cleanup.
 - Persist installed-app details across restarts, refresh changed entries selectively, and retain visible sizes and icons during background checks. Recheck sizes weekly or with Reload.
 - Added Game Mode background-app controls and session statistics.
+- Reuse the process detection worker and tolerate temporary process visibility gaps when restoring display profiles.
+- Refined automation status controls and added a subtle ember background to the optional support button, respecting reduced motion.
 - Improved tweak-state reporting and automation handling of administrator approval cancellation.
 - Integrated the signed Windows release pipeline for regular and Microsoft Store installers.
 - Store builds retain the existing product identity and exclude the three previously restricted boot/security tweaks.

@@ -180,7 +180,6 @@ function ScheduledMaintenanceSection({ open, onToggle, onStatusChange }) {
       onToggle={onToggle}
         actions={(
         <div className="flex items-center gap-2">
-            <StatusPill tone={running ? 'warning' : schedule.enabled ? 'success' : 'neutral'}>{running ? t('automationLayout.running') : schedule.enabled ? t('scheduledMaintenance.active') : t('scheduledMaintenance.paused')}</StatusPill>
             <Switch checked={schedule.enabled} disabled={busy || running} onChange={(enabled) => void update({ enabled })} ariaLabel={t('scheduledMaintenance.title')} />
           </div>
         )}

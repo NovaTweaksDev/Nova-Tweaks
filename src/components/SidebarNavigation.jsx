@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  ArrowUpRight,
   Boxes,
   Coffee,
   Activity,
   DatabaseBackup,
   Gauge,
   Gamepad2,
-  Heart,
   LayoutDashboard,
   LockKeyhole,
   Search,
@@ -21,31 +21,6 @@ import {
 
 const SIDEBAR_LOGO_SRC = new URL('../../resources/pictures/logo/logo.ico', import.meta.url).href;
 const FEATURE_NAV_IDS = new Set(['session-monitoring', 'game-mode', 'ai']);
-const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
-const SUPPORT_HEART_COLORS = ['#d8a4dc', '#c7a6ea', '#e5a7cf', '#b9a5ed'];
-
-let nextSupportHeartParticleId = 0;
-
-function getInitialReducedMotionPreference() {
-  return typeof window !== 'undefined'
-    && typeof window.matchMedia === 'function'
-    && window.matchMedia(REDUCED_MOTION_QUERY).matches;
-}
-
-function createSupportHeartParticles() {
-  const particleCount = 4 + Math.floor(Math.random() * 3);
-  return Array.from({ length: particleCount }, (_, index) => ({
-    id: nextSupportHeartParticleId++,
-    color: SUPPORT_HEART_COLORS[index % SUPPORT_HEART_COLORS.length],
-    delay: `${Math.round(Math.random() * 100)}ms`,
-    drift: `${Math.round(-18 + Math.random() * 36)}px`,
-    duration: `${Math.round(1500 + Math.random() * 500)}ms`,
-    rise: `${Math.round(40 + Math.random() * 18)}px`,
-    rotation: `${Math.round(-18 + Math.random() * 36)}deg`,
-    size: `${Math.round(8 + Math.random() * 5)}px`
-  }));
-}
-
 const itemIcons = {
   dashboard: LayoutDashboard,
   tweaks: SlidersHorizontal,
@@ -119,8 +94,6 @@ function SidebarNavigation({
 }) {
   const { t } = useTranslation();
   const [elevationState, setElevationState] = useState("idle");
-  const [supportHeartParticles, setSupportHeartParticles] = useState([]);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(getInitialReducedMotionPreference);
   const runtimeStateKnown = typeof isAdmin === 'boolean';
   const runtimeAccessActive = isAdmin === true;
   const runtimeStatusToneClass = runtimeAccessActive ? 'text-[var(--success)]' : 'text-[var(--warning)]';
@@ -136,41 +109,6 @@ function SidebarNavigation({
   }
   const featureItems = items.filter((item) => FEATURE_NAV_IDS.has(item.id));
   const mainItems = items.filter((item) => !FEATURE_NAV_IDS.has(item.id));
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-      return undefined;
-    }
-
-    const mediaQuery = window.matchMedia(REDUCED_MOTION_QUERY);
-    const handlePreferenceChange = (event) => {
-      setPrefersReducedMotion(event.matches);
-      if (event.matches) {
-        setSupportHeartParticles([]);
-      }
-    };
-
-    setPrefersReducedMotion(mediaQuery.matches);
-    mediaQuery.addEventListener('change', handlePreferenceChange);
-    return () => mediaQuery.removeEventListener('change', handlePreferenceChange);
-  }, []);
-
-  function handleSupportMouseEnter() {
-    if (prefersReducedMotion) {
-      return;
-    }
-
-    setSupportHeartParticles((currentParticles) => [
-      ...currentParticles,
-      ...createSupportHeartParticles()
-    ]);
-  }
-
-  function removeSupportHeartParticle(particleId) {
-    setSupportHeartParticles((currentParticles) => (
-      currentParticles.filter((particle) => particle.id !== particleId)
-    ));
-  }
 
   return (
     <>
@@ -278,33 +216,18 @@ function SidebarNavigation({
           <button
             type="button"
             onClick={onSupport}
-            onMouseEnter={handleSupportMouseEnter}
             title={t('strings.entirely_optional_nova_tweaks_remains_fully_usable_without_suppor_855fd', { defaultValue: 'Entirely optional. Nova Tweaks remains fully usable without support.' })}
             aria-label={t('strings.optional_support_buy_me_a_coffee_23adc', { defaultValue: 'Optional support: Buy me a coffee' })}
-            className="app-sidebar-account-button ui-card app-region-no-drag flex w-full items-center gap-2.5 p-2.5 text-left transition"
+            className="app-sidebar-account-button app-sidebar-support-button ui-card app-region-no-drag flex w-full items-center gap-2.5 p-2.5 text-left transition"
           >
-            <span className="app-sidebar-support-icon inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--accent)]">
-              <Coffee className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
-              <span className="app-sidebar-support-particles" aria-hidden="true">
-                {supportHeartParticles.map((particle) => (
-                  <span
-                    key={particle.id}
-                    className="app-sidebar-support-heart"
-                    onAnimationEnd={() => removeSupportHeartParticle(particle.id)}
-                    style={{
-                      '--support-heart-color': particle.color,
-                      '--support-heart-delay': particle.delay,
-                      '--support-heart-drift': particle.drift,
-                      '--support-heart-duration': particle.duration,
-                      '--support-heart-rise': particle.rise,
-                      '--support-heart-rotation': particle.rotation,
-                      '--support-heart-size': particle.size
-                    }}
-                  >
-                    <Heart aria-hidden="true" />
-                  </span>
-                ))}
+            <span className="app-sidebar-support-atmosphere" aria-hidden="true">
+              <span className="app-sidebar-support-glow" />
+              <span className="app-sidebar-support-embers">
+                {Array.from({ length: 6 }, (_, index) => <i key={index} />)}
               </span>
+            </span>
+            <span className="app-sidebar-support-icon inline-flex h-8 w-8 items-center justify-center rounded-full border">
+              <Coffee className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
             </span>
             <span className="app-sidebar-account-text min-w-0">
               <span className="block truncate text-sm font-semibold tracking-normal">
@@ -314,6 +237,7 @@ function SidebarNavigation({
                 {t('strings.optional_support_buy_me_a_coffee_23adc', { defaultValue: 'Optional · Buy me a coffee' })}
               </span>
             </span>
+            <ArrowUpRight className="app-sidebar-support-arrow ml-auto h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           </button>
 
         </div>

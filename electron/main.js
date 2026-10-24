@@ -3189,10 +3189,10 @@ if (!initializePrivilegeState()) {
       getActiveGame: () => gameSessionManager?.getState?.()?.activeGame || null,
       onUpdate: broadcastProcessAutomationUpdate,
       hasAdditionalDemand: () => displayProfileService?.needsProcessSnapshots?.() || false,
-      onSnapshot: (processes) => {
+      onSnapshot: (processes, _now, metadata) => {
         if (isQuitting) return;
         ruleAutomationService?.handleProcessSnapshot?.(processes);
-        void displayProfileService?.handleProcessSnapshot?.(processes);
+        void displayProfileService?.handleProcessSnapshot?.(processes, metadata);
       }
     });
     processWatcherService.applySettings();

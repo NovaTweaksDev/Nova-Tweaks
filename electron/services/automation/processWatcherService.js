@@ -4,6 +4,7 @@ const path = require('path');
 const { execFile } = require('child_process');
 const { randomUUID } = require('crypto');
 const { resolveWindowsSystemExecutable } = require('../security/systemExecutables');
+const { createProcessSnapshotWorker } = require('./processSnapshotWorker');
 
 const DEFAULT_INTERVAL_MS = 5000;
 const MAX_HISTORY_ENTRIES = 100;
@@ -34,7 +35,11 @@ const WINDOWS_PROCESS_SCRIPT = [
   'using System;',
   'using System.Text;',
   'using System.Runtime.InteropServices;',
+  'public sealed class NovaProcessEntry {',
+  '  public string name; public int pid; public string startTime; public string executablePath;',
+  '}',
   'public static class NovaProcessIdentity {',
+  '  [ThreadStatic] static StringBuilder imageBuffer;',
   '  [DllImport("kernel32.dll", SetLastError=true)] static extern IntPtr OpenProcess(uint access, bool inherit, uint pid);',
   '  [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)] static extern bool QueryFullProcessImageName(IntPtr handle, uint flags, StringBuilder text, ref uint size);',
   '  [DllImport("kernel32.dll", SetLastError=true)] static extern bool GetProcessTimes(IntPtr handle, out long created, out long exited, out long kernel, out long user);',
@@ -43,15 +48,35 @@ const WINDOWS_PROCESS_SCRIPT = [
   '    IntPtr handle = OpenProcess(0x1000, false, (uint)pid);',
   '    if (handle == IntPtr.Zero) return new string[] { "", "" };',
   '    try {',
-  '      uint size = 32768; var text = new StringBuilder((int)size); long created, exited, kernel, user;',
+  '      var text = imageBuffer ?? (imageBuffer = new StringBuilder(1024)); text.Clear();',
+  '      uint size = (uint)text.Capacity; long created, exited, kernel, user;',
   '      if (!GetProcessTimes(handle, out created, out exited, out kernel, out user)) return new string[] { "", "" };',
-  '      if (!QueryFullProcessImageName(handle, 0, text, ref size)) text.Clear();',
+  '      if (!QueryFullProcessImageName(handle, 0, text, ref size)) {',
+  '        if (Marshal.GetLastWin32Error() == 122) {',
+  '          text.EnsureCapacity(32768); text.Clear(); size = (uint)text.Capacity;',
+  '          if (!QueryFullProcessImageName(handle, 0, text, ref size)) text.Clear();',
+  '        } else text.Clear();',
+  '      }',
   '      return new string[] { text.ToString(), DateTime.FromFileTimeUtc(created).ToString("o") };',
   '    } finally { CloseHandle(handle); }',
   '  }',
+  '  public static NovaProcessEntry[] List() {',
+  '    var result = new System.Collections.Generic.List<NovaProcessEntry>();',
+  '    foreach (var process in System.Diagnostics.Process.GetProcesses()) {',
+  '      using (process) {',
+  '        try {',
+  '          var identity = Query(process.Id);',
+  '          string name = "";',
+  '          try { name = identity[0].Length > 0 ? System.IO.Path.GetFileNameWithoutExtension(identity[0]) : process.ProcessName; } catch { }',
+  '          result.Add(new NovaProcessEntry { name = name, pid = process.Id, startTime = identity[1], executablePath = identity[0] });',
+  '        } catch { }',
+  '      }',
+  '    }',
+  '    return result.ToArray();',
+  '  }',
   '}',
   "'@",
-  '$items = @(Get-Process | ForEach-Object {',
+  '$items = if ($includeMetrics -eq $false) { [NovaProcessIdentity]::List() } else { @(Get-Process -ErrorAction Stop | ForEach-Object {',
   '  try {',
   '    $imagePath = ""; $started = ""',
   '    $identity = [NovaProcessIdentity]::Query([int]$_.Id)',
@@ -62,15 +87,15 @@ const WINDOWS_PROCESS_SCRIPT = [
   '      pid = [int]$_.Id',
   '      startTime = $started',
   '      executablePath = $imagePath',
-  '      cpuSeconds = $_.CPU',
-  '      ramBytes = $_.WorkingSet64',
-  '      ioReadBytes = $_.IOReadBytes',
-  '      ioWriteBytes = $_.IOWriteBytes',
-  '      responding = $_.Responding',
-  '      mainWindowHandle = [int64]$_.MainWindowHandle',
+  '      cpuSeconds = if ($includeMetrics -ne $false) { try { $_.CPU } catch { $null } } else { $null }',
+  '      ramBytes = if ($includeMetrics -ne $false) { try { $_.WorkingSet64 } catch { $null } } else { $null }',
+  '      ioReadBytes = if ($includeMetrics -ne $false) { try { $_.IOReadBytes } catch { $null } } else { $null }',
+  '      ioWriteBytes = if ($includeMetrics -ne $false) { try { $_.IOWriteBytes } catch { $null } } else { $null }',
+  '      responding = if ($includeMetrics -ne $false) { try { $_.Responding } catch { $null } } else { $null }',
+  '      mainWindowHandle = if ($includeMetrics -ne $false) { try { [int64]$_.MainWindowHandle } catch { 0 } } else { 0 }',
   '    }',
   '  } catch {}',
-  '})',
+  '}) }',
   '$items | ConvertTo-Json -Depth 4 -Compress'
 ].join('\n');
 
@@ -158,11 +183,6 @@ function runPowerShellJson(script, args = [], timeoutMs = 4500) {
   });
 }
 
-function defaultSnapshotProvider() {
-  if (process.platform !== 'win32') return Promise.resolve([]);
-  return runPowerShellJson(WINDOWS_PROCESS_SCRIPT);
-}
-
 function encodeArgument(value) {
   return Buffer.from(String(value || ''), 'utf8').toString('base64');
 }
@@ -182,7 +202,9 @@ function defaultActionProvider(processInfo, force) {
 function createProcessWatcherService(options = {}) {
   const app = options.app;
   const logger = options.logger;
-  const snapshotProvider = options.snapshotProvider || defaultSnapshotProvider;
+  const snapshotWorker = !options.snapshotProvider && process.platform === 'win32'
+    ? createProcessSnapshotWorker({ script: WINDOWS_PROCESS_SCRIPT }) : null;
+  const snapshotProvider = options.snapshotProvider || ((settings) => snapshotWorker?.snapshot(settings) || Promise.resolve([]));
   const actionProvider = options.actionProvider || defaultActionProvider;
   const isAdminProvider = typeof options.isAdminProvider === 'function' ? options.isAdminProvider : () => false;
   const privilegedExecutor = typeof options.privilegedExecutor === 'function' ? options.privilegedExecutor : null;
@@ -197,6 +219,7 @@ function createProcessWatcherService(options = {}) {
 
   let timer = null;
   let pollInProgress = false;
+  let pollGeneration = 0;
   let previousStats = new Map();
   let conditionSince = new Map();
   let cooldownUntil = new Map();
@@ -355,11 +378,15 @@ function createProcessWatcherService(options = {}) {
   async function pollOnce() {
     if (pollInProgress || (!config().enabled && !hasActiveRules() && !hasAdditionalDemand())) return getState();
     pollInProgress = true;
+    const generation = pollGeneration;
     const now = nowProvider();
     try {
-      const rawProcesses = await snapshotProvider();
+      const rawProcesses = await snapshotProvider({ includeMetrics: Boolean(config().enabled || hasActiveRules()) });
+      if (generation !== pollGeneration) return getState();
       const processes = normalizeProcesses(rawProcesses, now);
-      onSnapshot(processes.map((entry) => ({ ...entry })), now);
+      const unresolvedPids = normalizeArray(rawProcesses).filter((entry) => !entry?.startTime && Number.isSafeInteger(Number(entry?.pid)))
+        .map((entry) => Number(entry.pid));
+      onSnapshot(processes.map((entry) => ({ ...entry })), now, { unresolvedPids });
       const settings = config();
       const detectionEnabled = Boolean(settings.enabled);
       const activeGame = await Promise.resolve(getActiveGame());
@@ -382,6 +409,7 @@ function createProcessWatcherService(options = {}) {
       pruneHistory(now);
       emitUpdate();
     } catch (error) {
+      if (generation !== pollGeneration) return getState();
       lastError = error?.message || 'Process detection failed.';
       logger?.warn?.('Process detection poll failed.', { message: lastError });
       emitUpdate();
@@ -399,6 +427,8 @@ function createProcessWatcherService(options = {}) {
   }
 
   function stop() {
+    pollGeneration += 1;
+    snapshotWorker?.stop();
     if (timer) clearInterval(timer);
     timer = null;
     previousStats = new Map();

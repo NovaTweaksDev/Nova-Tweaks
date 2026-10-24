@@ -231,6 +231,40 @@ test('partial application restores the saved state and leaves no transaction', a
   assert.equal(f.current.width, 1920); assert.equal(f.service.getState().transaction, null);
 });
 
+for (const [property, change] of [
+  ['desktop resolution', (state) => { state.width = 1600; }],
+  ['refresh rate', (state) => { state.refresh.numerator = 144; }],
+  ['fractional refresh rate', (state) => { state.refresh = { numerator: 239760, denominator: 1000 }; }],
+  ['output signal resolution', (state) => { state.signal.width = 1728; }],
+  ['output signal refresh', (state) => { state.signal.numerator = 144; }],
+  ['NVIDIA scaling', (state) => { state.scaling = 1; }],
+  ['pixel clock', (state) => { state.nativeState.pixelRate = '584640001'; }],
+  ['horizontal timing', (state) => { state.nativeState.totalWidth = 2200; }],
+  ['vertical timing', (state) => { state.nativeState.totalHeight = 1161; }],
+  ['Windows scaling', (state) => { state.nativeState.windowsScaling = 2; }],
+  ['scanline ordering', (state) => { state.nativeState.scanline = 2; }]
+]) {
+  test(`driver success with incorrect ${property} is rejected and rolled back`, async (t) => {
+    const f = fixture(t);
+    const native = { pixelRate: '584640000', totalWidth: 2100, totalHeight: 1160,
+      windowsScaling: 1, scanline: 1, vibrance: -1 };
+    f.setCurrent({ ...snapshot(1728), nativeState: clone(native) });
+    await f.service.capture({ kind: 'gaming', name: 'Exact driver mode', monitorId: 'monitor-a' });
+    const profile = f.service.getState().profiles[0];
+    const original = { ...snapshot(), nativeState: clone(native) };
+    f.setCurrent(original);
+    f.provider.apply = async (target) => {
+      const actual = clone(target);
+      if (target.width === 1728) change(actual);
+      f.setCurrent(actual);
+    };
+    await assert.rejects(f.service.activate(profile.id), { code: 'DISPLAY_APPLY_MISMATCH' });
+    assert.equal(displayEqual(f.current, original), true);
+    assert.equal(f.service.getState().transaction, null);
+    assert.equal(f.service.getState().profiles[0].tested, null);
+  });
+}
+
 test('partial driver failure restores the saved boot mode even when the live mode already returned', async (t) => {
   const f = fixture(t); const profile = await gaming(f);
   let savedBootWidth = 1920;
@@ -338,6 +372,8 @@ test('automatic gaming switches from a confirmed manual desktop and resumes it a
   const restarted = createDisplayProfileService({ provider: f.provider, root: f.root });
   assert.equal(restarted.getState().transaction.returnTo.snapshot.width, 1920);
   await f.service.handleProcessSnapshot([]);
+  assert.equal(f.current.width, 1728, 'one missing sample must not change the display');
+  await f.service.handleProcessSnapshot([]);
   assert.equal(f.current.width, 1920);
   assert.equal(f.service.getState().transaction.profileId, desktop.id);
   assert.equal(f.service.getState().transaction.game, null);
@@ -367,6 +403,8 @@ test('the existing watcher starts for profile demand and drives desktop to gamin
   assert.equal(f.current.width, 1728);
   assert.equal(watcher.getState().currentAlerts.length, 0);
   rawProcesses = []; await watcher.pollOnce(); await handled;
+  assert.equal(f.current.width, 1728);
+  await watcher.pollOnce(); await handled;
   assert.equal(f.current.width, 1920);
   await f.service.configure({ id: profile.id, auto: false });
   assert.equal(watcher.getState().running, false);
@@ -426,6 +464,7 @@ test('game start and exit work without a recording; launcher does not match', as
   assert.equal(f.service.getState().transaction, null);
   await f.service.handleProcessSnapshot([game()]); assert.equal(f.current.width, 1728);
   assert.equal(f.guard.confirmed, true);
+  await f.service.handleProcessSnapshot([]); assert.equal(f.current.width, 1728);
   await f.service.handleProcessSnapshot([]); assert.equal(f.current.width, 1920);
 });
 test('manual restoration suppresses reactivation until that process exits', async (t) => {
@@ -448,6 +487,52 @@ test('a second game cannot displace an active profile', async (t) => {
   await f.service.handleProcessSnapshot([game()]);
   await f.service.handleProcessSnapshot([game(), game(20, 'second', 'C:\\Games\\second.exe')]);
   assert.equal(f.current.width, 1728);
+});
+
+test('stable gameplay and Alt-Tab perform no native display calls, writes or UI broadcasts', async (t) => {
+  let broadcasts = 0;
+  const f = fixture(t, { onUpdate: () => { broadcasts += 1; } });
+  const profile = await gaming(f); await automatic(f, profile);
+  await f.service.handleProcessSnapshot([game()]);
+  const journalBefore = fs.readFileSync(path.join(f.root, 'recovery.json'), 'utf8');
+  const modifiedBefore = fs.statSync(path.join(f.root, 'recovery.json')).mtimeMs;
+  let nativeCalls = 0;
+  for (const name of Object.keys(f.provider)) f.provider[name] = async () => { nativeCalls += 1; throw new Error('Unexpected native call during gameplay'); };
+  broadcasts = 0;
+  for (let index = 0; index < 1000; index++) {
+    await f.service.handleProcessSnapshot([{ ...game(), mainWindowHandle: index % 2, foreground: Boolean(index % 2) }]);
+  }
+  await f.service.handleProcessSnapshot([]);
+  await f.service.handleProcessSnapshot([game()]);
+  assert.equal(nativeCalls, 0);
+  assert.equal(broadcasts, 0);
+  assert.equal(fs.readFileSync(path.join(f.root, 'recovery.json'), 'utf8'), journalBefore);
+  assert.equal(fs.statSync(path.join(f.root, 'recovery.json')).mtimeMs, modifiedBefore);
+  assert.equal(f.service.getState().transaction.status, 'active');
+});
+
+test('temporarily unreadable creation times do not restore or reactivate an active game', async (t) => {
+  const f = fixture(t); const profile = await gaming(f); await automatic(f, profile);
+  await f.service.handleProcessSnapshot([game()]);
+  const calls = f.calls.length;
+  for (let index = 0; index < 10; index++) await f.service.handleProcessSnapshot([], { unresolvedPids: [10] });
+  assert.equal(f.calls.length, calls);
+  assert.equal(f.current.width, 1728);
+  await f.service.handleProcessSnapshot([game()]);
+  await f.service.handleProcessSnapshot([]);
+  assert.equal(f.current.width, 1728);
+  await f.service.handleProcessSnapshot([]);
+  assert.equal(f.current.width, 1920);
+});
+
+test('a transient missing sample does not discard manual suppression and reapply a game profile', async (t) => {
+  const f = fixture(t); const profile = await gaming(f); await automatic(f, profile);
+  await f.service.handleProcessSnapshot([game()]); await f.service.restore();
+  const calls = f.calls.length;
+  await f.service.handleProcessSnapshot([]);
+  await f.service.handleProcessSnapshot([game()]);
+  assert.equal(f.calls.length, calls);
+  assert.equal(f.service.getState().transaction, null);
 });
 test('recapture invalidates the confirmed test and disables automation', async (t) => {
   const f = fixture(t); const profile = await gaming(f); await automatic(f, profile);

@@ -270,9 +270,6 @@ function AutomationPanel({ state, busy, rulesState, tweaks, tweakCatalogStatus, 
           onToggle={() => toggleSection('processes')}
           actions={(
             <div className="flex items-center gap-2">
-              <StatusPill tone={alerts.length ? 'warning' : state?.enabled ? "success" : 'neutral'}>
-                {alerts.length ? t('automationLayout.needsAttention') : state?.enabled ? t('automation.active') : t('automation.inactive')}
-              </StatusPill>
               <Switch checked={Boolean(state?.enabled)} disabled={busy} onChange={(enabled) => update({ enabled })} ariaLabel={t('automation.liveDetection')} />
             </div>
           )}

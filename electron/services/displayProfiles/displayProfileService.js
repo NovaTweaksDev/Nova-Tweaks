@@ -43,6 +43,8 @@ function createDisplayProfileService({ provider, root, onUpdate = () => {}, onDe
   const journalPath = path.join(root, 'recovery.json');
   let profiles = [], transaction = null, guard = null, busy = false, lastError = null, displays = [];
   let suppressed = new Set(), lastProcesses = [], loadedWarning = null, pendingGuardRestore = null;
+  const suppressedMisses = new Map();
+  let missingGame = null;
   let operationFinished = Promise.resolve();
   let closing = false, shutdownFinished = null;
   function write(file, value) {
@@ -298,20 +300,44 @@ function createDisplayProfileService({ provider, root, onUpdate = () => {}, onDe
       if (transaction?.game) suppressed.add(identity(transaction.game));
       clearTransaction(); return state();
     }),
-    handleProcessSnapshot: async (processes) => {
-      if (closing) return;
+    handleProcessSnapshot: async (processes, { unresolvedPids = [] } = {}) => {
+      if (closing || !Array.isArray(processes)) return;
       lastProcesses = processes;
       const running = new Set(processes.map(identity));
-      suppressed = new Set([...suppressed].filter((key) => running.has(key)));
+      const byPid = new Map(processes.map((entry) => [Number(entry.pid), entry]));
+      for (const pid of unresolvedPids) if (!byPid.has(pid)) byPid.set(pid, { pid, startTime: '' });
+      suppressed = new Set([...suppressed].filter((key) => {
+        const processInfo = byPid.get(Number(key.slice(0, key.indexOf(':'))));
+        if (running.has(key) || (processInfo && !processInfo.startTime)) {
+          suppressedMisses.delete(key); return true;
+        }
+        const misses = (suppressedMisses.get(key) || 0) + 1;
+        if (processInfo?.startTime || misses >= 2) { suppressedMisses.delete(key); return false; }
+        suppressedMisses.set(key, misses); return true;
+      }));
       if (busy) return;
       if (transaction) {
-        if (transaction.game && transaction.status === 'active' && !running.has(identity(transaction.game)))
-          await exclusive(() => restoreSafely({ automatic: true, resumeManual: true })).catch(() => {});
+        if (transaction.game && transaction.status === 'active') {
+          const key = identity(transaction.game);
+          const samePid = byPid.get(Number(transaction.game.pid));
+          if (running.has(key) || (samePid && !samePid.startTime)) missingGame = null;
+          else {
+            const misses = missingGame?.key === key ? missingGame.count + 1 : 1;
+            missingGame = { key, count: misses };
+            // A reused PID with a different creation time proves exit. Otherwise
+            // require two samples so a transient visibility gap cannot switch modes.
+            if (!samePid?.startTime && misses < 2) return;
+            missingGame = null;
+            await exclusive(() => restoreSafely({ automatic: true, resumeManual: true })).catch(() => {});
+          }
+        }
         if (transaction?.game || (transaction && transaction.status !== 'active')) return;
       }
+      missingGame = null;
       for (const profile of profiles) {
         if (!profile.auto || !profile.executablePath) continue;
-        const game = lastProcesses.find((p) => executableKey(p.executablePath) === executableKey(profile.executablePath) && !suppressed.has(identity(p)));
+        const game = lastProcesses.find((p) => Number.isSafeInteger(Number(p.pid)) && Number(p.pid) > 0 && p.startTime &&
+          executableKey(p.executablePath) === executableKey(profile.executablePath) && !suppressed.has(identity(p)));
         if (!game) continue;
         await exclusive(() => activateInternal(profile.id, { automatic: true, game })).catch(() => { suppressed.add(identity(game)); });
         break;

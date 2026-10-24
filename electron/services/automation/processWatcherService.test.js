@@ -9,6 +9,35 @@ const {
   isProtectedProcess
 } = require('./processWatcherService');
 
+test('display-only snapshots omit resource queries and retain unresolved PID metadata', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-display-light-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  let options, metadata;
+  const watcher = createProcessWatcherService({ historyPath: path.join(root, 'history.json'),
+    getSettings: () => ({ automation: { processDetection: { enabled: false }, rules: [] } }),
+    hasAdditionalDemand: () => true,
+    snapshotProvider: async (value) => { options = value; return [{ pid: 50, startTime: '', executablePath: '' }]; },
+    onSnapshot: (_processes, _now, value) => { metadata = value; } });
+  t.after(() => watcher.stop());
+  await watcher.pollOnce();
+  assert.equal(options.includeMetrics, false);
+  assert.deepEqual(metadata.unresolvedPids, [50]);
+  assert.equal(watcher.getState().currentAlerts.length, 0);
+});
+
+test('stopping the watcher discards an in-flight snapshot instead of triggering display automation', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-display-stop-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  let finish, delivered = 0;
+  const watcher = createProcessWatcherService({ historyPath: path.join(root, 'history.json'),
+    getSettings: () => ({ automation: { processDetection: { enabled: false } } }),
+    hasAdditionalDemand: () => true,
+    snapshotProvider: () => new Promise((resolve) => { finish = resolve; }), onSnapshot: () => { delivered += 1; } });
+  const pending = watcher.pollOnce();
+  watcher.stop(); finish([]); await pending;
+  assert.equal(delivered, 0);
+});
+
 function createSettings(overrides = {}) {
   return {
     automation: {

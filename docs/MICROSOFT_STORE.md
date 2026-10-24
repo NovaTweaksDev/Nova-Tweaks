@@ -1,5 +1,22 @@
 # Microsoft Store readiness and Windows releases
 
+## Release 1.1.0 source and distribution
+
+`main` contains the shared application source. `ms-store` tracks the source selected
+for the Store release. Both branches can point to the same commit: the embedded
+build profile, not the branch name, selects the distribution. Build the regular
+installer with `npm run dist:win` and the Store installer with `npm run dist:store`.
+Never submit the regular installer or an unsigned candidate to Partner Center.
+Version 1.1.0 retains the existing app ID, NSIS GUID, per-user installation scope
+and user-data location. Test the exact final signed Store installer against the
+currently published version using `scripts/test-installer-vm.ps1 -UpgradeFrom` in
+a disposable VM; previous release evidence does not validate this update.
+
+The historical audit below records checks for earlier versions. GitHub release
+publication does not submit an update to Partner Center. Use the new versioned
+Store installer URL in the existing product submission; do not replace an older
+submitted installer at its existing URL.
+
 Audit date: 2026-10-12. Scope: committed v1.0.4 source plus this release-readiness change. Uncommitted work in the original local checkout is deliberately excluded from this isolated branch. No release, tag or Store submission is authorized by this change.
 
 Updated 2026-10-13: free, open-source Store distribution was confirmed. Actual

@@ -730,65 +730,121 @@ html[data-theme='dark'] .app-sidebar {
     var(--sidebar-panel-strong);
 }
 
+.app-sidebar-support-button {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.app-sidebar-support-atmosphere {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(110deg, rgba(224, 132, 72, 0.09), transparent 58%, rgba(203, 126, 218, 0.08));
+}
+
+.app-sidebar-support-glow {
+  position: absolute;
+  inset: -40% -15% -100%;
+  background:
+    radial-gradient(ellipse at 25% 70%, rgba(246, 135, 55, 0.42), transparent 52%),
+    radial-gradient(ellipse at 80% 80%, rgba(213, 118, 168, 0.2), transparent 55%);
+  animation: app-sidebar-support-glow 6s ease-in-out infinite alternate;
+}
+
 .app-sidebar-support-icon {
   position: relative;
   flex-shrink: 0;
+  color: #eab58d;
+  border-color: rgba(234, 181, 141, 0.22);
+  background: color-mix(in srgb, var(--surface-elevated) 82%, #be783f 18%);
+  box-shadow: inset 0 1px 0 rgba(255, 221, 185, 0.08);
 }
 
-.app-sidebar-support-particles {
+.app-sidebar-support-button .app-sidebar-account-text {
+  flex: 1;
+}
+
+.app-sidebar-support-arrow {
+  color: var(--text-secondary);
+  opacity: 0.65;
+  transition: opacity 180ms ease;
+}
+
+.app-sidebar-support-embers {
   position: absolute;
   inset: 0;
-  z-index: 1;
-  overflow: visible;
-  pointer-events: none;
+  opacity: 0.55;
+  transition: opacity 180ms ease;
 }
 
-.app-sidebar-support-heart {
+.app-sidebar-support-embers > i {
   position: absolute;
-  top: 44%;
-  left: 50%;
-  width: var(--support-heart-size);
-  height: var(--support-heart-size);
-  color: var(--support-heart-color);
+  bottom: -4px;
+  left: 14%;
+  width: 2px;
+  height: 3px;
+  border-radius: 50%;
+  background: #f5bd83;
+  box-shadow: 0 0 5px rgba(248, 165, 94, 0.6);
   opacity: 0;
-  pointer-events: none;
-  animation: app-sidebar-support-heart-rise var(--support-heart-duration) cubic-bezier(0.2, 0.7, 0.25, 1) var(--support-heart-delay) forwards;
-  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--support-heart-color) 32%, transparent));
+  animation: app-sidebar-support-ember 4.8s linear infinite;
 }
 
-.app-sidebar-support-heart > svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-  fill: currentColor;
-  stroke: currentColor;
-  stroke-width: 1.4;
+.app-sidebar-support-embers > i:nth-child(2) { left: 32%; animation-delay: -3.2s; }
+.app-sidebar-support-embers > i:nth-child(3) { left: 57%; animation-delay: -1.4s; }
+.app-sidebar-support-embers > i:nth-child(4) { left: 73%; animation-delay: -4.1s; }
+.app-sidebar-support-embers > i:nth-child(5) { left: 87%; animation-delay: -2.3s; }
+.app-sidebar-support-embers > i:nth-child(6) { left: 43%; animation-delay: -0.6s; }
+
+.app-sidebar-support-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
-@keyframes app-sidebar-support-heart-rise {
-  0% {
-    opacity: 0;
-    transform: translate3d(-50%, -20%, 0) scale(0.55) rotate(0deg);
-  }
+.app-sidebar-support-button:focus-visible .app-sidebar-support-arrow {
+  opacity: 1;
+}
 
-  12% {
-    opacity: 0.82;
+@media (hover: hover) and (pointer: fine) {
+  .app-sidebar-support-button:hover .app-sidebar-support-embers,
+  .app-sidebar-support-button:hover .app-sidebar-support-arrow {
+    opacity: 1;
   }
+}
 
-  56% {
-    opacity: 0.68;
-  }
+@keyframes app-sidebar-support-glow {
+  from { opacity: 0.55; transform: translate3d(-3%, 3%, 0) scale(0.97); }
+  to { opacity: 0.9; transform: translate3d(3%, -3%, 0) scale(1.03); }
+}
 
-  100% {
-    opacity: 0;
-    transform: translate3d(calc(-50% + var(--support-heart-drift)), calc(-50% - var(--support-heart-rise)), 0) scale(1.08) rotate(var(--support-heart-rotation));
-  }
+@keyframes app-sidebar-support-ember {
+  0% { opacity: 0; transform: translate3d(0, 0, 0); }
+  20% { opacity: 0.8; }
+  65% { opacity: 0.45; }
+  100% { opacity: 0; transform: translate3d(12px, -64px, 0); }
+}
+
+html[data-reduced-motion='true'] .app-sidebar-support-glow {
+  animation: none;
+  opacity: 0.65;
+}
+
+html[data-reduced-motion='true'] .app-sidebar-support-embers {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app-sidebar-support-heart {
-    display: none;
+  .app-sidebar-support-glow {
     animation: none;
+    opacity: 0.65;
+  }
+
+  .app-sidebar-support-embers {
+    display: none;
   }
 }
 

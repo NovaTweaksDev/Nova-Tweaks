@@ -46,6 +46,11 @@ resolutions or edit game configuration files.
   The watcher reads full executable paths and creation times with Windows limited
   process information, including games whose Get-Process.Path is unavailable.
   Empty executable paths never match an unassigned profile.
+- Missing game entries must occur in two successive successful snapshots before
+  automatic restoration (normally about 5–10 seconds after exit). An observed
+  reused PID with a different creation time proves exit immediately. A PID still
+  present with unreadable creation time defers restoration. A single missing
+  sample also does not clear a manual/failed-activation suppression.
 - A confirmed manual profile without a running assigned game permits automatic
   activation of a tested gaming profile on the same monitor. After game exit,
   Nova resumes the setup immediately before game start. This return setup is
@@ -64,6 +69,49 @@ resolutions or edit game configuration files.
   with Nova; closing the game later cannot trigger restoration while Nova is closed.
 
 ## Boundaries
+
+### Native mode application and NVIDIA Control Panel equivalence
+
+Profiles apply a real Windows source/target mode through `SetDisplayConfig` with
+`SDC_USE_SUPPLIED_DISPLAY_CONFIG`, `SDC_APPLY` and `SDC_SAVE_TO_DATABASE`. They do
+not request `SDC_ALLOW_CHANGES`, which would permit Windows to modify supplied
+mode details. NVIDIA scaling is applied through `NvAPI_DISP_SetDisplayConfig`
+after re-reading the post-mode-change NVIDIA configuration. No frame processing,
+game injection, render-resolution emulation or software stretch is performed by
+the display-profile service.
+
+The service then re-reads the result. Desktop resolution, exact rational refresh,
+signal resolution/refresh, NVIDIA scaling, pixel clock, total timings, Windows
+scaling and scanline ordering must match the captured target. Driver success by
+itself is insufficient. Eleven mismatch regression cases verify rejection,
+rollback and retention of the untested profile state.
+
+Read-only local preflight on 2026-10-23 verified that a saved DELL G2524H profile
+requests 1798 × 1080 at 240 Hz with a 1920 × 1080 / 240 Hz output signal, scaling
+mode 1 and Digital Vibrance 60. A different desktop and output size can be the
+normal GPU/driver scaling path, rather than an emulated game resolution. The live
+DELL 1920 × 1080 / 240 Hz and LG ULTRAGEAR 2560 × 1440 / 200 Hz configurations
+remained unchanged by preflight.
+
+The user-approved guarded switch on 2026-10-23 then applied this saved target
+through the native provider. Exact capture immediately after applying and a
+second readback two seconds later both matched, including scaling and timings.
+The LG configuration remained unchanged. Explicit restoration returned both
+monitors to their exact initial configurations before the recovery guard was
+disarmed. This verifies the local mode round trip, not game frametime behavior
+or visual equivalence to a separately measured Control Panel baseline.
+
+Using native APIs establishes a real mode change, not equivalence to every NVIDIA
+Control Panel setting or its private implementation. Profiles do not manage
+G-SYNC/VRR, HDR, output color format/depth or application-specific NVIDIA 3D options.
+Windows mode persistence is explicitly requested; NVIDIA scaling uses setter
+flags 0, so identical scaling persistence across reboot is not independently
+established. Identical post-switch smoothness requires matching the relevant
+driver settings and an actual game frametime comparison against a manually
+configured baseline.
+
+References: [Windows SetDisplayConfig](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setdisplayconfig),
+[NVIDIA display configuration APIs](https://docs.nvidia.com/nvapi/group__dispcontrol.html).
 
 Aspect-ratio scaling (NVAPI modes 5 and 6) is blocked for new activations,
 including when the current return state uses it. A targeted native probe on
@@ -85,6 +133,41 @@ Borderless stretch depends on the game's own rendering and aspect-ratio behavior
 Nova does not inject into games or guarantee true stretch for every title.
 
 ## Verification
+
+### Gameplay overhead review — 2026-10-23
+
+The watcher previously launched Windows PowerShell and compiled its limited-access
+process identity helper every five seconds. It now reuses one hidden PowerShell
+worker, compiling once per worker lifetime. The existing interval and process
+access rights remain unchanged. When only display profiles need snapshots, the
+worker reads identities without CPU, memory, I/O or window-response queries.
+Resource detection or active automation rules still request the full metrics.
+Stopping the watcher cancels pending reads, terminates its own worker and discards
+late results. A failed snapshot rejects rather than masquerading as an empty list.
+
+Read-only local samples on roughly 316–320 processes measured repeated identity
+queries at 48–77 ms with the warm worker. The earlier per-query PowerShell/helper
+initialization path measured 465–520 ms. Initial worker startup still measured
+about 375–410 ms once; restarting after failure can incur that cost again. Mixed
+identity/full-metrics probes used about 98–120 MiB working set and 80–102 MiB private memory
+for the resident worker. These are short host-specific measurements, not game
+frametime, CPU-peak, DPC-latency or FPS measurements.
+
+A regression test drives 1,000 steady gameplay/Alt-Tab snapshots and verifies zero
+native provider calls, journal changes and UI broadcasts. Other tests cover lost
+visibility, PID reuse, suppressed reactivation, worker timeouts/restarts and
+shutdown. The native recovery guard does not query or set display modes in its
+steady loop; it checks its owner/command pipe and sleeps for 100 ms. Display/NVAPI
+operations occur during explicit refresh, activation, confirmation or recovery.
+
+Resolution/refresh/scaling changes themselves may interrupt presentation. Automatic
+activation happens after detecting the running executable, so it cannot promise
+that this transition finishes before the first rendered frame. For an uninterrupted
+gameplay measurement, activate the tested profile before launch. Actual A/B runs
+in a repeatable game scene with PresentMon frametimes, including p99/p99.9 and
+launch/exit transitions, remain required before claiming no game spikes. The
+guarded live mode round trip above was performed; no game frametime comparison
+was performed by this review.
 
 Automated service tests cover fractional refresh rates, distinct desktop/signal
 resolutions, original-state preservation, concurrency, partial failure, durable
