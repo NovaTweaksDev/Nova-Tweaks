@@ -17,6 +17,7 @@ function fixture(t, options = {}) {
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   let current = snapshot(); let guard, applyError, restoreError, validateError, time = 1000;
   const calls = [];
+  const guards = [];
   const provider = {
     list: async () => [clone(current)],
     capture: async (id, options = {}) => {
@@ -44,15 +45,16 @@ function fixture(t, options = {}) {
       current = clone(value);
     },
     watch: async (original, options) => {
-      guard = { original: clone(original), options, disarmed: false, confirmed: options.confirmed,
-        expect: (value) => { guard.expected = value; },
-        confirm: () => { guard.confirmed = true; }, disarm: () => { guard.disarmed = true; } };
-      guard.disarmAndWait = async () => { guard.disarmed = true; };
+      const created = { original: clone(original), options, disarmed: false, stopped: false, confirmed: options.confirmed,
+        expect: (value) => { created.expected = value; },
+        confirm: () => { created.confirmed = true; }, disarm: () => { created.disarmed = true; } };
+      created.disarmAndWait = async () => { created.disarmed = true; created.stopped = true; };
+      guard = created; guards.push(created);
       return guard;
     }
   };
   const service = createDisplayProfileService({ provider, root, now: () => time, ...options });
-  return { service, root, provider, calls, get guard() { return guard; }, get current() { return clone(current); },
+  return { service, root, provider, calls, guards, get guard() { return guard; }, get current() { return clone(current); },
     setCurrent: (value) => { current = clone(value); }, setTime: (value) => { time = value; },
     failApply: () => { applyError = new Error('Partial apply'); }, failRestore: () => { restoreError = new Error('Restore failed'); },
     failValidate: () => { validateError = new Error('Unsupported mode'); } };
@@ -564,6 +566,48 @@ test('shutdown keeps normal resolution when the original session state was stret
   await f.service.shutdown(); assert.equal(f.current.width, 1920);
 });
 
+test('repeated game exits followed by Nova exit leave no old guard able to restore stretch', async (t) => {
+  const f = fixture(t); const profile = await gaming(f); await manualBaseline(f, profile);
+  for (let index = 0; index < 10; index++) {
+    await f.service.handleProcessSnapshot([game()]);
+    assert.equal(f.current.width, 1728);
+    await f.service.handleProcessSnapshot([]); await f.service.handleProcessSnapshot([]);
+    assert.equal(f.current.width, 1920);
+    assert.ok(f.guards.slice(0, -1).every((value) => value.stopped), 'Replaced guards must have exited.');
+  }
+  await f.service.shutdown();
+  for (const value of f.guards) {
+    // Model owner-process death: a surviving guard would restore its old baseline.
+    if (!value.stopped) f.setCurrent(value.original);
+  }
+  assert.equal(f.current.width, 1920);
+  assert.ok(f.guards.every((value) => value.stopped));
+  assert.equal(f.service.getState().transaction, null);
+});
+
+test('profile replacement waits for the previous native guard before changing resolution', async (t) => {
+  const f = fixture(t); const profile = await gaming(f); await manualBaseline(f, profile);
+  const previous = f.guard; let release;
+  previous.disarmAndWait = () => new Promise((resolve) => { release = () => { previous.stopped = true; resolve(); }; });
+  const activating = f.service.handleProcessSnapshot([game()]);
+  await new Promise(setImmediate);
+  assert.equal(f.current.width, 1920);
+  assert.equal(previous.disarmed, true);
+  release(); await activating;
+  assert.equal(f.current.width, 1728);
+  await f.service.handleProcessSnapshot([]); await f.service.handleProcessSnapshot([]);
+  await f.service.shutdown();
+  assert.equal(f.current.width, 1920);
+});
+
+test('keeping current state preserves recovery when the native guard has not stopped', async (t) => {
+  const f = fixture(t); const profile = await gaming(f); await confirmed(f, profile.id);
+  f.guard.disarmAndWait = async () => { throw new Error('Native guard is still running'); };
+  await assert.rejects(f.service.keepCurrent(), /still running/);
+  assert.ok(f.service.getState().transaction);
+  assert.ok(JSON.parse(fs.readFileSync(path.join(f.root, 'recovery.json'))).transaction);
+});
+
 test('shutdown waits for native disarm and blocks later activation and process snapshots', async (t) => {
   const f = fixture(t); const profile = await gaming(f); await automatic(f, profile);
   await f.service.handleProcessSnapshot([game()]);
@@ -599,7 +643,7 @@ test('shutdown leaves external settings unchanged and preserves unresolved recov
 test('failed native disarm retains recovery instead of clearing the journal', async (t) => {
   const f = fixture(t); const profile = await gaming(f); await confirmed(f, profile.id);
   f.guard.disarmAndWait = async () => { throw new Error('Guard did not stop'); };
-  await f.service.shutdown(); assert.equal(f.current.width, 1728);
+  await assert.rejects(f.service.shutdown(), /Guard did not stop/); assert.equal(f.current.width, 1728);
   assert.equal(f.service.getState().transaction.status, 'recovery');
   assert.equal(createDisplayProfileService({ provider: f.provider, root: f.root }).getState().transaction.original.width, 1920);
 });

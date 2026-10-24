@@ -134,6 +134,24 @@ Nova does not inject into games or guarantee true stretch for every title.
 
 ## Verification
 
+Transition diagnostics use the existing `display-profiles` logger: requested
+profile values, existing capture readbacks and recovery-guard lifetime events.
+No additional polling or display writes are introduced. These records include
+Digital Vibrance, resolution and scaling, but do not measure contrast, gamma or
+the pixels actually presented by the compositor. They cannot alone establish
+the cause of a temporary full-monitor color artifact.
+
+### Recovery guard lifetime — 2026-10-24
+
+Replacing or clearing a display session now waits for the native recovery guard
+to exit. A disarm request keeps stdin open until the helper closes; pipe EOF is
+a recovery signal and is not treated as acknowledgement. Shutdown waits for all
+tracked guards and retains recovery evidence if a guard fails to stop. Closing
+the main window starts application shutdown before destroying the window.
+Regression coverage includes repeated desktop/game/desktop cycles, delayed guard
+retirement and failed disarm. Forced process termination still follows the native
+crash-recovery path; it is not equivalent to closing Nova normally.
+
 ### Gameplay overhead review — 2026-10-23
 
 The watcher previously launched Windows PowerShell and compiled its limited-access

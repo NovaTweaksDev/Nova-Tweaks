@@ -16,8 +16,11 @@ test('native confirmed guard disarms completely before normal shutdown without r
   if (!display) return t.skip('No active display.');
   const original = await provider.capture(display.id);
   let restored = false;
-  const guard = await provider.watch(original, { confirmed: true, onRestore: () => { restored = true; } });
-  await guard.disarmAndWait();
+  for (let index = 0; index < 5; index++) {
+    const guard = await provider.watch(original, { confirmed: true, onRestore: () => { restored = true; } });
+    guard.expect(original); guard.expect(original); guard.confirm();
+    await guard.disarmAndWait();
+  }
   assert.equal(restored, false);
   assert.equal(displayEqual(await provider.capture(display.id), original), true);
 });

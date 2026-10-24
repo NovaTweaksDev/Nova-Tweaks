@@ -43,6 +43,7 @@ function createDisplayProfileService({ provider, root, onUpdate = () => {}, onDe
   const journalPath = path.join(root, 'recovery.json');
   let profiles = [], transaction = null, guard = null, busy = false, lastError = null, displays = [];
   let suppressed = new Set(), lastProcesses = [], loadedWarning = null, pendingGuardRestore = null;
+  const guards = new Set();
   const suppressedMisses = new Map();
   let missingGame = null;
   let operationFinished = Promise.resolve();
@@ -123,8 +124,15 @@ function createDisplayProfileService({ provider, root, onUpdate = () => {}, onDe
     if (current.fingerprint !== snapshot.fingerprint) throw failure('DISPLAY_HARDWARE_CHANGED', 'The monitor or driver changed. Capture and test the profile again.');
     return current;
   }
-  function clearTransaction() {
-    guard?.disarm(); guard = null;
+  async function disarmGuard(value, options) {
+    if (!value) return;
+    value.disarm();
+    await value.disarmAndWait(options);
+    guards.delete(value);
+    if (guard === value) guard = null;
+  }
+  async function clearTransaction() {
+    await Promise.all([...guards].map((value) => disarmGuard(value)));
     // Commit the empty journal before dropping the in-memory recovery state.
     write(journalPath, { version: 1, transaction: null }); transaction = null;
   }
@@ -133,14 +141,15 @@ function createDisplayProfileService({ provider, root, onUpdate = () => {}, onDe
     await exclusive(async () => {
       const restored = await currentFor(transaction.original);
       if (!displayEqual(restored, transaction.original)) throw failure('DISPLAY_RESTORE_MISMATCH', 'Recovery could not be verified.');
-      clearTransaction();
+      await disarmGuard(guard, { allowRestore: true });
+      await clearTransaction();
     }).catch((error) => {
       if (transaction) { transaction.status = 'recovery'; saveJournal(); }
       lastError = { code: error.code || 'DISPLAY_RECOVERY_FAILED', message: error.message }; emit();
     });
   }
   async function startGuard(original, confirmed, id) {
-    return provider.watch(original, {
+    const recoveryGuard = await provider.watch(original, {
       confirmed,
       onRestore: () => { if (transaction?.id !== id) return; if (busy) pendingGuardRestore = id; else void verifyGuardRestore(id); },
       onFailure: (error) => {
@@ -149,6 +158,8 @@ function createDisplayProfileService({ provider, root, onUpdate = () => {}, onDe
         lastError = { code: 'DISPLAY_RECOVERY_FAILED', message: error.message }; emit();
       }
     });
+    guards.add(recoveryGuard);
+    return recoveryGuard;
   }
   async function restoreInternal({ force = false, automatic = false, resumeManual = false } = {}) {
     if (!transaction) return state();
@@ -160,7 +171,7 @@ function createDisplayProfileService({ provider, root, onUpdate = () => {}, onDe
       if (current.fingerprint !== transaction.original.fingerprint) throw failure('DISPLAY_HARDWARE_CHANGED', 'The monitor or driver changed.');
     }
     if (!force && !displayEqual(current, transaction.applied || transaction.original) && !displayEqual(current, transaction.original)) {
-      guard?.disarm(); guard = null;
+      await disarmGuard(guard);
       transaction.status = 'conflict'; saveJournal();
       throw failure('DISPLAY_EXTERNAL_CHANGE', 'Display settings changed outside Nova. Explicitly restore the saved previous state or keep the current state.');
     }
@@ -179,7 +190,7 @@ function createDisplayProfileService({ provider, root, onUpdate = () => {}, onDe
       guard?.expect?.(target); saveJournal(); return state();
     }
     if (!automatic && transaction.game) suppressed.add(identity(transaction.game));
-    clearTransaction(); return state();
+    await clearTransaction(); return state();
   }
   async function restoreSafely(options) {
     try { return await restoreInternal(options); }
@@ -222,7 +233,7 @@ function createDisplayProfileService({ provider, root, onUpdate = () => {}, onDe
     saveJournal();
     try {
       // Keep the previous guard until its replacement is ready.
-      guard = await startGuard(original, automatic, transaction.id); previousGuard?.disarm();
+      guard = await startGuard(original, automatic, transaction.id); await disarmGuard(previousGuard);
       await provider.apply(target);
       const applied = await currentFor(target);
       if (!displayEqual(applied, target)) throw failure('DISPLAY_APPLY_MISMATCH', 'The driver did not retain the captured profile.');
@@ -298,7 +309,7 @@ function createDisplayProfileService({ provider, root, onUpdate = () => {}, onDe
     keepCurrent: () => exclusive(async () => {
       if (transaction?.status === 'confirming') throw failure('DISPLAY_CONFIRM_REQUIRED', 'Confirm or revert the display test first.');
       if (transaction?.game) suppressed.add(identity(transaction.game));
-      clearTransaction(); return state();
+      await clearTransaction(); return state();
     }),
     handleProcessSnapshot: async (processes, { unresolvedPids = [] } = {}) => {
       if (closing || !Array.isArray(processes)) return;
@@ -349,17 +360,17 @@ function createDisplayProfileService({ provider, root, onUpdate = () => {}, onDe
       shutdownFinished = (async () => {
         if (busy) await operationFinished;
         await exclusive(async () => {
-          const quittingGuard = guard;
           if (transaction?.status === 'confirming') {
             await restoreSafely({ automatic: true });
-            await quittingGuard?.disarmAndWait();
           } else {
-            await guard?.disarmAndWait(); guard = null;
+            await Promise.all([...guards].map((value) => disarmGuard(value)));
             // Keep unresolved recovery/conflict journals for explicit review.
-            if (transaction?.status === 'active') clearTransaction();
+            if (transaction?.status === 'active') await clearTransaction();
           }
-        }, true).catch(() => {
+        }, true).catch((error) => {
           if (transaction && transaction.status !== 'conflict') { transaction.status = 'recovery'; saveJournal(); }
+          lastError = { code: error.code || 'DISPLAY_RECOVERY_FAILED', message: error.message };
+          throw error;
         });
       })();
       return shutdownFinished;

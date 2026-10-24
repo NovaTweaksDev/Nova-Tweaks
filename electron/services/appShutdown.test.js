@@ -7,6 +7,30 @@ const vm = require('node:vm');
 const { createAppShutdownHandler } = require('./appShutdown');
 const { createGameSessionManager } = require('./gamemode/gameSessionManager');
 
+test('window close starts shutdown before destruction and preserves close-to-tray behavior', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../main.js'), 'utf8');
+  const start = source.indexOf("  mainWindow.on('close', (event) => {");
+  const end = source.indexOf("  mainWindow.on('closed',", start);
+  assert.ok(start >= 0 && end > start);
+  const calls = []; let close; let closeToTray = false;
+  const context = {
+    isQuitting: false,
+    getCurrentSettings: () => ({ startupWindow: { closeToTray } }),
+    ensureTray: () => calls.push('tray'),
+    mainWindow: { on: (_name, handler) => { close = handler; }, hide: () => calls.push('hide') },
+    app: { quit: () => calls.push('quit') }
+  };
+  vm.runInNewContext(source.slice(start, end), context);
+  close({ preventDefault: () => calls.push('prevent-close') });
+  assert.deepEqual(calls, ['prevent-close', 'quit']);
+  calls.length = 0; closeToTray = true;
+  close({ preventDefault: () => calls.push('prevent-close') });
+  assert.deepEqual(calls, ['prevent-close', 'tray', 'hide']);
+  calls.length = 0; context.isQuitting = true;
+  close({ preventDefault: () => calls.push('prevent-close') });
+  assert.deepEqual(calls, [], 'The final close after cleanup must proceed.');
+});
+
 function deferred() {
   let resolve;
   let reject;

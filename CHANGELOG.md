@@ -6,6 +6,18 @@ This file records changes described by the project's public Git tags and GitHub 
 
 No changes recorded yet.
 
+## 1.1.1 - 2026-10-24
+
+### Fixed
+
+- Wait for replaced display recovery helpers to stop before switching profiles or clearing a session.
+- Keep the recovery command pipe open until disarm completes, and start cleanup before closing the main window so exiting Nova retains the current resolution.
+
+### Diagnostics and validation
+
+- Record requested and captured display values and recovery helper events without additional polling or display changes.
+- The maintainer confirmed manual testing of the revised switching and shutdown flow. The cause of the previously reported brief color artifact has not been established.
+
 ## 1.1.0 - 2026-10-24
 
 ### Changed

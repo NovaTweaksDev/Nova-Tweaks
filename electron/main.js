@@ -339,6 +339,7 @@ const backupsLogger = createLogger('backups');
 const settingsLogger = createLogger('settings');
 const systemDetectionLogger = createLogger('system-detection');
 const processWatcherLogger = createLogger('process-watcher');
+const displayProfileLogger = createLogger('display-profiles');
 const networkTestLogger = createLogger('network-test');
 const ruleAutomationLogger = createLogger('rule-automation');
 const scheduledMaintenanceLogger = createLogger('scheduled-maintenance');
@@ -1749,12 +1750,16 @@ function createMainWindow() {
 
   mainWindow.on('close', (event) => {
     const latestSettings = getCurrentSettings();
-    if (isQuitting || !latestSettings?.startupWindow?.closeToTray) {
-      return;
-    }
-    ensureTray(latestSettings);
+    if (isQuitting) return;
     event.preventDefault();
-    mainWindow.hide();
+    if (latestSettings?.startupWindow?.closeToTray) {
+      ensureTray(latestSettings);
+      mainWindow.hide();
+    } else {
+      // Start before-quit cleanup while the main window still exists. The
+      // shutdown handler permits the final close after native guards stop.
+      app.quit();
+    }
   });
 
   mainWindow.on('closed', () => {
@@ -3172,7 +3177,7 @@ if (!initializePrivilegeState()) {
     });
 
     displayProfileService = createDisplayProfileService({
-      provider: createDisplayProfileProvider({ app }),
+      provider: createDisplayProfileProvider({ app, logger: displayProfileLogger }),
       root: path.join(app.getPath('userData'), 'display-profiles'),
       onUpdate: (state) => {
         if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('display-profiles:update', state);

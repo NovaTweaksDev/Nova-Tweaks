@@ -3,7 +3,7 @@ const fs = require('fs');
 const { execFile, spawn } = require('child_process');
 const { assertBundledSidecarIntegrity } = require('../security/bundledSidecarIntegrity');
 
-function createDisplayProfileProvider({ app, helperPath, watchErrorPath } = {}) {
+function createDisplayProfileProvider({ app, helperPath, watchErrorPath, spawnProcess = spawn, logger } = {}) {
   const executable = helperPath || path.join(app?.isPackaged ? process.resourcesPath : path.resolve(__dirname, '../../..'),
     'tools', 'nvidia-display-helper', 'bin', 'nvidia-display-helper.exe');
   function check() {
@@ -11,6 +11,11 @@ function createDisplayProfileProvider({ app, helperPath, watchErrorPath } = {}) 
     if (app?.isPackaged) assertBundledSidecarIntegrity(path.dirname(executable), 'nvidia-display-helper');
   }
   const argsFor = (snapshot) => ['--monitor', Buffer.from(snapshot.id, 'utf8').toString('hex'), '--token', snapshot.token];
+  const summary = (snapshot) => ({
+    width: snapshot.width, height: snapshot.height, refresh: snapshot.refresh,
+    signal: snapshot.signal, scaling: snapshot.scaling, vibrance: snapshot.vibrance,
+    nativeState: snapshot.nativeState
+  });
   function run(args) {
     check();
     return new Promise((resolve, reject) => {
@@ -22,10 +27,24 @@ function createDisplayProfileProvider({ app, helperPath, watchErrorPath } = {}) 
   }
   return {
     list: async () => (await run(['profile-list'])).displays,
-    capture: (id, options = {}) => run(['profile-capture', '--monitor', Buffer.from(id, 'utf8').toString('hex'),
-      ...(options.vibrance ? ['--vibrance'] : [])]),
+    capture: async (id, options = {}) => {
+      const snapshot = await run(['profile-capture', '--monitor', Buffer.from(id, 'utf8').toString('hex'),
+        ...(options.vibrance ? ['--vibrance'] : [])]);
+      logger?.info?.('Display state captured.', summary(snapshot));
+      return snapshot;
+    },
     validate: (snapshot) => run(['profile-validate', ...argsFor(snapshot)]),
-    apply: (snapshot) => run(['profile-apply', ...argsFor(snapshot)]),
+    apply: async (snapshot) => {
+      logger?.info?.('Display profile apply requested.', summary(snapshot));
+      try {
+        const result = await run(['profile-apply', ...argsFor(snapshot)]);
+        logger?.info?.('Display profile apply completed.');
+        return result;
+      } catch (error) {
+        logger?.warn?.('Display profile apply failed.', { code: error.code, message: error.message });
+        throw error;
+      }
+    },
     merge: async (snapshot, fallback) => {
       if (snapshot.id !== fallback.id || snapshot.fingerprint !== fallback.fingerprint)
         throw Object.assign(new Error('Cannot combine snapshots from different monitors or drivers.'), { code: 'DISPLAY_HARDWARE_CHANGED' });
@@ -38,17 +57,22 @@ function createDisplayProfileProvider({ app, helperPath, watchErrorPath } = {}) 
       check();
       return new Promise((resolve, reject) => {
         const errorFile = watchErrorPath ? fs.openSync(watchErrorPath, 'a') : null;
-        const child = spawn(executable, ['profile-watch', ...argsFor(snapshot), '--owner', String(process.pid), ...(confirmed ? ['--confirmed'] : [])],
+        const child = spawnProcess(executable, ['profile-watch', ...argsFor(snapshot), '--owner', String(process.pid), ...(confirmed ? ['--confirmed'] : [])],
           // Detached keeps the guard out of libuv's kill-on-parent-exit job.
           // Pipes still carry confirmation commands; the native owner handle
           // and pipe closure trigger recovery when Nova dies.
           { detached: true, windowsHide: true, stdio: ['pipe', 'pipe', errorFile === null ? 'pipe' : errorFile] });
         if (errorFile !== null) fs.closeSync(errorFile);
-        let ready = false, disarmed = false, restored = false, output = '', stderr = '';
+        let ready = false, disarmed = false, restored = false, hasStopped = false, stopPromise = null, output = '', stderr = '';
         let finishStopped;
         const stopped = new Promise((done) => { finishStopped = done; });
         const disarm = () => {
-          if (!disarmed) { disarmed = true; child.stdin.end('disarm\n'); }
+          if (!disarmed && !hasStopped) {
+            disarmed = true;
+            // Keep the pipe open until the helper exits after reading disarm.
+            // EOF is a recovery trigger, not a disarm acknowledgement.
+            child.stdin.write('disarm\n');
+          }
         };
         const timeout = setTimeout(() => { child.kill(); reject(new Error('Display recovery guard did not start.')); }, 5000);
         child.stderr?.on('data', (chunk) => { stderr = (stderr + chunk).slice(-4096); });
@@ -62,28 +86,38 @@ function createDisplayProfileProvider({ app, helperPath, watchErrorPath } = {}) 
               const event = JSON.parse(line);
               if (event.ready && !ready) {
                 ready = true; clearTimeout(timeout);
+                logger?.info?.('Display recovery guard ready.', { pid: child.pid, confirmed });
                 resolve({ confirm: () => child.stdin.write('confirm\n'),
                   expect: (expected) => child.stdin.write(`expected ${expected.token}\n`),
                   disarm,
-                  disarmAndWait: async () => {
-                    disarm();
-                    let deadline;
-                    try {
-                      const result = await Promise.race([stopped, new Promise((_, fail) => {
-                        deadline = setTimeout(() => fail(new Error('Display recovery guard did not stop.')), 5000);
-                      })]);
-                      if (result.error || result.code !== 0 || restored)
-                        throw new Error(result.error?.message || stderr || 'Display recovery guard did not disarm cleanly.');
-                    } finally { clearTimeout(deadline); }
+                  disarmAndWait: ({ allowRestore = false } = {}) => {
+                    if (stopPromise) return stopPromise;
+                    stopPromise = (async () => {
+                      disarm();
+                      let deadline;
+                      try {
+                        const result = await Promise.race([stopped, new Promise((_, fail) => {
+                          deadline = setTimeout(() => fail(new Error('Display recovery guard did not stop.')), 5000);
+                        })]);
+                        if (result.error || result.code !== 0 || (restored && !allowRestore))
+                          throw new Error(result.error?.message || stderr || 'Display recovery guard did not disarm cleanly.');
+                        logger?.info?.('Display recovery guard stopped.', { pid: child.pid, restored });
+                      } finally { clearTimeout(deadline); }
+                    })();
+                    return stopPromise;
                   },
                   restore: () => child.stdin.write('restore\n') });
               }
-              if (event.restored) { restored = true; onRestore(); }
+              if (event.restored) {
+                restored = true;
+                logger?.warn?.('Display recovery guard restored its saved state.', { pid: child.pid });
+                onRestore();
+              }
             } catch { /* Report malformed output through the exit path. */ }
           }
         });
-        child.on('error', (error) => { finishStopped({ error }); clearTimeout(timeout); if (!ready) reject(error); else onFailure(error); });
-        child.on('close', (code) => finishStopped({ code }));
+        child.on('error', (error) => { hasStopped = true; finishStopped({ error }); clearTimeout(timeout); if (!ready) reject(error); else onFailure(error); });
+        child.on('close', (code) => { hasStopped = true; finishStopped({ code }); });
         child.on('exit', (code) => {
           clearTimeout(timeout);
           if (!ready) reject(new Error(stderr || 'Display recovery guard exited before startup.'));
