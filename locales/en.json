@@ -2348,6 +2348,10 @@
       "rememberLastTabDescription": "Stores the last selected Nova-Tweaks tab and restores it on the next launch."
     },
     "monitoring": {
+      "refreshRateTitle": "Monitoring refresh interval",
+      "refreshRateDescription": "Choose how often live metrics update. Faster updates can use more CPU. Some hardware and Windows details update less often.",
+      "changeRefreshRate": "Change",
+      "openRefreshSettings": "Change the refresh interval in monitoring settings",
       "advancedSensorsTitle": "Advanced Sensors",
       "advancedSensorsDescription": "Starts LibreHardwareMonitor automatically when needed for temperatures, fans, voltages, and additional hardware readings. Your choice stays saved until you disable it here.",
       "uacTitle": "Local Processing with Administrator Prompt",

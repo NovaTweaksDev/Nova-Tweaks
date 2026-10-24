@@ -7998,6 +7998,7 @@ html[data-reduced-motion='true'] .app-sidebar-support-embers {
 
 .overview-footer {
   display: flex;
+  align-items: center;
   justify-content: center;
   gap: 2rem;
   margin-top: 0.62rem;
@@ -8006,6 +8007,23 @@ html[data-reduced-motion='true'] .app-sidebar-support-embers {
   font-size: 0.61rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  line-height: 1rem;
+}
+
+.overview-footer-refresh,
+.overview-footer-settings {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.overview-footer-refresh {
+  gap: 0.625rem;
+}
+
+.overview-footer-settings {
+  gap: 0.25rem;
+  font: inherit;
 }
 
 @media (max-width: 1320px) {

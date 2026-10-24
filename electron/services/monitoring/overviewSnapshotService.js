@@ -9,7 +9,24 @@ const HISTORY_LIMIT = 90;
 const DEFAULT_WINDOWS_TTL_MS = 30000;
 const WINDOWS_QUERY_TIMEOUT_MS = 3500;
 
-const WINDOWS_OVERVIEW_SCRIPT = [
+// Basic volume information must survive a timeout in optional CIM/Storage data.
+// Each volume is independent: unreadable media must not hide the other drives.
+const WINDOWS_VOLUMES_QUERY = [
+  "$ErrorActionPreference = 'Stop'",
+  '$drives = @([System.IO.DriveInfo]::GetDrives() | Where-Object { $_.DriveType -eq [System.IO.DriveType]::Fixed -or $_.DriveType -eq [System.IO.DriveType]::Removable } | ForEach-Object {',
+  '  $volume = [ordered]@{ driveLetter = $_.Name.TrimEnd("\\"); type = $_.DriveType.ToString(); name = ""; fileSystem = ""; capacityBytes = $null; freeBytes = $null }',
+  '  try {',
+  '    if ($_.IsReady) {',
+  '      $volume.capacityBytes = $_.TotalSize; $volume.freeBytes = $_.AvailableFreeSpace',
+  '      $volume.name = $_.VolumeLabel; $volume.fileSystem = $_.DriveFormat',
+  '    }',
+  '  } catch {}',
+  '  [PSCustomObject]$volume',
+  '})'
+];
+const WINDOWS_VOLUMES_SCRIPT = [...WINDOWS_VOLUMES_QUERY, 'ConvertTo-Json -InputObject $drives -Depth 3 -Compress'].join('\n');
+
+const WINDOWS_HARDWARE_SCRIPT = [
   "$ErrorActionPreference = 'Stop'",
   'function Get-Instances([string]$ClassName) {',
   "  if (Get-Command -Name Get-CimInstance -ErrorAction SilentlyContinue) {",
@@ -40,21 +57,16 @@ const WINDOWS_OVERVIEW_SCRIPT = [
   '    }',
   '  }',
   '} catch {}',
-  '$drives = @([System.IO.DriveInfo]::GetDrives() | Where-Object { $_.DriveType -eq [System.IO.DriveType]::Fixed -or $_.DriveType -eq [System.IO.DriveType]::Removable } | ForEach-Object {',
-  '  $driveLetter = $_.Name.TrimEnd("\\")',
-  '  $storage = $storageByLetter[$driveLetter]',
-  '  [PSCustomObject]@{',
-  '    driveLetter = $driveLetter',
-  '    name = if ($_.IsReady) { $_.VolumeLabel } else { "" }',
-  '    fileSystem = if ($_.IsReady) { $_.DriveFormat } else { "" }',
-  '    type = $_.DriveType.ToString()',
-  '    capacityBytes = if ($_.IsReady) { $_.TotalSize } else { $null }',
-  '    freeBytes = if ($_.IsReady) { $_.AvailableFreeSpace } else { $null }',
-  '    diskModel = if ($storage) { $storage.model } else { "" }',
-  '    healthStatus = if ($storage) { $storage.healthStatus } else { $null }',
-  '    operationalStatus = if ($storage) { $storage.operationalStatus } else { $null }',
-  '  }',
-  '})',
+  '[PSCustomObject]@{ processors = $processors; storageByLetter = $storageByLetter } | ConvertTo-Json -Depth 5 -Compress'
+].join('\n');
+
+const WINDOWS_OVERVIEW_SCRIPT = [
+  "$ErrorActionPreference = 'Stop'",
+  '$samplerErrors = @()',
+  'try {',
+  WINDOWS_VOLUMES_QUERY.join('\n'),
+  '} catch { $drives = @(); $samplerErrors += "Windows volume information is temporarily unavailable." }',
+  'try {',
   '$net = @([System.Net.NetworkInformation.NetworkInterface]::GetAllNetworkInterfaces() | Where-Object { $_.NetworkInterfaceType -ne [System.Net.NetworkInformation.NetworkInterfaceType]::Loopback } | ForEach-Object {',
   '  $stats = $null',
   '  try { $stats = $_.GetIPv4Statistics() } catch {}',
@@ -67,24 +79,55 @@ const WINDOWS_OVERVIEW_SCRIPT = [
   '    sentBytes = if ($stats) { $stats.BytesSent } else { $null }',
   '  }',
   '})',
-  '$processes = @(Get-Process | ForEach-Object {',
+  '} catch { $net = @(); $samplerErrors += "Windows network counters are temporarily unavailable." }',
+  'try {',
+  "  Add-Type -TypeDefinition @'",
+  'using System;',
+  'using System.Runtime.InteropServices;',
+  'public sealed class NovaOverviewProcessTimes {',
+  '  public double? cpuSeconds; public string startTime;',
+  '  [DllImport("kernel32.dll")] static extern IntPtr OpenProcess(uint access, bool inherit, uint pid);',
+  '  [DllImport("kernel32.dll")] static extern bool GetProcessTimes(IntPtr handle, out long created, out long exited, out long kernel, out long user);',
+  '  [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);',
+  '  public static NovaOverviewProcessTimes Read(int pid) {',
+  '    var result = new NovaOverviewProcessTimes();',
+  '    IntPtr handle = OpenProcess(0x1000, false, (uint)pid);',
+  '    if (handle == IntPtr.Zero) return result;',
+  '    try {',
+  '      long created, exited, kernel, user;',
+  '      if (GetProcessTimes(handle, out created, out exited, out kernel, out user)) {',
+  '        result.cpuSeconds = (kernel + (double)user) / 10000000.0;',
+  '        result.startTime = created.ToString(System.Globalization.CultureInfo.InvariantCulture);',
+  '      }',
+  '      return result;',
+  '    } finally { CloseHandle(handle); }',
+  '  }',
+  '}',
+  "'@ -ErrorAction Stop",
+  '$processes = @(Get-Process -ErrorAction Stop | ForEach-Object {',
   '  try {',
+  '    $identity = [NovaOverviewProcessTimes]::Read([int]$_.Id)',
+  '    $ramBytes = $null; $processStatus = "Unknown"',
+  '    try { $ramBytes = $_.WorkingSet64 } catch {}',
+  '    try { $processStatus = if ($_.Responding -eq $false) { "Not responding" } else { "Running" } } catch {}',
   '    [PSCustomObject]@{',
   '      name = $_.ProcessName',
   '      pid = $_.Id',
-  '      cpuSeconds = $_.CPU',
-  '      ramBytes = $_.WorkingSet64',
-  '      ioReadBytes = $_.IOReadBytes',
-  '      ioWriteBytes = $_.IOWriteBytes',
-  '      status = if ($_.Responding -eq $false) { "Not responding" } else { "Running" }',
+  '      startTime = $identity.startTime',
+  '      cpuSeconds = $identity.cpuSeconds',
+  '      ramBytes = $ramBytes',
+  '      ioReadBytes = $null',
+  '      ioWriteBytes = $null',
+  '      status = $processStatus',
   '    }',
   '  } catch {}',
   '})',
+  '} catch { $processes = @(); $samplerErrors += "Windows process counters are temporarily unavailable." }',
   '[PSCustomObject]@{',
-  '  processors = $processors',
   '  drives = $drives',
   '  network = $net',
   '  processes = $processes',
+  '  errors = $samplerErrors',
   '} | ConvertTo-Json -Depth 8 -Compress'
 ].join('\n');
 
@@ -155,6 +198,35 @@ function runPowerShellJson(script, timeoutMs = WINDOWS_QUERY_TIMEOUT_MS) {
 
     child.stdin?.end?.();
   });
+}
+
+// Optional hardware metadata shares the existing refresh/cache boundary, but
+// cannot prevent successful live process/network/volume reads from being used.
+async function collectWindowsSnapshot(runQuery = runPowerShellJson, getHardware = () => runQuery(WINDOWS_HARDWARE_SCRIPT)) {
+  const [live, hardware] = await Promise.allSettled([
+    runQuery(WINDOWS_OVERVIEW_SCRIPT).then((snapshot) => {
+      if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+        throw new Error('Invalid Windows live counter response.');
+      }
+      return { ...snapshot, sampledAt: Date.now() };
+    }),
+    getHardware()
+  ]);
+  if (live.status !== 'fulfilled') throw live.reason;
+  const snapshot = live.value || {};
+  const metadata = hardware.status === 'fulfilled' ? hardware.value || {} : {};
+  const errors = normalizeArray(snapshot.errors);
+  if (hardware.status !== 'fulfilled') errors.push('Windows hardware details are temporarily unavailable.');
+  return {
+    ...snapshot,
+    processors: normalizeArray(metadata.processors),
+    errors,
+    drives: normalizeArray(snapshot.drives).map((drive) => {
+      const storage = metadata.storageByLetter?.[drive.driveLetter];
+      return storage ? { ...drive, diskModel: storage.model || '', healthStatus: storage.healthStatus,
+        operationalStatus: storage.operationalStatus } : drive;
+    })
+  };
 }
 
 function normalizeArray(value) {
@@ -326,7 +398,10 @@ function createOverviewSnapshotService(options = {}) {
   const platform = options.platform || process.platform;
   const windowsSnapshotProvider = typeof options.windowsSnapshotProvider === 'function'
     ? options.windowsSnapshotProvider
-    : () => runPowerShellJson(WINDOWS_OVERVIEW_SCRIPT);
+    : () => collectWindowsSnapshot(runPowerShellJson, getWindowsHardware);
+  const windowsVolumesProvider = typeof options.windowsVolumesProvider === 'function'
+    ? options.windowsVolumesProvider
+    : () => runPowerShellJson(WINDOWS_VOLUMES_SCRIPT);
   const networkQualityService = options.networkQualityService || createNetworkQualityService({
     logger,
     platform
@@ -337,18 +412,46 @@ function createOverviewSnapshotService(options = {}) {
   let previousCpuTimes = null;
   let previousNetworkStats = new Map();
   let previousProcessStats = new Map();
+  let previousRawProcesses = null;
+  let lastProcessRows = [];
+  let hardwareCache = null;
+  let hardwareQueryPromise = null;
   let windowsCache = null;
   let windowsCacheAt = 0;
+  let windowsCacheErrors = [];
   let windowsQueryPromise = null;
   let windowsWarningAt = 0;
 
-  async function getWindowsSnapshot(errors) {
+  function getWindowsHardware() {
+    if (hardwareCache && Date.now() - hardwareCache.at < windowsTtlMs) {
+      return hardwareCache.error ? Promise.reject(hardwareCache.error) : Promise.resolve(hardwareCache.value);
+    }
+    if (!hardwareQueryPromise) {
+      hardwareQueryPromise = runPowerShellJson(WINDOWS_HARDWARE_SCRIPT)
+        .then((value) => {
+          hardwareCache = { at: Date.now(), value };
+          return value;
+        }, (error) => {
+          hardwareCache = { at: Date.now(), error };
+          logger?.warn?.('Overview Windows hardware query failed.', {
+            message: String(error?.stderr || error?.message || 'Unknown error').slice(-1000)
+          });
+          throw error;
+        }).finally(() => { hardwareQueryPromise = null; });
+    }
+    return hardwareQueryPromise;
+  }
+
+  async function getWindowsSnapshot(errors, refreshRateMs) {
     if (platform !== 'win32') {
       return null;
     }
 
     const now = Date.now();
-    if (windowsCache && now - windowsCacheAt < windowsTtlMs) {
+    const liveTtlMs = Number.isFinite(refreshRateMs)
+      ? Math.min(windowsTtlMs, Math.max(1000, refreshRateMs)) : windowsTtlMs;
+    if (windowsCache && now - windowsCacheAt < liveTtlMs) {
+      errors.push(...windowsCacheErrors);
       return windowsCache;
     }
 
@@ -356,18 +459,28 @@ function createOverviewSnapshotService(options = {}) {
       windowsQueryPromise = windowsSnapshotProvider()
         .then((payload) => {
           windowsCache = payload || {};
+          windowsCacheErrors = normalizeArray(payload?.errors).filter((value) => typeof value === 'string');
           windowsCacheAt = Date.now();
           return windowsCache;
         })
-        .catch((error) => {
-          errors.push('Windows live counters are unavailable.');
-          windowsCacheAt = Date.now();
+        .catch(async (error) => {
+          windowsCacheErrors = ['Windows live counters are unavailable.'];
           if (Date.now() - windowsWarningAt > 30000) {
             windowsWarningAt = Date.now();
             logger?.warn?.('Overview Windows sampler failed.', {
               message: error?.message || 'Unknown PowerShell error'
             });
           }
+          try {
+            const drives = await windowsVolumesProvider();
+            if (!Array.isArray(drives)) throw new Error('Invalid Windows volume response.');
+            windowsCache = { ...windowsCache, drives };
+          } catch {
+            // Retain previously verified data and throttle failed initial reads
+            // with the same TTL instead of spawning PowerShell every UI refresh.
+            windowsCache = windowsCache || {};
+          }
+          windowsCacheAt = Date.now();
           return windowsCache;
         })
         .finally(() => {
@@ -375,7 +488,9 @@ function createOverviewSnapshotService(options = {}) {
         });
     }
 
-    return windowsQueryPromise;
+    const snapshot = await windowsQueryPromise;
+    errors.push(...windowsCacheErrors);
+    return snapshot;
   }
 
   function buildNetworkSnapshot(windowsNetwork, metrics, timestamp, historyTimestamp) {
@@ -462,6 +577,9 @@ function createOverviewSnapshotService(options = {}) {
   }
 
   function buildProcesses(rawProcesses, timestamp) {
+    // A cached counter sample is not a second measurement with zero activity.
+    if (rawProcesses && rawProcesses === previousRawProcesses) return lastProcessRows;
+    previousRawProcesses = rawProcesses;
     const logicalCores = Math.max(1, os.cpus()?.length || 1);
     const nextProcessStats = new Map();
     const processes = normalizeArray(rawProcesses)
@@ -475,7 +593,7 @@ function createOverviewSnapshotService(options = {}) {
         let cpuPercent = null;
         let diskMBs = null;
 
-        if (previous) {
+        if (previous && previous.startTime === (processInfo.startTime || null)) {
           const elapsedSeconds = Math.max(0.5, (timestamp - previous.timestamp) / 1000);
           if (cpuSeconds !== null && previous.cpuSeconds !== null && cpuSeconds >= previous.cpuSeconds) {
             cpuPercent = clampPercent(((cpuSeconds - previous.cpuSeconds) / elapsedSeconds / logicalCores) * 100);
@@ -494,7 +612,7 @@ function createOverviewSnapshotService(options = {}) {
         }
 
         if (Number.isFinite(pid)) {
-          nextProcessStats.set(pid, { cpuSeconds, ioReadBytes, ioWriteBytes, timestamp });
+          nextProcessStats.set(pid, { cpuSeconds, ioReadBytes, ioWriteBytes, timestamp, startTime: processInfo.startTime || null });
         }
 
         return {
@@ -510,7 +628,7 @@ function createOverviewSnapshotService(options = {}) {
       });
 
     previousProcessStats = nextProcessStats;
-    return processes
+    lastProcessRows = processes
       .sort((left, right) => {
         const cpuDifference = (right.cpuPercent ?? -1) - (left.cpuPercent ?? -1);
         if (Math.abs(cpuDifference) > 0.01) {
@@ -525,6 +643,7 @@ function createOverviewSnapshotService(options = {}) {
         return (right.ramMB ?? 0) - (left.ramMB ?? 0);
       })
       .slice(0, 8);
+    return lastProcessRows;
   }
 
   function buildStorage(rawDrives, lhmHardware) {
@@ -567,7 +686,7 @@ function createOverviewSnapshotService(options = {}) {
     const lhm = collectOverviewSensors(rawLhmPayload);
     const lhmHardware = lhm.hardware || [];
     const lhmSensors = lhm.sensors || [];
-    const windowsSnapshot = await getWindowsSnapshot(errors);
+    const windowsSnapshot = await getWindowsSnapshot(errors, refreshRateMs);
     const systemDetection = systemDetectionService?.getSnapshot
       ? await systemDetectionService.getSnapshot().catch(() => null)
       : null;
@@ -684,7 +803,7 @@ function createOverviewSnapshotService(options = {}) {
         temperatures,
         voltages
       },
-      processes: buildProcesses(windowsSnapshot?.processes, timestamp),
+      processes: buildProcesses(windowsSnapshot?.processes, windowsSnapshot?.sampledAt ?? timestamp),
       system: {
         uptimeSeconds: Math.max(0, os.uptime()),
         lastUpdated: new Date(timestamp).toISOString(),
@@ -701,5 +820,6 @@ function createOverviewSnapshotService(options = {}) {
 }
 
 module.exports = {
-  createOverviewSnapshotService
+  createOverviewSnapshotService,
+  collectWindowsSnapshot
 };

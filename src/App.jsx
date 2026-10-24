@@ -800,6 +800,7 @@ function SectionLoadingSkeleton({ sectionId, label }) {
 function App() {
   const { t, i18n } = useTranslation();
   const [activeSection, setActiveSection] = useState('dashboard');
+  const [settingsFocusSection, setSettingsFocusSection] = useState('');
   const [renderedSection, setRenderedSection] = useState('dashboard');
   const [showSectionFallback, setShowSectionFallback] = useState(false);
   const [, startSectionTransition] = useTransition();
@@ -1789,7 +1790,8 @@ function App() {
     void prefetchSectionModule(sectionId);
   }
 
-  function handleSelectSection(sectionId) {
+  function handleSelectSection(sectionId, settingsSection = '') {
+    setSettingsFocusSection(sectionId === 'settings' && settingsSection === 'monitoring' ? 'monitoring' : '');
     commitSectionNavigation(sectionId);
   }
 
@@ -4044,7 +4046,7 @@ function App() {
             />
           ) : null}
 
-          {renderedSection === 'overview' ? <OverviewPanel onNavigateSettings={() => handleSelectSection('settings')} advancedSensorsEnabled={appSettings?.monitoring?.advancedSensorsEnabled === true} adminReady={isAdmin === true} adminStarting={adminAccessState?.status === 'starting'} onRequestAdminAccess={handleRequestAdminRelaunch} /> : null}
+          {renderedSection === 'overview' ? <OverviewPanel onNavigateSettings={() => handleSelectSection('settings', 'monitoring')} advancedSensorsEnabled={appSettings?.monitoring?.advancedSensorsEnabled === true} adminReady={isAdmin === true} adminStarting={adminAccessState?.status === 'starting'} onRequestAdminAccess={handleRequestAdminRelaunch} /> : null}
 
           {renderedSection === 'automation' ? (
             <AutomationPanel
@@ -4203,6 +4205,7 @@ function App() {
 
           {renderedSection === 'settings' ? (
             <SettingsPanel
+              focusSection={settingsFocusSection}
               settings={appSettings}
               metadata={appMetadata}
               loading={settingsLoading}

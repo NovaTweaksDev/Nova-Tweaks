@@ -2,9 +2,9 @@ import { CheckCircle2 } from 'lucide-react';
 import { Button, IconContainer, LoadingSpinner, Select, Switch } from '../ui';
 import { joinClasses } from '../ui/classNames';
 
-function SettingsSection({ icon: Icon, title, description, children, className = '' }) {
+function SettingsSection({ id, icon: Icon, title, description, children, className = '' }) {
   return (
-    <section className={joinClasses('settings-section rounded-xl border border-[var(--border)] bg-[color:color-mix(in_srgb,var(--surface)_88%,var(--surface-elevated)_12%)] shadow-[var(--card-shadow-panel)]', className)}>
+    <section id={id} className={joinClasses('settings-section rounded-xl border border-[var(--border)] bg-[color:color-mix(in_srgb,var(--surface)_88%,var(--surface-elevated)_12%)] shadow-[var(--card-shadow-panel)]', className)}>
       <div className="flex items-start gap-3 border-b border-[var(--border-subtle)] px-4 py-4">
         <IconContainer tone="accent" className="ui-panel-heading-icon">
           <Icon className="h-5 w-5" />

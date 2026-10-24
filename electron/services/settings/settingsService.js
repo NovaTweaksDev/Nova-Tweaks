@@ -5,6 +5,7 @@ const SETTINGS_SCHEMA = 'nova-tweaks-settings';
 const SETTINGS_SCHEMA_VERSION = 1;
 const SUPPORTED_LANGUAGES = new Set(['en', 'de', 'fr']);
 const SUPPORTED_THEMES = new Set(['light', 'dark', 'system']);
+const SUPPORTED_MONITORING_REFRESH_RATES = new Set([1000, 2000, 3000, 5000, 10000]);
 const SUPPORTED_ACCENTS = new Set(['#9D4EDD', '#E93D82', '#FF6F61', '#FFB000', '#10B981']);
 const LEGACY_ACCENT_ALIASES = Object.freeze({
   '#7C3AED': '#9D4EDD',
@@ -59,7 +60,8 @@ function getDefaultSettings(defaultBackupLocation = '') {
       showCompatibilityWarnings: true
     },
     monitoring: {
-      advancedSensorsEnabled: false
+      advancedSensorsEnabled: false,
+      refreshRateMs: 3000
     },
     backupData: {
       backupBeforeApplyingTweaks: false,
@@ -274,6 +276,9 @@ function sanitizeSettings(input, defaults, options = {}) {
       )
     },
     monitoring: {
+      refreshRateMs: SUPPORTED_MONITORING_REFRESH_RATES.has(Number(monitoring.refreshRateMs))
+        ? Number(monitoring.refreshRateMs)
+        : defaults.monitoring.refreshRateMs,
       advancedSensorsEnabled: normalizeBoolean(
         monitoring.advancedSensorsEnabled,
         defaults.monitoring.advancedSensorsEnabled

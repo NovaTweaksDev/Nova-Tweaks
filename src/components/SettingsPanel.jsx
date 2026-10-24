@@ -131,6 +131,7 @@ function normalizeBackupSchedule(settings) {
 }
 
 function SettingsPanel({
+  focusSection = '',
   settings,
   metadata,
   loading = false,
@@ -150,6 +151,12 @@ function SettingsPanel({
   onOperationStatus
 }) {
   const { t } = useTranslation();
+  useEffect(() => {
+    if (focusSection !== 'monitoring' || loading) return;
+    const section = document.getElementById('settings-monitoring');
+    section?.scrollIntoView({ block: 'start', behavior: 'instant' });
+    section?.querySelector('[role="combobox"]')?.focus({ preventScroll: true });
+  }, [focusSection, loading]);
   const [documentationOpen, setDocumentationOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [busyAction, setBusyAction] = useState('');
@@ -464,10 +471,21 @@ function SettingsPanel({
           </SettingsSection>
 
           <SettingsSection
+            id="settings-monitoring"
             icon={Thermometer}
             title={t('settingsPanel.sections.monitoringTitle')}
             description={t('settingsPanel.sections.monitoringDescription')}
           >
+            <SettingsSelectRow
+              icon={Activity}
+              title={t('settingsPanel.monitoring.refreshRateTitle')}
+              description={t('settingsPanel.monitoring.refreshRateDescription')}
+              value={getNested(settings, 'monitoring', 'refreshRateMs', 3000)}
+              options={[1000, 2000, 3000, 5000, 10000].map((value) => ({ value: String(value), label: `${value / 1000} s` }))}
+              onChange={(value) => update('monitoring', 'refreshRateMs', Number(value))}
+              disabled={loading || busyAction === 'monitoring.refreshRateMs'}
+              status={busyAction === 'monitoring.refreshRateMs' ? 'loading' : ''}
+            />
             <SettingsToggleRow
               icon={Thermometer}
               title={t('settingsPanel.monitoring.advancedSensorsTitle')}

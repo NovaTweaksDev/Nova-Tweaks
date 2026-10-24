@@ -6,6 +6,18 @@ This file records changes described by the project's public Git tags and GitHub 
 
 No changes recorded yet.
 
+## 1.1.2 - 2026-10-24
+
+### Fixed
+
+- Keep basic storage information available when optional Windows overview counters time out, using an independent volume read and the existing refresh cache.
+- Avoid slow managed process CPU-time reads in Overview and isolate optional hardware queries from live counters. Preserve unknown values for protected processes and prevent false activity across reused process IDs or cached readings.
+- Align the Overview footer's refresh interval, settings link and last-updated timestamp.
+
+### Added
+
+- Save a selectable monitoring refresh interval from one to ten seconds, with a direct link from the Overview footer to the monitoring settings.
+
 ## 1.1.1 - 2026-10-24
 
 ### Fixed

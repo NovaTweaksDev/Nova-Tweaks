@@ -1445,6 +1445,7 @@ function applySettingsRuntimeEffects(settings = getCurrentSettings()) {
 
   const monitoringWasEnabled = advancedSensorMonitoringEnabled;
   advancedSensorMonitoringEnabled = settings.monitoring?.advancedSensorsEnabled === true;
+  monitoringManager?.setRefreshRate?.(settings.monitoring?.refreshRateMs ?? 3000);
   applyLoginItemSettings(settings);
   ensureTray(settings);
   backupManager?.setBackupRoot?.(settings.backupData?.backupLocation);
@@ -3219,7 +3220,7 @@ if (!initializePrivilegeState()) {
     monitoringManager = createMonitoringManager({
       app,
       logger: metricsLogger,
-      intervalMs: 2000,
+      intervalMs: getCurrentSettings().monitoring?.refreshRateMs ?? 3000,
       systemDetectionService,
       isAdminProvider: () => isAdminSession,
       isAdminAccessReady: () => Boolean(isAdminSession || adminBrokerManager?.getState?.()?.ready),

@@ -1,6 +1,74 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createOverviewSnapshotService } = require('./overviewSnapshotService');
+const { createOverviewSnapshotService, collectWindowsSnapshot } = require('./overviewSnapshotService');
+
+test('optional hardware timeout preserves live counters and identifies only the failed details', async () => {
+  let calls = 0;
+  const live = { drives: [{ driveLetter: 'C:' }], network: [{ name: 'Ethernet' }], processes: [{ pid: 10, cpuSeconds: 1 }], errors: [] };
+  const snapshot = await collectWindowsSnapshot(async () => {
+    calls += 1;
+    if (calls === 2) throw new Error('Hardware timeout');
+    return live;
+  });
+  assert.deepEqual(snapshot.processes, live.processes);
+  assert.deepEqual(snapshot.network, live.network);
+  assert.deepEqual(snapshot.drives, live.drives);
+  assert.deepEqual(snapshot.errors, ['Windows hardware details are temporarily unavailable.']);
+  assert.ok(snapshot.sampledAt > 0);
+});
+
+test('independent hardware results enrich only the matching volume and a live query failure still rejects', async () => {
+  let calls = 0;
+  const snapshot = await collectWindowsSnapshot(async () => ++calls === 1
+    ? { drives: [{ driveLetter: 'C:' }, { driveLetter: 'D:' }], processes: [] }
+    : { processors: [{ cores: 8 }], storageByLetter: { 'C:': { model: 'Disk Alpha', healthStatus: 'Healthy' } } });
+  assert.equal(snapshot.drives[0].diskModel, 'Disk Alpha');
+  assert.equal(snapshot.drives[1].diskModel, undefined);
+  assert.equal(snapshot.processors[0].cores, 8);
+  assert.deepEqual(snapshot.errors, []);
+  calls = 0;
+  await assert.rejects(collectWindowsSnapshot(async () => {
+    if (++calls === 1) throw new Error('Live query failed');
+    return {};
+  }), /Live query failed/);
+});
+
+test('selected refresh interval updates live counters without waiting for the hardware TTL', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: 100000 });
+  let queries = 0;
+  const service = createService(async () => { queries += 1; return { processes: [] }; }, { windowsTtlMs: 30000 });
+  await service.buildSnapshot({ refreshRateMs: 1000 });
+  t.mock.timers.tick(999);
+  await service.buildSnapshot({ refreshRateMs: 1000 }); assert.equal(queries, 1);
+  t.mock.timers.tick(2);
+  await service.buildSnapshot({ refreshRateMs: 1000 }); assert.equal(queries, 2);
+});
+
+test('cached process counters retain their last computed activity instead of producing a false zero', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: 100000 });
+  let queries = 0;
+  const service = createService(async () => ({ processes: [{ pid: 10, startTime: 'first', cpuSeconds: ++queries * 10 }] }), { windowsTtlMs: 30000 });
+  await service.buildSnapshot({}); t.mock.timers.tick(30001);
+  const measured = await service.buildSnapshot({});
+  assert.ok(measured.processes[0].cpuPercent > 0);
+  t.mock.timers.tick(1000);
+  const cached = await service.buildSnapshot({});
+  assert.equal(queries, 2);
+  assert.deepEqual(cached.processes, measured.processes);
+});
+
+test('process ID reuse and denied CPU counters do not invent activity', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: 100000 });
+  let current = { pid: 10, startTime: 'first', cpuSeconds: 1 };
+  const service = createService(async () => ({ processes: [{ ...current }] }));
+  await service.buildSnapshot({}); t.mock.timers.tick(2000);
+  current = { pid: 10, startTime: 'second', cpuSeconds: 10000 };
+  const reused = await service.buildSnapshot({});
+  assert.equal(reused.processes[0].cpuPercent, null);
+  t.mock.timers.tick(2000); current.cpuSeconds = null;
+  const denied = await service.buildSnapshot({});
+  assert.equal(denied.processes[0].cpuPercent, null);
+});
 
 const NETWORK_QUALITY = {
   adapterName: 'Ethernet',
@@ -62,7 +130,7 @@ function createLhmPayload() {
   };
 }
 
-function createService(windowsSnapshotProvider) {
+function createService(windowsSnapshotProvider, options = {}) {
   return createOverviewSnapshotService({
     platform: 'win32',
     windowsTtlMs: 0,
@@ -76,9 +144,71 @@ function createService(windowsSnapshotProvider) {
         gpu: { primary: 'Graphics Adapter', all: ['Graphics Adapter'] },
         ram: { totalBytes: 32 * (1024 ** 3), speedMTs: 6000, moduleCount: 2, type: 'DDR5' }
       })
-    }
+    },
+    ...options
   });
 }
+
+test('volume fallback survives sampler timeout, shares in-flight reads and retries after the existing TTL', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: 100000 });
+  let queries = 0, volumes = 0, recover = false;
+  const service = createService(async () => {
+    queries += 1;
+    if (!recover) throw new Error('Windows sampler timed out');
+    return { drives: [{ driveLetter: 'C:', capacityBytes: 2048, freeBytes: 1024, diskModel: 'Disk Alpha' }] };
+  }, {
+    windowsTtlMs: 30000,
+    windowsVolumesProvider: async () => {
+      volumes += 1;
+      return [{ driveLetter: 'C:', capacityBytes: 2048, freeBytes: 0, fileSystem: 'NTFS' },
+        { driveLetter: 'E:', capacityBytes: null, freeBytes: null, type: 'Removable' }];
+    }
+  });
+  const build = () => service.buildSnapshot({ metrics: { monitoring: 'online' } });
+  const snapshots = await Promise.all([build(), build()]);
+  for (const snapshot of snapshots) {
+    assert.equal(snapshot.storage.length, 2);
+    assert.equal(snapshot.storage[0].usagePercent, 100, 'Actual zero free bytes must be retained.');
+    assert.equal(snapshot.storage[0].healthStatus, 'Unknown');
+    assert.equal(snapshot.storage[0].temperatureC, null);
+    assert.equal(snapshot.storage[1].capacityGB, null, 'Unreadable media is not zero capacity.');
+    assert.ok(snapshot.system.errors.includes('Windows live counters are unavailable.'));
+  }
+  assert.equal(queries, 1); assert.equal(volumes, 1);
+  const cached = await build();
+  assert.equal(queries, 1); assert.equal(volumes, 1);
+  assert.ok(cached.system.errors.includes('Windows live counters are unavailable.'));
+  recover = true; t.mock.timers.tick(30001);
+  const recovered = await build();
+  assert.equal(queries, 2); assert.equal(volumes, 1);
+  assert.equal(recovered.storage[0].diskModel, 'Disk Alpha');
+  assert.equal(recovered.system.errors.includes('Windows live counters are unavailable.'), false);
+});
+
+test('failed volume fallback preserves previously verified storage', async () => {
+  let fail = false;
+  const service = createService(async () => {
+    if (fail) throw new Error('Windows timeout');
+    return { drives: [{ driveLetter: 'C:', capacityBytes: 2048, freeBytes: 1024 }] };
+  }, { windowsVolumesProvider: async () => { throw new Error('Volume query failed'); } });
+  const first = await service.buildSnapshot({}); fail = true;
+  const failed = await service.buildSnapshot({});
+  assert.deepEqual(failed.storage, first.storage);
+  assert.ok(failed.system.errors.includes('Windows live counters are unavailable.'));
+});
+
+test('initial failures are throttled and do not invent storage devices', async () => {
+  let queries = 0, volumes = 0;
+  const service = createService(async () => { queries += 1; throw new Error('Windows timeout'); }, {
+    windowsTtlMs: 30000,
+    windowsVolumesProvider: async () => { volumes += 1; throw new Error('Volume query failed'); }
+  });
+  const first = await service.buildSnapshot({});
+  const second = await service.buildSnapshot({});
+  assert.deepEqual(first.storage, []); assert.deepEqual(second.storage, []);
+  assert.equal(queries, 1); assert.equal(volumes, 1);
+  assert.ok(second.system.errors.includes('Windows live counters are unavailable.'));
+});
 
 test('normalizes live GPU, memory, cooling, storage and process measurements without inventing values', async () => {
   let queryCount = 0;

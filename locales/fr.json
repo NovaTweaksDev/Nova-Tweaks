@@ -2345,6 +2345,10 @@
       "rememberLastTabDescription": "Enregistre le dernier onglet Nova-Tweaks sélectionné et le restaure au prochain lancement."
     },
     "monitoring": {
+      "refreshRateTitle": "Intervalle d’actualisation",
+      "refreshRateDescription": "Choisissez la fréquence des mesures en direct. Une actualisation plus rapide peut solliciter davantage le processeur. Certaines données matérielles et Windows sont actualisées moins souvent.",
+      "changeRefreshRate": "Modifier",
+      "openRefreshSettings": "Modifier l’intervalle dans les paramètres de surveillance",
       "advancedSensorsTitle": "Capteurs avancés",
       "advancedSensorsDescription": "Démarre automatiquement LibreHardwareMonitor lorsque nécessaire pour les températures, ventilateurs, tensions et autres mesures matérielles. Ce choix reste enregistré jusqu'à sa désactivation ici.",
       "uacTitle": "Traitement local avec demande administrateur",

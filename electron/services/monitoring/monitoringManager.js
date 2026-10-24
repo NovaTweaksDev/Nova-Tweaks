@@ -931,7 +931,9 @@ function createMonitoringManager(options = {}) {
       return intervalMs;
     }
 
-    intervalMs = Math.max(1000, Math.min(10000, Math.trunc(normalizedInterval)));
+    const nextInterval = Math.max(1000, Math.min(10000, Math.trunc(normalizedInterval)));
+    if (nextInterval === intervalMs) return intervalMs;
+    intervalMs = nextInterval;
     if (timer) {
       const generation = runGeneration;
       clearInterval(timer);

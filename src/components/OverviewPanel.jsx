@@ -479,7 +479,6 @@ function OverviewPanel({ onNavigateSettings, advancedSensorsEnabled, adminReady,
           return;
         }
 
-        await window.desktopApi.setMonitoringRefreshRate?.({ refreshRateMs: 3000 });
         const result = await window.desktopApi.getMonitoringSnapshot();
         if (!disposed && result?.snapshot) {
           acceptSnapshot(result.snapshot);
@@ -911,8 +910,14 @@ function OverviewPanel({ onNavigateSettings, advancedSensorsEnabled, adminReady,
           </>
         ) : (
           <>
-            <span>{i18n.t('interfaceText.refresh_17a8b')} {snapshot?.system?.refreshRateMs ? `${snapshot.system.refreshRateMs / 1000}s` : i18n.t('interfaceText.n_a_08d2e')}</span>
-            <span>{i18n.t('interfaceText.last_updated_f5276')} {formatLastUpdated(snapshot?.system?.lastUpdated)}</span>
+            <span className="overview-footer-refresh">
+              <span>{i18n.t('interfaceText.refresh_17a8b')} {snapshot?.system?.refreshRateMs ? `${snapshot.system.refreshRateMs / 1000}s` : i18n.t('interfaceText.n_a_08d2e')}</span>
+              <button type="button" onClick={onNavigateSettings} aria-label={t('settingsPanel.monitoring.openRefreshSettings')} className="overview-footer-settings rounded text-[var(--text-muted)] underline decoration-[var(--border)] underline-offset-4 transition-colors hover:text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">
+                <Settings2 className="h-3 w-3" aria-hidden="true" />
+                {t('settingsPanel.monitoring.changeRefreshRate')}
+              </button>
+            </span>
+            <span className="whitespace-nowrap">{i18n.t('interfaceText.last_updated_f5276')} {formatLastUpdated(snapshot?.system?.lastUpdated)}</span>
           </>
         )}
       </footer>

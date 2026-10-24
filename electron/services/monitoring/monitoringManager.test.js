@@ -66,6 +66,25 @@ function deferred() {
   return { promise, resolve, reject };
 }
 
+test('refresh changes replace one polling timer, persist across stop/start and skip unchanged rates', async () => {
+  const f = createFixture(); f.approve();
+  await f.manager.start();
+  const initial = f.getCounts().timers;
+  assert.equal(f.manager.setRefreshRate(1000), 1000);
+  assert.equal(f.activeTimerCount(), 1);
+  assert.equal(f.getCounts().timers, initial + 1);
+  f.manager.setRefreshRate(1000);
+  assert.equal(f.getCounts().timers, initial + 1, 'Unrelated settings saves must not restart polling.');
+  await f.manager.stop();
+  assert.equal(f.activeTimerCount(), 0);
+  await f.manager.start();
+  assert.equal(f.activeTimerCount(), 1);
+  const restarted = f.getCounts().timers;
+  f.manager.setRefreshRate(1000);
+  assert.equal(f.getCounts().timers, restarted, 'Restart retains the selected interval.');
+  await f.manager.stop();
+});
+
 test('waiting for admin approval performs no sensor writes, probes or background polling', async () => {
   const fixture = createFixture();
   for (let attempt = 0; attempt < 4; attempt += 1) {

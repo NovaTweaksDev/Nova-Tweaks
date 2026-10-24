@@ -5,6 +5,27 @@ const os = require('os');
 const path = require('path');
 const { createSettingsService } = require('./settingsService');
 
+test('monitoring refresh interval migrates safely and persists without changing sensor opt-in', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-refresh-settings-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const app = { getPath: (name) => path.join(root, name) };
+  const service = createSettingsService({ app });
+  assert.equal(service.getSettings().monitoring.refreshRateMs, 3000);
+  for (const refreshRateMs of [1000, 2000, 3000, 5000, 10000]) {
+    service.updateSettings({ monitoring: { refreshRateMs } });
+    const restored = createSettingsService({ app }).getSettings();
+    assert.equal(restored.monitoring.refreshRateMs, refreshRateMs);
+    assert.equal(restored.monitoring.advancedSensorsEnabled, false);
+  }
+  service.updateSettings({ monitoring: { advancedSensorsEnabled: true, refreshRateMs: 1000 } });
+  assert.equal(service.updateSettings({ preferences: { compactMode: true } }).monitoring.refreshRateMs, 1000);
+  for (const refreshRateMs of [null, '', -1, 0, 500, 1500, 999999, 'invalid']) {
+    const settings = service.updateSettings({ monitoring: { refreshRateMs } });
+    assert.equal(settings.monitoring.refreshRateMs, 3000);
+    assert.equal(settings.monitoring.advancedSensorsEnabled, true);
+  }
+});
+
 test('persists Nova Violet as a supported accent color', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-settings-'));
   const service = createSettingsService({
