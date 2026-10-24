@@ -11,7 +11,7 @@ module.exports = {
     ? base.artifactName
     : 'NovaTweaks-' + profile.name + '-Setup-${version}-${arch}.${ext}',
   directories: { ...base.directories, output: `.cache/packaging/${profile.name}` },
-  ...(profile.store && profile.signed ? { electronDist: '.cache/store-signing/electron' } : {}),
+  electronDist: profile.store && profile.signed ? '.cache/store-signing/electron' : 'node_modules/electron/dist',
   extraFiles: base.extraFiles.map((resource) => ({
     ...resource,
     ...(profile.store && profile.signed && resource.from === 'third-party-components.json'
