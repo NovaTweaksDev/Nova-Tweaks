@@ -12,7 +12,7 @@
   "reboot_required": true,
   "risk_level": "low",
   "impact": 3,
-  "recommended": true,
+  "recommended": false,
   "premium": false,
   "last_updated": "2026-06-01",
   "container_type": "one_shot_selection",

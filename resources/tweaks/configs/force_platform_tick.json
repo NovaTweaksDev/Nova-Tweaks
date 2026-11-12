@@ -12,7 +12,7 @@
   "reboot_required": true,
   "risk_level": "medium",
   "impact": 4,
-  "recommended": true,
+  "recommended": false,
   "last_updated": "2026-04-28",
   "container_type": "normal_tweak",
   "tags": [

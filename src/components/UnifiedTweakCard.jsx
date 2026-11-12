@@ -281,7 +281,7 @@ function UnifiedTweakCard({
         <div className={SHARED_LIST_MAIN_CELL_CLASS}>
           <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 pr-4">
             <div className="min-w-0">
-              <h4 className="min-w-0 truncate text-[14px] font-semibold leading-5 text-[var(--text-primary)]" title={tweak.name}>
+              <h4 className={`min-w-0 truncate text-[14px] font-semibold leading-5 ${isRecommendedTweak ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`} title={tweak.name}>
                 {tweak.name || t('tweaks.untitled', { defaultValue: 'Unnamed Tweak' })}
               </h4>
               {tweak.description ? (

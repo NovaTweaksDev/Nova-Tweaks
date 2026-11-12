@@ -2,9 +2,15 @@
 
 This file records changes described by the project's public Git tags and GitHub release notes. Dates use the public release date.
 
-## Unreleased
+## 1.1.3 - 2026-11-12
 
-No changes recorded yet.
+### Fixed
+
+- Fixed status checks for Memory Compression and Page Combining by using the administrator broker.
+
+### Changed
+
+- Narrowed the recommended tweak list and made recommended entries easier to spot in list view.
 
 ## 1.1.2 - 2026-10-24
 

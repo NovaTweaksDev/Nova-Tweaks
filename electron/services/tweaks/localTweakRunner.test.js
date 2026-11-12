@@ -139,6 +139,47 @@ test('local-only runner sends a self-contained development artifact to the admin
   }
 });
 
+test('MMAgent checks use the administrator broker without prompting or changing Windows settings', async () => {
+  const { createTweakCatalog } = require('../localTweaks/catalog');
+  const scriptsPath = path.resolve(__dirname, '../../../resources/tweaks/scripts');
+  for (const tweakId of ['disable_memory_compression', 'disable_page_combining']) {
+    for (const expected of ['enabled', 'disabled']) {
+      const calls = [];
+      const runner = createTweakRunner({
+        tweakCatalog: createTweakCatalog(), localOnly: true, remoteScriptsPath: scriptsPath,
+        isAdminProvider: () => false,
+        remoteScriptRunner: { runScript: async () => { throw new Error('MMAgent must not run without administrator access.'); } },
+        privilegedExecutor: async (operation, payload, options) => {
+          calls.push({ operation, payload, options });
+          return { ok: true, stdout: JSON.stringify({ status: expected }), stderr: '', exitCode: 0 };
+        }
+      });
+      const state = await runner.getCurrentState({ tweakId });
+      assert.equal(state.currentState, expected);
+      assert.equal(state.checked, true);
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0].operation, 'tweak.execute');
+      assert.equal(calls[0].payload.params.State, 'Check');
+      assert.equal(calls[0].options.allowPrompt, false);
+    }
+  }
+});
+
+test('MMAgent checks stay unverified when administrator access is unavailable', async () => {
+  const { createTweakCatalog } = require('../localTweaks/catalog');
+  const runner = createTweakRunner({
+    tweakCatalog: createTweakCatalog(), localOnly: true,
+    remoteScriptsPath: path.resolve(__dirname, '../../../resources/tweaks/scripts'),
+    isAdminProvider: () => false,
+    remoteScriptRunner: { runScript: async () => { throw new Error('Must not query MMAgent without administrator access.'); } }
+  });
+  for (const tweakId of ['disable_memory_compression', 'disable_page_combining']) {
+    const state = await runner.getCurrentState({ tweakId });
+    assert.equal(state.checked, false);
+    assert.equal(state.stateCheckError.code, 'ADMIN_REQUIRED');
+  }
+});
+
 test('normal execution honors config timeout, explicit overrides, and detection budget', async () => {
   const fixture = createLocalFixture();
   const config = fixture.tweakCatalog.getConfigById();

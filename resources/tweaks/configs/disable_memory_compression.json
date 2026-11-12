@@ -12,7 +12,7 @@
   "reboot_required": true,
   "risk_level": "medium",
   "impact": 3,
-  "recommended": true,
+  "recommended": false,
   "last_updated": "2026-09-20",
   "container_type": "normal_tweak",
   "tags": [
@@ -60,7 +60,7 @@
         "success_exit_codes": [
           0
         ],
-        "requires_admin": false,
+        "requires_admin": true,
         "expected_output": {
           "enabled": "ENABLED",
           "disabled": "DISABLED",
