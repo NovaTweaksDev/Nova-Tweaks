@@ -1017,6 +1017,7 @@ function ActiveGameProfileCard({
   gameName,
   iconSource,
   presetActive,
+  presetNeedsRestore,
   presetPending,
   presetMessage,
   presetTone,
@@ -1053,7 +1054,7 @@ function ActiveGameProfileCard({
           brand="NOVA"
           mode="GAME MODE"
           activeLabel={t('gameMode.preset.enabled')}
-          inactiveLabel={t('gameMode.preset.clickToEnable')}
+          inactiveLabel={t(presetNeedsRestore ? 'gameMode.preset.clickToRestore' : 'gameMode.preset.clickToEnable')}
           onClick={canUsePremium ? onRunPreset : onRequestPremium}
           className="game-mode-profile-orb"
         />
@@ -1742,6 +1743,7 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
   const [affinityModalOpen, setAffinityModalOpen] = useState(false);
   const [presetPending, setPresetPending] = useState(false);
   const [presetActive, setPresetActive] = useState(false);
+  const [presetNeedsRestore, setPresetNeedsRestore] = useState(false);
   const [presetRestoreSnapshot, setPresetRestoreSnapshot] = useState([]);
   const [presetMessage, setPresetMessage] = useState('');
   const [presetTone, setPresetTone] = useState('info');
@@ -1769,6 +1771,7 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
   const lastDetectedAtRef = useRef(0);
   const affinityModalInitialProcessorsRef = useRef([]);
   const presetOperationInFlightRef = useRef(false);
+  const presetStateRefreshRunRef = useRef(0);
   const hasDetectedGame = Boolean(activeGame?.processId && activeGame?.executablePath);
   const displayGame = activeGame || manualGame;
   const hasSelectedGame = Boolean(displayGame?.executablePath);
@@ -1815,6 +1818,7 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
   async function persistPresetState({ active: nextActive, restoreSnapshot }) {
     const normalizedSnapshot = Array.isArray(restoreSnapshot) ? restoreSnapshot : [];
     setPresetRestoreSnapshot(normalizedSnapshot);
+    setPresetNeedsRestore(normalizedSnapshot.length > 0);
     if (!window.desktopApi?.setGameModeState) {
       return { ok: false, code: 'APP_RESTART_REQUIRED' };
     }
@@ -1876,23 +1880,25 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
   }
 
   async function refreshPresetState() {
+    const runId = ++presetStateRefreshRunRef.current;
     try {
       const persisted = await window.desktopApi?.getGameModeState?.();
       const background = await window.desktopApi?.getGameModeBackgroundState?.();
+      if (runId !== presetStateRefreshRunRef.current) return false;
+      setPresetNeedsRestore(Boolean(persisted?.state?.restoreSnapshot?.length || background?.state?.pendingRestore));
       if (persisted?.state?.restoreSnapshot?.length || background?.state?.pendingRestore) {
-        setPresetActive(true);
         if (['partial', 'recovery_required'].includes(background?.state?.phase)) {
           setPresetTone('warning');
           setPresetMessage(background.state.phase === 'partial'
             ? formatBackgroundIncomplete(background.state, t)
             : t('gameMode.preset.background.recovery'));
         }
-        return;
       }
       const result = await loadPresetCatalog();
+      if (runId !== presetStateRefreshRunRef.current) return false;
       if (!result.ok) {
         setPresetActive(false);
-        return;
+        return false;
       }
 
       const resolvedTweaks = resolvePresetTweaks(result.tweaks);
@@ -1900,17 +1906,28 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
       const hasAllTweaks = resolvedTweaks.every((entry) => Boolean(entry.tweak));
       const allTweaksActive =
         hasAllTweaks &&
+        !['prepared', 'recovery_required'].includes(background?.state?.phase) &&
+        !(background?.state?.entries || []).some((entry) => entry.code && entry.code !== 'ALREADY_DISABLED') &&
         statefulTweaks.every(({ tweak, presetDefinition }) => isPresetTweakActive(tweak, presetDefinition));
 
       setPresetActive(allTweaksActive);
+      return allTweaksActive;
     } catch (_error) {
-      setPresetActive(false);
+      if (runId === presetStateRefreshRunRef.current) setPresetActive(false);
+      return false;
     }
   }
 
   useEffect(() => {
     if (!active) return;
     void refreshPresetState();
+    const unsubscribe = window.desktopApi?.onTweakSystemStateChanged?.(() => {
+      if (!presetOperationInFlightRef.current) void refreshPresetState();
+    });
+    return () => {
+      presetStateRefreshRunRef.current += 1;
+      unsubscribe?.();
+    };
   }, [active]);
 
   useEffect(() => {
@@ -2104,11 +2121,12 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
     }
 
     const presetOperation = createPresetOperation({
-      presetActive,
+      presetActive: presetActive || presetNeedsRestore,
       presetDefinitions: GAME_MODE_PRESET_TWEAKS
     });
     const operationStartedAt = Date.now();
     let shouldDisablePreset = presetOperation.disableRequested;
+    presetStateRefreshRunRef.current += 1;
     presetOperationInFlightRef.current = true;
     setPresetPending(true);
     setPresetMessage('');
@@ -2304,15 +2322,20 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
         }
       }
 
+      let verifiedActive = false;
       if (shouldDisablePreset && failedTweaks.length === 0) {
         setPresetActive(false);
       } else {
-        await refreshPresetState();
+        verifiedActive = await refreshPresetState();
+      }
+      if (!shouldDisablePreset && !verifiedActive && failedTweaks.length === 0) {
+        failedTweaks.push(t('gameMode.preset.statusLabel'));
       }
 
       if (failedTweaks.length > 0) {
         // Preserve the original snapshot, including after a partial activation.
-        setPresetActive(true);
+        setPresetActive(false);
+        await persistPresetState({ active: false, restoreSnapshot });
         setPresetTone('warning');
         const failureMessage = [t(shouldDisablePreset ? 'gameMode.preset.disableFailedTweaks' : 'gameMode.preset.failedTweaks', { names: failedTweaks.join(', ') }), backgroundWarning].filter(Boolean).join(' ');
         setPresetMessage(failureMessage);
@@ -2331,8 +2354,7 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
         const saved = await persistPresetState({ active: false, restoreSnapshot: [] });
         if (!saved?.ok) throw new Error('Game Mode state persistence failed');
       } else {
-        setPresetActive(true);
-        const saved = await persistPresetState({ active: true, restoreSnapshot });
+        const saved = await persistPresetState({ active: !shouldDisablePreset && verifiedActive, restoreSnapshot });
         if (!saved?.ok) throw new Error('Game Mode state persistence failed');
       }
       setPresetTone(backgroundWarning ? 'warning' : 'success');
@@ -2916,7 +2938,9 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
   const statusMessages = uniqueTextValues([priorityStatusMessage, affinityStatusMessage]);
   const allProcessors = createProcessorList(logicalProcessorCount);
   const allProcessorsSelected = logicalProcessorCount > 0 && affinitySelection.length === logicalProcessorCount;
-  const gameModeButtonAria = presetActive ? `${t('gameMode.buttonAria')} (${t('gameMode.activeBadge')})` : t('gameMode.buttonAria');
+  const gameModeButtonAria = presetNeedsRestore && !presetActive
+    ? t('gameMode.preset.clickToRestore')
+    : presetActive ? `${t('gameMode.buttonAria')} (${t('gameMode.activeBadge')})` : t('gameMode.buttonAria');
   const gameName = displayGame?.displayName || displayGame?.processName || executableName || t('gameMode.detection.processLabel');
   const processName = displayGame?.processName || executableName || '';
   const executablePath = displayGame?.executablePath || '';
@@ -3073,6 +3097,7 @@ function GameModePanel({ active = false, onRuntimeStatusChange, canUsePremium = 
               gameName={gameName}
               iconSource={iconSource}
               presetActive={presetActive}
+              presetNeedsRestore={presetNeedsRestore}
               presetPending={presetPending}
               presetMessage={presetMessage}
               presetTone={presetTone}

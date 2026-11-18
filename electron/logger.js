@@ -109,6 +109,7 @@ function createLogger(scope = 'main') {
   } catch (_error) {}
 
   function write(level, message, meta) {
+    if (level === 'debug' && app?.isPackaged) return;
     const line = `[${new Date().toISOString()}] [${level.toUpperCase()}] [${scope}] ${redactString(message)}${safeSerialize(meta)}\n`;
 
     try {
@@ -130,6 +131,7 @@ function createLogger(scope = 'main') {
       // Avoid recursive logger failures.
     }
 
+    if (app?.isPackaged) return;
     if (level === 'error') {
       console.error(line.trim());
       return;

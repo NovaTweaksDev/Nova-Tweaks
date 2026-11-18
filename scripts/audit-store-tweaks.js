@@ -7,7 +7,7 @@ const signals = [
   ['BCD', /\bbcdedit\b/i],
   ['Windows Update service/cache', /\bwuauserv\b|SoftwareDistribution/i],
   ['Services', /Stop-Service|Set-Service|sc\.exe/i],
-  ['Machine registry', /HKLM:|HKEY_LOCAL_MACHINE/i],
+  ['Machine registry', /HKLM:|HKEY_LOCAL_MACHINE|\[Microsoft\.Win32\.Registry\]::LocalMachine/i],
   ['Native API / driver', /DllImport|NtSetTimerResolution|DeviceIoControl/i],
   ['Processes', /Stop-Process|ProcessPriority|Affinity/i],
   ['File deletion', /Remove-Item/i]

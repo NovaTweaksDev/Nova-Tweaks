@@ -20,13 +20,13 @@ try {
       if ($svc.StartMode -eq 'Disabled') { Out-Result "Enabled" } else { Out-Result "Disabled" }
     }
     'On' {
-      Stop-Service SysMain -Force -ErrorAction SilentlyContinue
+      Stop-Service SysMain -Force -ErrorAction Stop
       Set-Service SysMain -StartupType Disabled
       Out-Result "Enabled"
     }
     'Off' {
       Set-Service SysMain -StartupType Automatic
-      Start-Service SysMain -ErrorAction SilentlyContinue
+      Start-Service SysMain -ErrorAction Stop
       Out-Result "Disabled"
     }
   }

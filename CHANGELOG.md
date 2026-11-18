@@ -2,6 +2,19 @@
 
 This file records changes described by the project's public Git tags and GitHub release notes. Dates use the public release date.
 
+## 1.1.4 - 2026-11-18
+
+### Fixed
+
+- Game Mode now checks the active tweaks instead of relying on saved state, including after a PC restart.
+- Fixed issues with game sessions, scheduled maintenance and status updates.
+- Service tweaks now report start and stop failures instead of showing success.
+- Improved handling of Windows Update settings and cache cleanup.
+
+### Changed
+
+- Updated the sidebar branding with a rounded gradient background and rising particles.
+
 ## 1.1.3 - 2026-11-12
 
 ### Fixed

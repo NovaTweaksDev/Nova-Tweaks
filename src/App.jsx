@@ -1698,6 +1698,39 @@ function App() {
     tweakReloadBlockedUntilRef, pushToast, t, activeTweaksLoadRequestRef, stateRefreshCounterRef, setIsRefreshingTweakStates, setIsLoadingTweaks, setTweaksError, setTweaks, didBootstrapRef, getStoredRebootPendingIds, normalizeTweakForUi, mergeTweakRuntimeState, hasLoadedTweaksRef, hasLoadedTweakStatesRef, getTweakRateLimitDelay, setTweakReloadBlockedUntil, activeTweaksRefreshPromiseRef, requiresRendererTweakStateCheck, setCheckingStateTweakIds, activeStateRefreshRunRef, stateChecksRef
   });
 
+  const loadTweaksRef = useRef(loadTweaks);
+  useEffect(() => { loadTweaksRef.current = loadTweaks; }, [loadTweaks]);
+  useEffect(() => {
+    let disposed = false;
+    let scheduledRefresh;
+    let refreshing = false;
+    let changed = false;
+
+    function scheduleRefresh() {
+      changed = true;
+      hasLoadedTweakStatesRef.current = false;
+      if (disposed || refreshing || !hasLoadedTweaksRef.current) return;
+      window.clearTimeout(scheduledRefresh);
+      scheduledRefresh = window.setTimeout(async () => {
+        refreshing = true;
+        changed = false;
+        try {
+          await loadTweaksRef.current({ includeState: true, background: true });
+        } finally {
+          refreshing = false;
+          if (changed) scheduleRefresh();
+        }
+      }, 350);
+    }
+
+    const unsubscribe = window.desktopApi?.onTweakSystemStateChanged?.(scheduleRefresh);
+    return () => {
+      disposed = true;
+      window.clearTimeout(scheduledRefresh);
+      unsubscribe?.();
+    };
+  }, []);
+
   useEffect(() => {
     // A startup check may finish before the administrator session is ready.
     // Reuse the single-check path so versions and in-flight checks stay shared.

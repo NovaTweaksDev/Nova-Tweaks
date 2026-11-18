@@ -1779,6 +1779,7 @@
       "inactiveBadge": "Inactive",
       "sessionProfile": "Session profile",
       "clickToEnable": "Click to enable",
+      "clickToRestore": "Restore previous settings",
       "enabling": "Enabling Game Mode",
       "disabling": "Disabling Game Mode",
       "restoring": "Restoring previous settings",

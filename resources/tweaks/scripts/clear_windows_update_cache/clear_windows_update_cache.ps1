@@ -31,7 +31,7 @@ function Remove-PathContents {
     return [pscustomobject]$result
   }
 
-  $items = Get-ChildItem -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+  $items = Get-ChildItem -LiteralPath $Path -Force -ErrorAction Stop
   foreach ($item in $items) {
     try {
       Remove-Item -LiteralPath $item.FullName -Recurse -Force -ErrorAction Stop
@@ -55,23 +55,36 @@ try {
     'On' {
       $serviceNames = @('wuauserv', 'bits')
       $servicesToRestart = @()
-
-      foreach ($name in $serviceNames) {
-        $svc = Get-Service -Name $name -ErrorAction SilentlyContinue
-        if ($null -ne $svc -and $svc.Status -eq 'Running') {
-          Stop-Service -Name $name -Force -ErrorAction Stop
-          $servicesToRestart += $name
-        }
-      }
+      $failures = @()
 
       try {
+        foreach ($name in $serviceNames) {
+          $svc = Get-Service -Name $name -ErrorAction Stop
+          if ($svc.Status -eq 'Running') {
+            $servicesToRestart = @($name) + $servicesToRestart
+            Stop-Service -Name $name -ErrorAction Stop
+          }
+        }
+
         $downloadPath = Join-Path $env:WINDIR 'SoftwareDistribution\Download'
         $stats = Remove-PathContents -Path $downloadPath
       }
+      catch {
+        $failures += $_.Exception.Message
+      }
       finally {
         foreach ($name in $servicesToRestart) {
-          Start-Service -Name $name -ErrorAction SilentlyContinue
+          try {
+            Start-Service -Name $name -ErrorAction Stop
+          }
+          catch {
+            $failures += "Could not restart ${name}: $($_.Exception.Message)"
+          }
         }
+      }
+
+      if ($failures.Count -gt 0) {
+        throw ($failures -join ' ')
       }
 
       Out-Result "Enabled" "Windows Update cache cleared. Removed entries: $($stats.Removed); skipped: $($stats.Skipped)"

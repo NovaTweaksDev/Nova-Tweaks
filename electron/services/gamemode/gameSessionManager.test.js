@@ -5,6 +5,119 @@ const os = require('node:os');
 const path = require('node:path');
 const { createGameSessionManager, averageLowestPercent, percentile } = require('./gameSessionManager');
 
+function deferred() {
+  let resolve;
+  const promise = new Promise((done) => { resolve = done; });
+  return { promise, resolve };
+}
+
+function lifecycleFixture(directory, overrides = {}) {
+  const captureService = {
+    getAvailability: () => ({ available: true }), getStatus: () => ({ status: 'running' }),
+    start: async () => ({ status: 'running' }), stop: async () => ({}), readSamples: () => [],
+    ...overrides
+  };
+  const manager = createGameSessionManager({ userDataPath: directory, captureService });
+  const game = { processId: process.pid, processName: 'node.exe', executablePath: process.execPath };
+  return { manager, game };
+}
+
+test('concurrent session starts share one capture and stop waits for startup', async () => withTempDirectory(async (directory) => {
+  const started = deferred();
+  const release = deferred();
+  let starts = 0;
+  let stops = 0;
+  const { manager, game } = lifecycleFixture(directory, {
+    start: async () => { starts += 1; started.resolve(); await release.promise; return { status: 'running' }; },
+    stop: async () => { stops += 1; }
+  });
+  const first = manager.startSession({ game });
+  const second = manager.startSession({ game });
+  await started.promise;
+  const stopped = manager.stopSession();
+  release.resolve();
+  try {
+    const sessions = await Promise.all([first, second]);
+    const report = await stopped;
+    assert.equal(starts, 1);
+    assert.equal(stops, 1);
+    assert.equal(sessions[0].sessionId, sessions[1].sessionId);
+    assert.equal(report.sessionId, sessions[0].sessionId);
+    assert.equal(manager.isRecording(), false);
+  } finally { await manager.stopSession(); }
+}));
+
+test('capture retries are shared and finish before a concurrent stop', async () => withTempDirectory(async (directory) => {
+  const retried = deferred();
+  const release = deferred();
+  let starts = 0;
+  const { manager, game } = lifecycleFixture(directory, {
+    start: async () => {
+      if (++starts > 1) { retried.resolve(); await release.promise; }
+      return { status: 'running' };
+    }
+  });
+  await manager.startSession({ game });
+  const first = manager.retryCapture();
+  const second = manager.retryCapture();
+  await retried.promise;
+  const stopped = manager.stopSession();
+  release.resolve();
+  try {
+    await Promise.all([first, second, stopped]);
+    assert.equal(starts, 2);
+    assert.equal(manager.getState().activeSession, null);
+  } finally { await manager.stopSession(); }
+}));
+
+test('report persistence can be retried after capture already stopped', async () => withTempDirectory(async (directory) => {
+  const { manager, game } = lifecycleFixture(directory);
+  await manager.startSession({ game });
+  const root = path.join(directory, 'game-mode', 'sessions');
+  fs.mkdirSync(path.dirname(root), { recursive: true });
+  fs.writeFileSync(root, 'Blocked report directory');
+  await assert.rejects(manager.stopSession());
+  fs.unlinkSync(root);
+  const report = await manager.stopSession();
+  assert.equal(report.sessionStatus, 'stopped');
+  assert.equal(manager.listReports()[0].sessionId, report.sessionId);
+  assert.equal(manager.getState().activeSession, null);
+}));
+
+test('failed capture shutdown prevents local data deletion', async () => withTempDirectory(async (directory) => {
+  let fail = true;
+  const { manager, game } = lifecycleFixture(directory, {
+    stop: async () => { if (fail) throw new Error('Capture busy'); }
+  });
+  await manager.startSession({ game });
+  const root = path.join(directory, 'game-mode', 'capture');
+  const marker = path.join(root, 'preserved.csv');
+  fs.writeFileSync(marker, 'Capture data');
+  await assert.rejects(manager.clearLocalData(), /Capture busy/);
+  assert.equal(fs.existsSync(marker), true);
+  fail = false;
+  await manager.clearLocalData();
+  assert.equal(fs.existsSync(root), false);
+}));
+
+test('live state reads cache an empty report directory instead of scanning it on every capture tick', async (t) => withTempDirectory(async (directory) => {
+  const { manager, game } = lifecycleFixture(directory);
+  let scans = 0;
+  const read = fs.readdirSync;
+  const root = path.join(directory, 'game-mode', 'sessions');
+  const mock = t.mock.method(fs, 'readdirSync', (folder, ...args) => {
+    if (folder === root) scans += 1;
+    return read(folder, ...args);
+  });
+  assert.equal(manager.getState().lastReport, null);
+  assert.equal(manager.getState().lastReport, null);
+  assert.equal(scans, 1);
+  mock.mock.restore();
+  await manager.startSession({ game });
+  const report = await manager.stopSession();
+  assert.equal(manager.getState().lastReport.sessionId, report.sessionId);
+}));
+
 function withTempDirectory(callback) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-session-'));
   try {

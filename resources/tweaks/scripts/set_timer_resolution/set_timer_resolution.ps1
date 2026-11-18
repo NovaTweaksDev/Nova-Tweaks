@@ -235,6 +235,28 @@ function Get-ProcessByPid([object]$PidValue) {
   return Get-Process -Id $resolvedPid -ErrorAction SilentlyContinue
 }
 
+function Get-DaemonProcess([psobject]$StatePayload) {
+  $process = Get-ProcessByPid $StatePayload.pid
+  if (-not $process -or $process.ProcessName -ne 'powershell') {
+    return $null
+  }
+
+  try {
+    $createdAt = $process.StartTime.ToUniversalTime()
+    if ($StatePayload.PSObject.Properties['processStartedAtTicks']) {
+      if ([string]$createdAt.Ticks -ne [string]$StatePayload.processStartedAtTicks) { return $null }
+    } else {
+      # Older state files recorded initialization time, after the daemon started.
+      # A process created later cannot own that request, even if Windows reused its PID.
+      $recordedAt = [DateTimeOffset]::Parse([string]$StatePayload.startedAt).UtcDateTime
+      if ($createdAt -gt $recordedAt) { return $null }
+    }
+  } catch {
+    return $null
+  }
+  return $process
+}
+
 function Get-TimerCapabilities {
   Ensure-TimerInterop
 
@@ -285,7 +307,7 @@ function Resolve-TargetResolution([string]$RequestedResolution) {
 function Stop-ActiveDaemon([psobject]$StatePayload, [string]$StatePath) {
   $resolvedStatePath = Resolve-StateFilePath $StatePath
   $resolvedStopPath = Resolve-StopFilePath $StatePayload.stopFile $StatePayload.token
-  $process = Get-ProcessByPid $StatePayload.pid
+  $process = Get-DaemonProcess $StatePayload
 
   if (-not $process) {
     Remove-FileSafe $resolvedStatePath
@@ -307,7 +329,7 @@ function Stop-ActiveDaemon([psobject]$StatePayload, [string]$StatePath) {
     Start-Sleep -Milliseconds 180
   }
 
-  $process = Get-Process -Id $process.Id -ErrorAction SilentlyContinue
+  $process = Get-DaemonProcess $StatePayload
   if ($process) {
     try {
       Stop-Process -Id $process.Id -Force -ErrorAction Stop
@@ -327,7 +349,7 @@ function Get-ActiveState([string]$StatePath) {
     return $null
   }
 
-  $process = Get-ProcessByPid $statePayload.pid
+  $process = Get-DaemonProcess $statePayload
   if (-not $process) {
     $resolvedStopPath = Resolve-StopFilePath $statePayload.stopFile $statePayload.token
     Remove-FileSafe $resolvedStatePath
@@ -344,7 +366,7 @@ function Wait-ForDaemonState([string]$ExpectedToken, [string]$StatePath) {
   while ($timeoutWatch.ElapsedMilliseconds -lt $DaemonStartupTimeoutMs) {
     $statePayload = Read-StateFile $StatePath
     if ($statePayload -and [string]$statePayload.token -eq $ExpectedToken) {
-      $process = Get-ProcessByPid $statePayload.pid
+      $process = Get-DaemonProcess $statePayload
       if ($process) {
         return $statePayload
       }
@@ -419,6 +441,7 @@ function Invoke-DaemonMode {
 
     $statePayload = @{
       pid = $PID
+      processStartedAtTicks = [string]([Diagnostics.Process]::GetCurrentProcess().StartTime.ToUniversalTime().Ticks)
       token = $resolvedToken
       requestedResolution = $target.RequestedResolution
       selectedResolution = $selectedResolution

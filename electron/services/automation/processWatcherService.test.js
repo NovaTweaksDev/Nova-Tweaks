@@ -38,6 +38,62 @@ test('stopping the watcher discards an in-flight snapshot instead of triggering 
   assert.equal(delivered, 0);
 });
 
+test('stopping during game lookup prevents late resource alerts and state updates', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-process-stop-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  let finish;
+  const service = createProcessWatcherService({ historyPath: path.join(root, 'history.json'),
+    getSettings: () => createSettings({ cpuDurationSeconds: 0 }), nowProvider: () => 60000,
+    snapshotProvider: async () => [createProcess()],
+    getActiveGame: () => new Promise((resolve) => { finish = resolve; }) });
+  const pending = service.pollOnce();
+  await new Promise((resolve) => setImmediate(resolve));
+  service.stop();
+  finish(null);
+  await pending;
+  assert.equal(service.getState().currentAlerts.length, 0);
+  assert.equal(service.getState().lastUpdated, null);
+});
+
+test('resource deltas never compare different processes that reused the same PID', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-process-reuse-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  let now = 60000;
+  let snapshot;
+  let processInfo = createProcess({ cpuPercent: null, diskMBs: null, cpuSeconds: 1, ioReadBytes: 1, ioWriteBytes: 1 });
+  const service = createProcessWatcherService({ historyPath: path.join(root, 'history.json'),
+    getSettings: () => createSettings(), nowProvider: () => now,
+    snapshotProvider: async () => [processInfo], onSnapshot: (processes) => { snapshot = processes[0]; } });
+  await service.pollOnce();
+  now += 1000;
+  processInfo = { ...processInfo, startTime: new Date(2000).toISOString(), cpuSeconds: 50, ioReadBytes: 1000000000 };
+  await service.pollOnce();
+  assert.equal(snapshot.cpuPercent, null);
+  assert.equal(snapshot.diskMBs, null);
+  now += 1000;
+  processInfo = { ...processInfo, cpuSeconds: 51, ioReadBytes: 1001048576 };
+  await service.pollOnce();
+  assert.ok(snapshot.cpuPercent > 0);
+  assert.equal(snapshot.diskMBs, 1);
+});
+
+test('a disappeared process loses its duration hold before its next snapshot', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-process-gap-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  let now = 60000;
+  let processes = [createProcess()];
+  const service = createProcessWatcherService({ historyPath: path.join(root, 'history.json'),
+    getSettings: () => createSettings(), nowProvider: () => now, snapshotProvider: async () => processes });
+  await service.pollOnce();
+  now += 10000;
+  processes = [];
+  await service.pollOnce();
+  now += 20000;
+  processes = [createProcess()];
+  await service.pollOnce();
+  assert.equal(service.getState().currentAlerts.length, 0);
+});
+
 function createSettings(overrides = {}) {
   return {
     automation: {

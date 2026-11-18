@@ -15,6 +15,92 @@ function tempState(t) {
   return path.join(root, 'state.json');
 }
 
+function deferred() {
+  let resolve;
+  const promise = new Promise((done) => { resolve = done; });
+  return { promise, resolve };
+}
+
+function createFixture(t, options = {}) {
+  const service = createScheduledMaintenanceService({
+    statePath: tempState(t), setIntervalProvider: () => ({ unref() {} }),
+    clearIntervalProvider: () => {}, ...options
+  });
+  t.after(() => service.destroy());
+  return service;
+}
+
+test('maintenance locks before asynchronous readiness checks and freezes the task selection', async (t) => {
+  const readiness = deferred();
+  const executed = [];
+  const service = createFixture(t, {
+    canRun: () => readiness.promise,
+    executeTask: async (id) => { executed.push(id); return { ok: true }; }
+  });
+  service.updateSchedule({ tasks: ['cleanup', 'drive'] });
+  const first = service.runNow();
+  assert.equal((await service.runNow()).code, 'MAINTENANCE_RUNNING');
+  service.updateSchedule({ tasks: ['app-cache'] });
+  readiness.resolve({ ok: true });
+  await first;
+  assert.deepEqual(executed, ['cleanup', 'drive']);
+  assert.equal(service.getState().history.length, 1);
+});
+
+test('maintenance releases its lock after readiness fails', async (t) => {
+  let fail = true;
+  const service = createFixture(t, {
+    canRun: async () => { if (fail) throw new Error('Readiness unavailable'); return { ok: true }; },
+    executeTask: async () => ({ ok: true })
+  });
+  await assert.rejects(service.runNow(), /Readiness unavailable/);
+  fail = false;
+  assert.equal((await service.runNow()).ok, true);
+  assert.equal(service.getState().running, false);
+});
+
+test('a failed schedule save preserves the working file and cannot enable unsaved automation', async (t) => {
+  const statePath = tempState(t);
+  const service = createFixture(t, { statePath });
+  service.updateSchedule({ enabled: false, tasks: ['cleanup'] });
+  const before = fs.readFileSync(statePath, 'utf8');
+  const rename = t.mock.method(fs, 'renameSync', () => { throw new Error('File locked'); });
+  assert.throws(() => service.updateSchedule({ enabled: true, tasks: ['drive'] }), /File locked/);
+  assert.equal(service.getState().schedule.enabled, false);
+  assert.deepEqual(service.getState().schedule.tasks, ['cleanup']);
+  assert.equal(fs.readFileSync(statePath, 'utf8'), before);
+  rename.mock.restore();
+});
+
+test('shutdown waits for pending readiness and prevents new maintenance work', async (t) => {
+  const readiness = deferred();
+  const service = createFixture(t, {
+    canRun: () => readiness.promise,
+    executeTask: async () => assert.fail('shutdown must prevent task execution')
+  });
+  const run = service.runNow();
+  const stopped = service.destroy();
+  readiness.resolve({ ok: true });
+  assert.equal((await run).code, 'MAINTENANCE_STOPPED');
+  await stopped;
+  assert.equal((await service.runNow()).code, 'MAINTENANCE_STOPPED');
+});
+
+test('background readiness rejections are logged instead of escaping the timer', async (t) => {
+  const statePath = tempState(t);
+  const now = new Date(2026, 6, 27, 3, 5).getTime();
+  fs.writeFileSync(statePath, JSON.stringify({ schedule: { enabled: true, frequency: 'daily', time: '03:00' } }));
+  const warnings = [];
+  const service = createFixture(t, {
+    statePath, nowProvider: () => now,
+    canRun: async () => { throw new Error('Readiness unavailable'); },
+    logger: { warn: (...args) => warnings.push(args) }
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(service.getState().lastError, 'Readiness unavailable');
+  assert.equal(warnings.length, 1);
+});
+
 test('normalizes maintenance schedules and removes unknown tasks', () => {
   assert.deepEqual(normalizeSchedule({
     enabled: true,

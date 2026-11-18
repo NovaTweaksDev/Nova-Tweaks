@@ -335,6 +335,7 @@ function createGameSessionManager(options = {}) {
 
   let activeSession = null;
   let lastReport = null;
+  let lastReportLoaded = false;
   let autoTracking = false;
   let processWatchTimer = null;
   let capturePollTimer = null;
@@ -345,6 +346,9 @@ function createGameSessionManager(options = {}) {
   let lastNetworkMeasurementAt = null;
   let statistics = createSessionStatistics({ captureRoot, nowProvider: now });
   let stopPromise = null;
+  let startPromise = null;
+  let retryPromise = null;
+  let clearPromise = null;
   const processPeaks = new Map();
 
   function getSessionsRoot() {
@@ -356,13 +360,14 @@ function createGameSessionManager(options = {}) {
   }
 
   function loadLastReport() {
-    if (lastReport) {
+    if (lastReportLoaded || lastReport) {
       return lastReport;
     }
 
     try {
       const reports = listReports();
       lastReport = reports[0] || null;
+      lastReportLoaded = true;
     } catch (_error) {
       lastReport = null;
     }
@@ -372,7 +377,7 @@ function createGameSessionManager(options = {}) {
   function getState() {
     return {
       activeSession,
-      lastReport: activeSession?.sessionStatus === 'recording' ? loadLastReport() : loadLastReport(),
+      lastReport: loadLastReport(),
       autoTracking,
       capture: captureService.getStatus(),
       captureAvailability: captureService.getAvailability()
@@ -695,7 +700,9 @@ function createGameSessionManager(options = {}) {
       }
 
       if (!isProcessRunning(activeSession.processId)) {
-        void stopSession({ reason: 'game-exited' });
+        void stopSession({ reason: 'game-exited' }).catch((error) => {
+          logger?.warn?.('Unable to stop the exited game session.', { message: error.message });
+        });
       }
     }, PROCESS_WATCH_INTERVAL_MS);
   }
@@ -840,13 +847,22 @@ function createGameSessionManager(options = {}) {
     return game;
   }
 
-  async function startSession({
+  async function startSession(input = {}) {
+    if (clearPromise) await clearPromise;
+    if (stopPromise) await stopPromise;
+    if (startPromise) return startPromise;
+    const operation = beginSession(input);
+    startPromise = operation;
+    try { return await operation; }
+    finally { if (startPromise === operation) startPromise = null; }
+  }
+
+  async function beginSession({
     game = null,
     profileId = '',
     autoRestore = false,
     autoStarted = false
   } = {}) {
-    if (stopPromise) await stopPromise;
     if (activeSession?.sessionStatus === 'recording') {
       return activeSession;
     }
@@ -913,8 +929,12 @@ function createGameSessionManager(options = {}) {
 
   async function stopSession({ reason = 'manual' } = {}) {
     if (stopPromise) return stopPromise;
-    if (!activeSession) return null;
-    const operation = finishSession(reason);
+    const operation = Promise.resolve().then(async () => {
+      // A stop requested during startup/retry must also stop the resulting capture.
+      if (startPromise) await startPromise.catch(() => {});
+      if (retryPromise) await retryPromise.catch(() => {});
+      return activeSession ? finishSession(reason) : null;
+    });
     stopPromise = operation;
     try { return await operation; }
     catch (error) { statistics.invalidate(error); throw error; }
@@ -946,8 +966,9 @@ function createGameSessionManager(options = {}) {
         logger?.warn?.('Unable to finalize session frame statistics.', { message: error.message });
       }
       updateMetrics(distribution);
-      saveReport(sessionToStop);
     }
+    // A failed write can be retried even after capture has already stopped.
+    saveReport(sessionToStop);
     activeSession = null;
     onRecordingStateChange?.(false);
     emitUpdate();
@@ -955,7 +976,16 @@ function createGameSessionManager(options = {}) {
   }
 
   async function retryCapture() {
-    if (stopPromise || !activeSession || activeSession.sessionStatus !== 'recording') {
+    if (stopPromise || clearPromise) return getState();
+    if (retryPromise) return retryPromise;
+    const operation = restartCapture();
+    retryPromise = operation;
+    try { return await operation; }
+    finally { if (retryPromise === operation) retryPromise = null; }
+  }
+
+  async function restartCapture() {
+    if (!activeSession || activeSession.sessionStatus !== 'recording') {
       return getState();
     }
 
@@ -984,14 +1014,21 @@ function createGameSessionManager(options = {}) {
   }
 
   async function clearLocalData() {
-    if (stopPromise) await stopPromise;
+    if (clearPromise) return clearPromise;
+    const operation = removeLocalData();
+    clearPromise = operation;
+    try { return await operation; }
+    finally { if (clearPromise === operation) clearPromise = null; }
+  }
+
+  async function removeLocalData() {
+    await stopSession();
     stopProcessWatcher();
     stopCapturePolling();
-    try {
-      await captureService.stop();
-    } catch (_error) {}
+    await captureService.stop();
     activeSession = null;
     lastReport = null;
+    lastReportLoaded = true;
     latestOverview = null;
     latestMetrics = null;
     resetAggregates();

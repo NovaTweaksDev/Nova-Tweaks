@@ -81,6 +81,8 @@ function createScheduledMaintenanceService(options = {}) {
   let lastRunAt = 0;
   let deferredUntil = 0;
   let running = false;
+  let runPromise = null;
+  let destroyed = false;
   let currentTask = '';
   let progress = 0;
   let lastError = '';
@@ -96,12 +98,7 @@ function createScheduledMaintenanceService(options = {}) {
       JSON.stringify({ schedule, history, lastRunAt, deferredUntil }, null, 2),
       { encoding: 'utf8', mode: 0o600 }
     );
-    try {
-      fs.renameSync(temporaryPath, statePath);
-    } catch (_error) {
-      fs.rmSync(statePath, { force: true });
-      fs.renameSync(temporaryPath, statePath);
-    }
+    fs.renameSync(temporaryPath, statePath);
     if (process.platform !== 'win32') {
       fs.chmodSync(directory, 0o700);
       fs.chmodSync(statePath, 0o600);
@@ -148,12 +145,14 @@ function createScheduledMaintenanceService(options = {}) {
 
   function emit() {
     const state = getState();
-    onUpdate(state);
+    try { onUpdate(state); }
+    catch (error) { logger?.warn?.('Maintenance notification failed.', { message: error.message }); }
     return state;
   }
 
   function updateSchedule(patch = {}) {
     const previous = schedule;
+    const previousState = { lastRunAt, deferredUntil, lastError, blockedReason };
     schedule = normalizeSchedule({ ...schedule, ...patch });
     if (
       (!previous.enabled && schedule.enabled) ||
@@ -166,14 +165,33 @@ function createScheduledMaintenanceService(options = {}) {
     deferredUntil = 0;
     lastError = '';
     blockedReason = '';
-    persist();
+    try { persist(); }
+    catch (error) {
+      schedule = previous;
+      ({ lastRunAt, deferredUntil, lastError, blockedReason } = previousState);
+      throw error;
+    }
     return { ok: true, state: emit() };
   }
 
   async function run(source = 'manual') {
-    if (running) return { ok: false, code: 'MAINTENANCE_RUNNING', state: getState() };
-    if (!schedule.tasks.length) return { ok: false, code: 'MAINTENANCE_NO_TASKS', state: getState() };
-    const readiness = await canRun({ source, schedule: { ...schedule } });
+    if (destroyed) return { ok: false, code: 'MAINTENANCE_STOPPED', state: getState() };
+    if (runPromise) return { ok: false, code: 'MAINTENANCE_RUNNING', state: getState() };
+    const runSchedule = { ...schedule, tasks: [...schedule.tasks] };
+    const operation = Promise.resolve().then(() => runMaintenance(source, runSchedule));
+    runPromise = operation;
+    try { return await operation; }
+    finally {
+      running = false;
+      currentTask = '';
+      if (runPromise === operation) runPromise = null;
+    }
+  }
+
+  async function runMaintenance(source, runSchedule) {
+    if (!runSchedule.tasks.length) return { ok: false, code: 'MAINTENANCE_NO_TASKS', state: getState() };
+    const readiness = await canRun({ source, schedule: runSchedule });
+    if (destroyed) return { ok: false, code: 'MAINTENANCE_STOPPED', state: getState() };
     if (readiness?.ok === false) {
       blockedReason = readiness.code === 'ADMIN_BROKER_APPROVAL_REQUIRED' ? 'awaitingAdmin' : '';
       if (blockedReason === 'awaitingAdmin' && !adminNoticeAt) {
@@ -203,10 +221,10 @@ function createScheduledMaintenanceService(options = {}) {
     emit();
     const startedAt = now();
     const taskResults = [];
-    for (let index = 0; index < schedule.tasks.length; index += 1) {
-      const taskId = schedule.tasks[index];
+    for (let index = 0; index < runSchedule.tasks.length; index += 1) {
+      const taskId = runSchedule.tasks[index];
       currentTask = taskId;
-      progress = Math.round((index / schedule.tasks.length) * 100);
+      progress = Math.round((index / runSchedule.tasks.length) * 100);
       emit();
       try {
         const result = await executeTask(taskId);
@@ -246,7 +264,7 @@ function createScheduledMaintenanceService(options = {}) {
   }
 
   async function tick() {
-    if (!schedule.enabled || running || deferredUntil > now()) return;
+    if (destroyed || !schedule.enabled || runPromise || deferredUntil > now()) return;
     const previousOccurrence = getPreviousOccurrence(schedule, now());
     const due = lastRunAt < previousOccurrence && now() - previousOccurrence <= CATCH_UP_WINDOW_MS;
     if (due) await run('scheduled');
@@ -258,14 +276,21 @@ function createScheduledMaintenanceService(options = {}) {
     return { ok: true, state: emit() };
   }
 
-  const timer = setIntervalProvider(() => {
-    void tick();
-  }, 30000);
+  function backgroundTick() {
+    void tick().catch((error) => {
+      lastError = error?.message || 'Scheduled maintenance failed.';
+      logger?.warn?.('Scheduled maintenance failed.', { message: lastError });
+      emit();
+    });
+  }
+  const timer = setIntervalProvider(backgroundTick, 30000);
   timer?.unref?.();
-  void tick();
+  backgroundTick();
 
   function destroy() {
+    destroyed = true;
     clearIntervalProvider(timer);
+    return runPromise;
   }
 
   return { clearHistory, destroy, getState, runNow: () => run('manual'), tick, updateSchedule };

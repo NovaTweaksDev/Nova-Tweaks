@@ -30,11 +30,11 @@ function Set-ServiceState([string]$Name, [string]$StartupType, [string]$Action) 
   $svc = Get-Service -Name $Name -ErrorAction Stop
 
   if ($Action -eq "Stop" -and $svc.Status -ne "Stopped") {
-    Stop-Service -Name $Name -Force -ErrorAction SilentlyContinue
+    Stop-Service -Name $Name -Force -ErrorAction Stop
   }
 
   if ($Action -eq "Start" -and $svc.Status -ne "Running") {
-    Start-Service -Name $Name -ErrorAction SilentlyContinue
+    Start-Service -Name $Name -ErrorAction Stop
   }
 }
 

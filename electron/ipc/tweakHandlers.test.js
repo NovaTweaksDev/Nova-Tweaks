@@ -94,3 +94,28 @@ test('scoped listing checks only requested catalog entries and keeps security fi
   });
   assert.deepEqual(checks, ['preset']);
 });
+
+test('a read started before a mutation cannot replace a newer state', async () => {
+  const handlers = new Map();
+  const reads = [];
+  const runtime = {
+    tweakStateRevision: 0,
+    ipcMain: { handle: (name, handler) => handlers.set(name, handler) },
+    backendTweakCatalog: { listTweaks: () => [{ id: 'related' }] },
+    isBlockedSecurityTweakId: () => false,
+    requiresTweakStateCheck: () => true,
+    tweakRunner: { getCurrentState: () => new Promise((resolve) => reads.push(resolve)) },
+    mergeTweakDetails: (tweak, state) => ({ ...tweak, ...state })
+  };
+  registerTweakHandlers(runtime);
+  const check = handlers.get('tweaks:check-state');
+  const before = check({}, { id: 'related' });
+  runtime.tweakStateRevision += 1;
+  const after = check({}, { id: 'related' });
+  assert.equal(reads.length, 2);
+  reads[0]({ currentState: 'disabled' });
+  reads[1]({ currentState: 'enabled' });
+  for (const result of await Promise.all([before, after])) {
+    assert.equal(result.tweak.currentState, 'enabled');
+  }
+});

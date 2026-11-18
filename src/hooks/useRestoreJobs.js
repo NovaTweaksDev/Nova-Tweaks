@@ -8,7 +8,11 @@ export function useRestoreJobs() {
     const api = window.desktopApi;
     /** @param {import('../../shared/desktopContracts').RestoreJob} job */
     const update = (job) => {
-      if (!disposed) setJobs((previous) => [job, ...previous.filter((entry) => entry.id !== job.id)]);
+      if (!disposed) setJobs((previous) => {
+        const current = previous.find((entry) => entry.id === job.id);
+        if (current && current.revision >= job.revision) return previous;
+        return [job, ...previous.filter((entry) => entry.id !== job.id)];
+      });
     };
     const unsubscribe = api?.onBackupRestoreUpdate?.(update);
     // List after subscribing so a renderer reopened during execution gets current progress.
@@ -23,7 +27,7 @@ export function useRestoreJobs() {
         return [...merged.values()];
       });
       else setError(result?.message || 'Restore journal unavailable.');
-    }).catch((reason) => { if (!disposed) setError(reason.message); });
+    }).catch((reason) => { if (!disposed) setError(reason?.message || 'Restore journal unavailable.'); });
     return () => { disposed = true; unsubscribe?.(); };
   }, []);
   return { jobs, error };

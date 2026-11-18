@@ -248,6 +248,12 @@ contextBridge.exposeInMainWorld('desktopApi', {
     ipcRenderer.on('tweaks:state-updated', listener);
     return () => ipcRenderer.removeListener('tweaks:state-updated', listener);
   },
+  onTweakSystemStateChanged: (callback) => {
+    if (typeof callback !== 'function') return () => {};
+    const listener = () => callback();
+    ipcRenderer.on('tweaks:system-state-changed', listener);
+    return () => ipcRenderer.removeListener('tweaks:system-state-changed', listener);
+  },
   reloadTweaks: () => ipcRenderer.invoke('tweaks:reload'),
   executeTweak: /** @param {import('../shared/desktopContracts').TweakRequest} payload */ (payload) => ipcRenderer.invoke('tweaks:execute', payload),
   listScripts: () => ipcRenderer.invoke('scripts:list'),

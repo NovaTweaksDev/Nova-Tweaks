@@ -4,16 +4,21 @@ function registerTweakHandlers(runtime) {
   const pendingChecks = new Map();
   function checkState(tweak) {
     const id = String(tweak.id);
-    if (pendingChecks.has(id)) return pendingChecks.get(id);
+    const revision = runtime.tweakStateRevision;
+    const key = `${revision}:${id}`;
+    if (pendingChecks.has(key)) return pendingChecks.get(key);
     const promise = (async () => {
+      let state;
       try {
-        return runtime.mergeTweakDetails(tweak, await runtime.tweakRunner.getCurrentState({ tweakId: id }));
+        state = await runtime.tweakRunner.getCurrentState({ tweakId: id });
       } catch (error) {
-        return runtime.mergeTweakDetails(tweak, failedTweakState(error));
+        state = failedTweakState(error);
       }
+      if (runtime.tweakStateRevision !== revision) return checkState(tweak);
+      return runtime.mergeTweakDetails(tweak, state);
     })();
-    pendingChecks.set(id, promise);
-    void promise.finally(() => pendingChecks.delete(id)).catch(() => {});
+    pendingChecks.set(key, promise);
+    void promise.finally(() => pendingChecks.delete(key)).catch(() => {});
     return promise;
   }
 

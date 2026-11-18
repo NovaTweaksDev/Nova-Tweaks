@@ -10,103 +10,80 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $TweakName = 'Disable Delivery Optimization P2P'
-
-$RegistryPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization'
+$PolicyPath = 'SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization'
 $ValueName = 'DODownloadMode'
+$PeerlessMode = 0
+$LegacyBypassMode = 100
+$SimpleMode = 99
 
-$DisabledP2PValue = 0
-
-function Out-Result([string]$Status, [string]$Message = '') {
-    @{
-        tweak = $TweakName
-        status = $Status
-        message = $Message
-    } | ConvertTo-Json -Compress
+function Out-Result([string]$Status, [string]$Message) {
+    @{ tweak = $TweakName; status = $Status; message = $Message } | ConvertTo-Json -Compress
 }
 
-function Test-IsAdministrator {
-    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
-    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-}
-
-function Get-CurrentValue {
-    if (-not (Test-Path $RegistryPath)) {
-        return $null
-    }
+function Get-DownloadMode {
+    $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($PolicyPath)
+    if ($null -eq $key) { return $null }
 
     try {
-        return (Get-ItemProperty -Path $RegistryPath -Name $ValueName -ErrorAction Stop).$ValueName
+        $value = $key.GetValue($ValueName)
+        if ($null -eq $value) { return $null }
+        if ($key.GetValueKind($ValueName) -ne [Microsoft.Win32.RegistryValueKind]::DWord) {
+            throw "$ValueName is configured with an unexpected registry value type."
+        }
+        return $value
     }
-    catch {
-        return $null
-    }
-}
-
-function Set-RegistryValue([int]$Value) {
-    if (-not (Test-Path $RegistryPath)) {
-        New-Item -Path $RegistryPath -Force | Out-Null
-    }
-
-    New-ItemProperty `
-        -Path $RegistryPath `
-        -Name $ValueName `
-        -Value $Value `
-        -PropertyType DWord `
-        -Force | Out-Null
-}
-
-function Remove-RegistryValue {
-    if (-not (Test-Path $RegistryPath)) {
-        return
-    }
-
-    try {
-        Remove-ItemProperty -Path $RegistryPath -Name $ValueName -ErrorAction Stop
-    }
-    catch {
-        # Value does not exist or was already removed.
+    finally {
+        $key.Dispose()
     }
 }
 
 try {
     switch ($State) {
-
         'Check' {
-            $currentValue = Get-CurrentValue
-
-            if ($currentValue -eq 0) {
-                Out-Result 'Enabled' 'Delivery Optimization P2P is disabled. Download Mode is set to HTTP only / no peering.'
-            }
-            elseif ($currentValue -eq 99) {
-                Out-Result 'Enabled' 'Delivery Optimization P2P is disabled by Simple download mode.'
-            }
-            elseif ($currentValue -in @(1, 2, 3)) {
-                Out-Result 'Disabled' "Delivery Optimization P2P may be active. Current Download Mode: $currentValue."
+            $mode = Get-DownloadMode
+            if ($mode -in @($PeerlessMode, $SimpleMode, $LegacyBypassMode)) {
+                Out-Result 'Enabled' "A non-peering policy is configured ($ValueName=$mode)."
             }
             else {
-                Out-Result 'Disabled' 'Delivery Optimization P2P is not explicitly disabled by policy.'
+                Out-Result 'Disabled' 'A non-peering policy is not configured.'
             }
         }
 
         'On' {
-            if (-not (Test-IsAdministrator)) {
-                throw 'Administrator privileges are required.'
+            # Validate the existing value before replacing it.
+            $null = Get-DownloadMode
+            $key = [Microsoft.Win32.Registry]::LocalMachine.CreateSubKey($PolicyPath)
+            try {
+                $key.SetValue($ValueName, $PeerlessMode, [Microsoft.Win32.RegistryValueKind]::DWord)
             }
-
-            Set-RegistryValue $DisabledP2PValue
-
-            Out-Result 'Enabled' 'Delivery Optimization P2P has been disabled. Download Mode is now set to HTTP only / no peering.'
+            finally {
+                $key.Dispose()
+            }
+            if ((Get-DownloadMode) -ne $PeerlessMode) {
+                throw 'Could not verify the peer-to-peer policy after writing it.'
+            }
+            Out-Result 'Enabled' 'Delivery Optimization uses HTTP downloads without peer-to-peer sharing.'
         }
 
         'Off' {
-            if (-not (Test-IsAdministrator)) {
-                throw 'Administrator privileges are required.'
+            $mode = Get-DownloadMode
+            if ($mode -in @($PeerlessMode, $LegacyBypassMode)) {
+                $key = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey($PolicyPath, $true)
+                if ($null -ne $key) {
+                    try {
+                        $key.DeleteValue($ValueName, $false)
+                    }
+                    finally {
+                        $key.Dispose()
+                    }
+                }
             }
 
-            Remove-RegistryValue
-
-            Out-Result 'Disabled' 'Delivery Optimization P2P policy has been removed. Windows default behavior has been restored.'
+            $mode = Get-DownloadMode
+            if ($mode -in @($PeerlessMode, $SimpleMode, $LegacyBypassMode)) {
+                throw "A non-peering policy is still configured ($ValueName=$mode)."
+            }
+            Out-Result 'Disabled' 'Delivery Optimization is no longer configured in a non-peering mode.'
         }
     }
 

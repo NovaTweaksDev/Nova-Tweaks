@@ -108,6 +108,31 @@ test('local-only runner executes a non-admin tweak without contacting the admini
     fixture.dispose();
   }
 });
+test('a script error in JSON fails execution and invalidates state after a possible partial write', async (t) => {
+  const fixture = createLocalFixture();
+  t.after(fixture.dispose);
+  const changes = [];
+  const runner = createTweakRunner({
+    localOnly: true,
+    tweakCatalog: fixture.tweakCatalog,
+    remoteScriptsPath: fixture.scriptsPath,
+    remoteScriptRunner: {
+      runScript: async () => ({
+        ok: true, exitCode: 0,
+        stdout: JSON.stringify({ status: 'Error', message: 'Verification failed', details: { code: 'VERIFY_FAILED' } })
+      })
+    },
+    onSystemStateChanged: () => changes.push('changed')
+  });
+
+  await assert.rejects(runner.runTweak({ tweakId: 'local_test', targetState: 'typo' }), { code: 'INVALID_TARGET_STATE' });
+  assert.equal(changes.length, 0);
+  await assert.rejects(runner.runTweak({ tweakId: 'local_test', targetState: 'enabled' }), {
+    code: 'VERIFY_FAILED', message: 'Verification failed'
+  });
+  assert.equal(changes.length, 1);
+});
+
 test('local-only runner sends a self-contained development artifact to the administrator broker', async () => {
   const fixture = createLocalFixture({ requiresAdmin: true });
   let brokerCall = null;

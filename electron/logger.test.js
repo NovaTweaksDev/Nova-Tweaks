@@ -1,7 +1,29 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
 
 const { redactMeta, redactString } = require('./logger');
+
+test('packaged builds omit debug output and console mirroring while retaining diagnostic files', () => {
+  const writes = [];
+  const consoleCalls = [];
+  const context = { module: { exports: {} }, process, Buffer,
+    console: Object.fromEntries(['log', 'warn', 'error'].map((level) => [level, (...args) => consoleCalls.push(args)])),
+    require: (name) => name === 'electron' ? { app: { isPackaged: true, getPath: () => 'logs' } }
+      : name === 'fs' ? { mkdirSync() {}, chmodSync() {}, statSync: () => ({ size: 0, mtimeMs: Date.now() }),
+        appendFileSync: (_file, text) => writes.push(text) } : require(name)
+  };
+  vm.runInNewContext(fs.readFileSync(require.resolve('./logger'), 'utf8'), context);
+  const logger = context.module.exports.createLogger('audit');
+  logger.debug('Noisy debug payload');
+  logger.info('Startup completed');
+  logger.warn('Recoverable failure');
+  logger.error('Operation failed');
+  assert.equal(writes.length, 3);
+  assert.equal(consoleCalls.length, 0);
+  assert.ok(writes.every((line) => !line.includes('Noisy debug payload')));
+});
 
 test('desktop logger redacts account, process, token, network, and query data', () => {
   const jwt = `${'a'.repeat(20)}.${'b'.repeat(20)}.${'c'.repeat(20)}`;

@@ -39,8 +39,8 @@ DEP and boot-recovery disabling conflict with 10.2 safeguards. Hypervisor disabl
 | disable_consumer_experience | low | Certification risk; review 10.2 / 10.2.8 | Retained pending certification | Machine registry, File deletion | Configures the DisableWindowsConsumerFeatures DWORD value under HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent to 1 Also sets ContentDeliveryAllowed and SystemPaneSuggestionsEnabled to 0 in HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager |
 | disable_controller_power_saving | low | Certification risk; review 10.2 / 10.2.8 | Retained pending certification | Machine registry | Modifies the EnhancedPowerManagementEnabled registry value under HKLM\SYSTEM\CurrentControlSet\Enum for detected controllers |
 | disable_cpu_core_parking | medium | No specific policy conflict identified by static review | Retained pending certification | No flagged operation | Modifies the processor power settings in Windows by adjusting the minimum number of active processors via registry values or Powercfg commands |
-| disable_delivery_optimization | low | Certification risk; review 10.2 / 10.2.8 | Retained pending certification | Machine registry, File deletion | Modifies the registry key HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization by setting or removing the DODownloadMode value |
-| disable_delivery_optimization_p2p | low | Certification risk; review 10.2 / 10.2.8 | Retained pending certification | Machine registry, File deletion | Configures the registry path HKLM\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization to set DODownloadMode to 0 This forces Windows Update and Microsoft Store downloads to use HTTP only, preventing peer-to-peer traffic between PCs |
+| disable_delivery_optimization | low | Certification risk; review 10.2 / 10.2.8 | Retained pending certification | Machine registry | Sets DODownloadMode to 0 (HTTP without peering) in HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization. |
+| disable_delivery_optimization_p2p | low | Certification risk; review 10.2 / 10.2.8 | Retained pending certification | Machine registry | Configures the registry path HKLM\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization to set DODownloadMode to 0 This forces Windows Update and Microsoft Store downloads to use HTTP only, preventing peer-to-peer traffic between PCs |
 | disable_display_sleep_and_hibernate_timeouts | low | No specific policy conflict identified by static review | Retained pending certification | No flagged operation | Modifies power plan settings for display idle timeout and system sleep states by setting values to zero Uses the standard Windows Power Configuration tool (powercfg) via command line |
 | disable_dynamic_tick | medium | Certification risk; review 10.2 / 10.2.8 | Retained pending certification | BCD | Modifies the Windows boot configuration by setting or removing the disabledynamictick registry value |
 | disable_enhance_pointer_precision | low | No specific policy conflict identified by static review | Retained pending certification | No flagged operation | Modifies registry values MouseSpeed, MouseThreshold1, and MouseThreshold2 under HKCU:\Control Panel\Mouse to set speed to 0 and thresholds to 0 |
@@ -83,7 +83,7 @@ DEP and boot-recovery disabling conflict with 10.2 safeguards. Hypervisor disabl
 | disable_visual_effects | low | Certification risk; review 10.2 / 10.2.8 | Retained pending certification | Processes | Modifies registry values at HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize, HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced, and HKCU:\Control Panel\Desktop to disable transparency, taskbar animations, visual effects settings, accessibility animations, and window minimization animation |
 | disable_wifi_u_apsd_power_saving | low | No specific policy conflict identified by static review | Retained pending certification | No flagged operation | The script uses Get-NetAdapterAdvancedProperty to detect and modify advanced properties on wireless network adapters that match patterns like UAPSD, WMM Power Save, or WiFi Multimedia Power Save It sets the RegistryValue to '0' or DisplayValue to 'Disabled/Off' |
 | disable_windows_search_indexing | low | Certification risk; review 10.2 / 10.2.8 | Retained pending certification | Services | Disables the WSearch service startup type and stops it if running This prevents background indexing of files on your system |
-| disable_windows_update_peer_to_peer_sharing | low | Certification risk; review 10.2 / 10.2.8 | Retained pending certification | Machine registry, File deletion | Sets the Delivery Optimization policy value DODownloadMode to 0 under HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization This disables peer-to-peer usage while keeping downloads available through Microsoft/HTTP sources |
+| disable_windows_update_peer_to_peer_sharing | low | Certification risk; review 10.2 / 10.2.8 | Retained pending certification | Machine registry | Sets the Delivery Optimization policy value DODownloadMode to 0 under HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization This disables peer-to-peer usage while keeping downloads available through Microsoft/HTTP sources |
 | disable_xbox_game_bar_dvr | low | Certification risk; review 10.2 / 10.2.8 | Retained pending certification | Machine registry, File deletion | Modifies registry values under HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\GameDVR and HKLM policies to disable GameBar, AppCaptureEnabled, ShowStartupPanel, UseNexusForGameBarEnabled, AllowGameDVR, and Windows Game Recording settings |
 | empty_recycle_bin | low | Certification risk; review 10.2 / 10.2.8 | Retained pending certification | Native API / driver | Calls the Windows SHEmptyRecycleBin API per available file-system drive without confirmation UI, with Clear-RecycleBin fallback and non-fatal handling for missing or unavailable recycle bin paths |
 | enable_adapter_rss | low | No specific policy conflict identified by static review | Retained pending certification | No flagged operation | The script uses Get-NetAdapter to detect physical network adapters and excludes virtual, VPN, loopback, Bluetooth, Hyper-V, VMware, VirtualBox, Npcap, or Wireshark interfaces It then checks each adapter with Get-NetAdapterRss for support before enabling Receive Side Scaling via Enable-NetAdapterRss on supported hardware |
@@ -176,7 +176,7 @@ Snapshot identifiers (configuration + all primary PowerShell sources):
 - clear_temp_files: 48696457fdc476535de98afecf3eb9cbb66516545f8ac92a348302645bc52ced
 - clear_thumbnails_cache: 2f3c286b833e113ca852b812e6c15b3fd0ecba6729a2fb15a4552de078c3d6e2
 - clear_windows_error_reporting_files: 1bd15c231f3bc3ce570a024dd30062601f1b75b1a8b7d1c2b6edc78de942efe4
-- clear_windows_update_cache: 6b38355c0a868201c94475273d92107945a3c43239ca4ea1ad4f0f184a3fa3c2
+- clear_windows_update_cache: 648f3169b2bc847348ff40f06bb5a763f4bba6f64d517fc0c8e8f90b5ea2a8d6
 - create_gaming_dscp_qos_policy: 3dc7d8b3a3ed0c011161fd7214fcb84ee1920b3cf0aee7b4b77b105746656a32
 - disable_6to4_tunnel_adapter: f18fbcf748ea2d45c8441032ffbde6fe7baf86cd7c4f3ec2855d8d40f904fa23
 - disable_activity_history: 83664b2b103e16d2875b442db739ccabbdb101ce40d2ef4d9eabd5a15f751932
@@ -191,12 +191,12 @@ Snapshot identifiers (configuration + all primary PowerShell sources):
 - disable_consumer_experience: 943c767d56b18714ba00372f307ba4f0cd5d67ba5e46b401ab3945748adfaf56
 - disable_controller_power_saving: 990252a70638d25a6b24d8b9f2f9a7f760322af69fd3ab7a03e42584d9fae9de
 - disable_cpu_core_parking: 28c527f772769d1eb6c3fe59add9fb6394e591c27e5903616feeeb222f3e0232
-- disable_delivery_optimization: 6f18aa08d2a7aee1b658e6b316c90ef3aca3214b091fc33c1a894b20ea4d113b
-- disable_delivery_optimization_p2p: da2708f7e4e0be07c7e1e7b17568fa9efdd215ed4b8c3fe590ec9c0df8d016cd
+- disable_delivery_optimization: 8538e98a591dc60476f0d82a3a7512e9602864b23a698b7aaa726e3eb29e02b2
+- disable_delivery_optimization_p2p: 5e2cda03b76d663ab78c48e61bc26882c46f1203c5ec5e7dde3b99575d0db509
 - disable_display_sleep_and_hibernate_timeouts: 927cd172d2df8231913536fdfe4ea215903bd4bfa7cf4fe3de8fc6d45d7dea1c
 - disable_dynamic_tick: 2fedf670c9ba1c2e68e09f60041102b921d8f2230a880759c43809dcd5f134dd
 - disable_enhance_pointer_precision: 613dee31b9c70b021057d640cd98fdbf7ad55b8b25cbc114a8a6d11672c5c9e3
-- disable_fax_service: ab032ea0a9b3f08a593955d6618efb25363bc641a46279fcaba2a078c3fb2aea
+- disable_fax_service: 886ed7308f4189ed7d8ee26f9c0e10bba2e2dcd847a62fc7f0f13c65f69ddf0e
 - disable_flow_control: 4e298313e5749d5788899c8432ab60214cb0d98b069fd0a4b528ec85c339734c
 - disable_green_ethernet: 7fced8a5f27c9009c97c20f00739352ab67e62005399526838ff330220345dc1
 - disable_hyper_v_hypervisor: c917f8c14d13a8f85a9936561704bbfb4313f28d1a2f49c02e4dbb4fe6b35ffa
@@ -219,13 +219,13 @@ Snapshot identifiers (configuration + all primary PowerShell sources):
 - disable_pointer_trails: 3f483982fc9729bde48473f8509d26f1b9cc331c508820091776a184f531b874
 - disable_power_throttling: dbc2d99526b2547ae335856628317c4197a716d91850a969aba04784f43ee543
 - disable_prefetcher: a6b462eb50ae5cc1238e92dea61a2e07ad5ddbc50cb1fc9c16367358a641f166
-- disable_print_spooler: 0e0ff636e8ba8244728ca2819c1c42d8008c6ca6149ea9121bea5f9574265090
+- disable_print_spooler: 7c4a6ab1bd65c2201a02c457a788025a760afe308793798730904828b4d78ec6
 - disable_recent_items_tracking: 9cdad604fbacc0fc9b2bb46683c3ea9b2618b57f0a7442358485680ccee9055d
-- disable_remote_registry: 83a7460f73912e13222def0782bc9d8f3c44c3945e2b6137a19366dd82a8b290
+- disable_remote_registry: 4c6045f090096a7cfa876407cb6d9b635e6d49fd18378fca9fbdf4b5daa81a9c
 - disable_shared_experiences: bf27ba64494c92b44abc36cc29e715415fd4c8d47a2c5e2cde7425e51a1acbfe
 - disable_smart_multi_homed_name_resolution: c6b65112816c85873355577257967ac1c07d99692d441fe62b27a758bd8aaff8
 - disable_sticky_keys: 4babdbe7138abe55a224706ffe96602faf0f991241e19d9bb5daa345dd64c40d
-- disable_superfetch: 75d98b4813e36ea32bcb9ff811dc3d8487395d94a907ca6c742fbfb6ad33aa93
+- disable_superfetch: 5881c179bc5cdc323d49a2264becfcc9be5f5ca3fe5e1b4ec51bc65ffaf839ab
 - disable_tailored_experiences: efcfab83863f605b39a66cd1af218ea117164dcb44dbd76d76bac7576f45503b
 - disable_teredo: 2d56d4b51b6c861f4ea6b287b86be578ecb85b4b8002e3dbadb06d7ae7931444
 - disable_timer_coalescing: 4fb64ab362387dc866e903b8b993c7bf03d5ac89fdf9e22b110323066eec1ebb
@@ -234,8 +234,8 @@ Snapshot identifiers (configuration + all primary PowerShell sources):
 - disable_uwp_swapfile: c89ec17183286de3fc3f587844e0bbeb1a2b508735554d11657c0fefa28c3650
 - disable_visual_effects: 3277eb947362dc9cbf5bca9f0ed7860ce637ae72c8467f025f1be2dda25037d6
 - disable_wifi_u_apsd_power_saving: 171d4d7e1852cbfc92fe8d2286847128987c93dfdb58a683010bfb514b67ee48
-- disable_windows_search_indexing: 1218c047d0e0f82bf799c0c5df6439b8b22f378dc863c5c02beb61439d0c80dc
-- disable_windows_update_peer_to_peer_sharing: 6c3b92d9d36ea56c33a2f70418757248214d2e88abcaf1590f8e7149b8d7c958
+- disable_windows_search_indexing: 7032a7ab14945ddfa860803231c0d8026bfc06aea5a24ffde358f21a855a5136
+- disable_windows_update_peer_to_peer_sharing: 57af30cf2e9010ea1fd581bf59c0862dfb8a61c9aa0bad55f4cabff33741a256
 - disable_xbox_game_bar_dvr: 3e8ea22fecf3636872de3ee34b6389e7a05c40d2896479aeedbc5bed8597be7e
 - empty_recycle_bin: 36226cc423a3f1f8a29c6e5c356962a02a5d21b3e090aa2aa8e115f0d5440e06
 - enable_adapter_rss: bd6878ca2e5570d8a01c35cda9138b2c93cda91342c8f6189ecba62c33c44213
@@ -301,11 +301,11 @@ Snapshot identifiers (configuration + all primary PowerShell sources):
 - set_mmcss_gaming_priority: d9682bacd3532395889e6531f3306b724281cfaaf8a7fede30c7857702918f48
 - set_tcp_auto_tuning_level: 42e1813d507423d035d034cf2295b62d479365129ed7f281a47b12de59cf94d2
 - set_threaded_dpc_processing: 45ffaa5d38323e8688dce50a85ccf0d3691a232cf06081363a224230d1021016
-- set_timer_resolution: 858b433d62ddff4abd1fc0a738c114b60dfe4db1258403595cafceecf2e566ed
+- set_timer_resolution: e5944bac9c8c56fbef0200c7c4e337805e8cbc9cc2234cbda57be8a1b3418245
 - tcp_low_latency_acks: 5c3daa0c33eb6661dd607928090b1b4de46899ec4939c6402336e53e7ea9f201
 - tsc_sync_policy_enhanced: 11a7b826335d2f2e56f8c4526abdb313851f0a8d158bd7f5defe53395468e424
 - update_defender_signatures: 2337de56b30a6b7d10c18af493d8d73fe7fdf2b7d25d5bfd30802117d06c503d
 - use_legacy_boot_menu: 1ff39888995ce5b0b6b95bc842ddea96921df2b8fb5bb5b7e341c083aa5aa821
 - windows_fast_startup: 9de01af4135aa0c2a344aa2df3ac6af2662a9abed12a76aec1677866af248d03
 - windows_game_mode: 39313cd44751d8b6363d0dd13dd2253fd4f29f8bba1ae5226fe56d24757e7cd7
-- xbox_services: 189a9d26da104702826a8b90ad1739187536414a5caecf665d50e5bd853d24b4
+- xbox_services: 340a66bb63a4bd96762cf01743c3eb39c42a1404a87b25a043bc798f4bd18f23

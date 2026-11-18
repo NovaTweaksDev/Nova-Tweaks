@@ -730,6 +730,32 @@ html[data-theme='dark'] .app-sidebar {
     var(--sidebar-panel-strong);
 }
 
+.app-sidebar-header {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.app-sidebar-brand-content,
+.app-sidebar-header > button {
+  position: relative;
+  z-index: 1;
+}
+
+.app-sidebar-brand-atmosphere {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: var(--radius-panel);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  background: linear-gradient(to right,
+    color-mix(in srgb, var(--accent) 38%, transparent),
+    color-mix(in srgb, var(--accent) 22%, transparent) 48%,
+    color-mix(in srgb, var(--accent) 6%, transparent));
+  pointer-events: none;
+}
+
 .app-sidebar-support-button {
   position: relative;
   isolation: isolate;
@@ -799,6 +825,15 @@ html[data-theme='dark'] .app-sidebar {
 .app-sidebar-support-embers > i:nth-child(4) { left: 73%; animation-delay: -4.1s; }
 .app-sidebar-support-embers > i:nth-child(5) { left: 87%; animation-delay: -2.3s; }
 .app-sidebar-support-embers > i:nth-child(6) { left: 43%; animation-delay: -0.6s; }
+
+.app-sidebar-brand-embers {
+  z-index: 1;
+}
+
+.app-sidebar-brand-embers > i {
+  background: color-mix(in srgb, var(--accent) 65%, white);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--accent) 60%, transparent);
+}
 
 .app-sidebar-support-button:focus-visible {
   outline: 2px solid var(--accent);

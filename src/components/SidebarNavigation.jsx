@@ -127,7 +127,12 @@ function SidebarNavigation({
         }`}
       >
         <div className="app-sidebar-header app-region-drag flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
+          <span className="app-sidebar-brand-atmosphere" aria-hidden="true">
+            <span className="app-sidebar-support-embers app-sidebar-brand-embers">
+              {Array.from({ length: 6 }, (_, index) => <i key={index} />)}
+            </span>
+          </span>
+          <div className="app-sidebar-brand-content flex min-w-0 items-center gap-3">
             <span className="app-sidebar-logo-shell" aria-hidden="true">
               <img src={SIDEBAR_LOGO_SRC} alt="" className="h-9 w-9 shrink-0 object-contain" />
             </span>

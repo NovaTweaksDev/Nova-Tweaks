@@ -34,7 +34,11 @@ const ARTIFACT_ACTION_BY_EXECUTION_ACTION = {
 };
 
 function normalizeTargetState(targetState) {
-  return String(targetState || '').toLowerCase() === 'disabled' ? 'disabled' : 'enabled';
+  const normalized = String(targetState || '').trim().toLowerCase();
+  if (normalized !== 'enabled' && normalized !== 'disabled') {
+    throw new TweakRunnerError('Invalid tweak target state.', 'INVALID_TARGET_STATE');
+  }
+  return normalized;
 }
 
 function normalizeBooleanState(value) {
@@ -445,6 +449,7 @@ function createTweakRunner({
   isPackaged = false,
   waitProvider = (durationMs) => new Promise((resolve) => setTimeout(resolve, durationMs)),
   executionGate,
+  onSystemStateChanged,
   timerVerificationDelayMs = 2500
 }) {
   if (!novaApi && !localOnly) {
@@ -1163,7 +1168,7 @@ function createTweakRunner({
     return { requiresAdmin: executionPlan.requiresAdmin, tweakId: String(tweakId), targetState: nextState, executionFingerprint: executionFingerprint(executionPlan) };
   }
 
-  async function executeTweak({ tweakId, targetState = 'enabled', params = {}, timeoutMs, executionContext = {} }) {
+  async function executeTweak({ tweakId, targetState = 'enabled', params = {}, timeoutMs, executionContext = {} }, markStarted) {
     if (typeof tweakId === 'undefined' || tweakId === null || tweakId === '') {
       throw new TweakRunnerError('Payload must include a valid tweak id.', 'INVALID_TWEAK_ID', { tweakId });
     }
@@ -1200,9 +1205,11 @@ function createTweakRunner({
             scriptName: executionPlan.scriptRelativePath
           });
         }
+        const payload = buildPrivilegedTweakPayload(executionPlan);
+        markStarted();
         scriptResult = await privilegedExecutor(
           'tweak.execute',
-          buildPrivilegedTweakPayload(executionPlan),
+          payload,
           {
             allowPrompt: executionContext.allowPrompt !== false,
             reason: executionContext.reason || executionContext.source || 'tweak',
@@ -1210,6 +1217,7 @@ function createTweakRunner({
           }
         );
       } else {
+        markStarted();
         scriptResult = await executionPlan.runner.runScript({
           scriptName: executionPlan.scriptRelativePath,
           includeMode: false,
@@ -1217,6 +1225,15 @@ function createTweakRunner({
           timeoutMs: resolvedTimeout,
           verifyBeforeRun: executionPlan.verifyBeforeRun
         });
+      }
+
+      const reported = parseScriptStateFromStdout(scriptResult?.stdout);
+      if (scriptResult?.ok === false || reported.status === 'error') {
+        throw new TweakRunnerError(
+          reported.message || scriptResult?.message || 'Script execution failed.',
+          reported.code || scriptResult?.code || 'SCRIPT_EXECUTION_FAILED',
+          { ...scriptResult?.details, stdout: scriptResult?.stdout, stderr: scriptResult?.stderr }
+        );
       }
 
       if (configResult.containerType === 'timer_resolution' && nextState === 'enabled') {
@@ -1236,7 +1253,8 @@ function createTweakRunner({
         const requestedResolution = Number(normalizeResolutionValue(params?.Resolution));
         const currentResolution = Number(normalizeResolutionValue(verifiedTimerOutput?.currentResolution));
         const resolutionIsEffective = (
-          verifiedTimerOutput?.state === 'enabled'
+          verificationResult?.ok !== false
+          && verifiedTimerOutput?.state === 'enabled'
           && Number.isFinite(requestedResolution)
           && requestedResolution > 0
           && Number.isFinite(currentResolution)
@@ -1320,8 +1338,24 @@ function createTweakRunner({
 
   async function runTweak(request) {
     const release = executionGate?.enter(request.executionContext?.restoreToken);
-    try { return await executeTweak(request); }
-    finally { release?.(); }
+    let started = false;
+    try {
+      return await executeTweak(request, () => { started = true; });
+    } catch (error) {
+      if (['ADMIN_REQUIRED', 'ADMIN_BROKER_APPROVAL_REQUIRED', 'ADMIN_BROKER_CANCELLED'].includes(error?.code)) {
+        started = false;
+      }
+      throw error;
+    } finally {
+      release?.();
+      if (started && onSystemStateChanged) {
+        try {
+          onSystemStateChanged();
+        } catch (error) {
+          logger?.warn?.('Could not notify renderer of tweak state changes.', { message: error?.message });
+        }
+      }
+    }
   }
 
   return {

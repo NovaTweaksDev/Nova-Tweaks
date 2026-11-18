@@ -55,7 +55,7 @@ try {
     }
 
     'On' {
-      Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
+      Stop-Service -Name $ServiceName -Force -ErrorAction Stop
       Set-Service  -Name $ServiceName -StartupType Disabled
 
       Out-Result "Enabled"
@@ -63,7 +63,7 @@ try {
 
     'Off' {
       Set-Service  -Name $ServiceName -StartupType Manual
-      Start-Service -Name $ServiceName -ErrorAction SilentlyContinue
+      Start-Service -Name $ServiceName -ErrorAction Stop
 
       Out-Result "Disabled"
     }

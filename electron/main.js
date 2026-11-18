@@ -345,6 +345,7 @@ const ruleAutomationLogger = createLogger('rule-automation');
 const scheduledMaintenanceLogger = createLogger('scheduled-maintenance');
 const adminBrokerLogger = createLogger('admin-broker');
 let mainWindow = null;
+let tweakStateRevision = 0;
 let tray = null;
 let isQuitting = false;
 let isAdminSession = false;
@@ -2878,6 +2879,7 @@ function registerIpcHandlers() {
     get mapWithConcurrency() { return mapWithConcurrency; },
     get requiresTweakStateCheck() { return requiresTweakStateCheck; },
     get tweakRunner() { return tweakRunner; },
+    get tweakStateRevision() { return tweakStateRevision; },
     get mergeTweakDetails() { return mergeTweakDetails; }
   });
 
@@ -2997,6 +2999,12 @@ if (!initializePrivilegeState()) {
 
     tweakRunner = createTweakRunner({
       executionGate,
+      onSystemStateChanged: () => {
+        tweakStateRevision += 1;
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('tweaks:system-state-changed');
+        }
+      },
       remoteScriptRunner: bundledScriptRunner,
       remoteScriptsPath: bundledScriptsPath,
       logger: apiLogger,

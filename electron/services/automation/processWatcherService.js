@@ -132,6 +132,7 @@ function normalizeArray(value) {
 }
 
 function toFiniteNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 }
@@ -305,7 +306,9 @@ function createProcessWatcherService(options = {}) {
       const cpuSeconds = toFiniteNumber(raw?.cpuSeconds);
       const readBytes = toFiniteNumber(raw?.ioReadBytes);
       const writeBytes = toFiniteNumber(raw?.ioWriteBytes);
-      const previous = previousStats.get(pid);
+      const startTime = String(raw?.startTime || '');
+      const candidate = previousStats.get(pid);
+      const previous = startTime && candidate?.startTime === startTime ? candidate : null;
       let cpuPercent = toFiniteNumber(raw?.cpuPercent);
       let diskMBs = toFiniteNumber(raw?.diskMBs);
       if (previous) {
@@ -318,12 +321,12 @@ function createProcessWatcherService(options = {}) {
         }
       }
       if (Number.isFinite(pid)) {
-        nextStats.set(pid, { cpuSeconds, readBytes, writeBytes, timestamp: now });
+        nextStats.set(pid, { startTime, cpuSeconds, readBytes, writeBytes, timestamp: now });
       }
       return {
         name: String(raw?.name || 'Process'),
         pid,
-        startTime: String(raw?.startTime || ''),
+        startTime,
         executablePath: String(raw?.executablePath || ''),
         cpuPercent,
         ramMB: Math.max(0, Number(raw?.ramMB) || (Number(raw?.ramBytes) || 0) / (1024 ** 2)),
@@ -390,6 +393,13 @@ function createProcessWatcherService(options = {}) {
       const settings = config();
       const detectionEnabled = Boolean(settings.enabled);
       const activeGame = await Promise.resolve(getActiveGame());
+      if (generation !== pollGeneration) return getState();
+      const identities = new Set(processes.map((entry) => `${entry.pid}:${entry.startTime}`));
+      for (const tracking of [conditionSince, cooldownUntil]) {
+        for (const key of tracking.keys()) {
+          if (!identities.has(key.slice(0, key.lastIndexOf(':')))) tracking.delete(key);
+        }
+      }
       const activeGamePid = Number(activeGame?.processId || activeGame?.activeGame?.processId) || 0;
       const memoryThreshold = Number(settings.memoryThresholdMB) > 0
         ? Number(settings.memoryThresholdMB)
