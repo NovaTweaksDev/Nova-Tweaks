@@ -14,6 +14,21 @@ const { formatDistributionNotes } = require('./release-notes');
 const { auditTweaks, renderAudit } = require('./audit-store-tweaks');
 const root = path.resolve(__dirname, '..');
 
+test('unsigned packaging never inherits the stable certificate selector', () => {
+  for (const name of ['candidate', 'store-candidate', 'local', 'stable', 'store']) {
+    const module = { exports: {} };
+    vm.runInNewContext(fs.readFileSync(path.join(root, 'electron-builder.windows.cjs'), 'utf8'), {
+      module, process: { env: {} }, require: (id) => id === './scripts/build-profile'
+        ? { resolveBuildProfile: () => ({ name, ...PROFILES[name] }) }
+        : require(id.startsWith('.') ? path.resolve(root, id) : id)
+    });
+    const config = module.exports;
+    assert.equal(config.win.signExecutable, PROFILES[name].signed);
+    if (PROFILES[name].signed) assert.ok(config.win.signtoolOptions.certificateSha1);
+    else assert.equal(config.win.signtoolOptions, undefined);
+  }
+});
+
 test('release profiles reject unknown variants and conflicting unsigned broker bypasses', () => {
   for (const name of ['stable', 'store', 'candidate', 'store-candidate']) {
     assert.throws(() => resolveBuildProfile({ NOVA_BUILD_PROFILE: name, NOVA_LOCAL_TEST_BUILD: 'true' }), /conflicts/);

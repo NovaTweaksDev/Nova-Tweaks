@@ -34,9 +34,9 @@ module.exports = {
     ...base.win,
     forceCodeSigning: profile.signed,
     signExecutable: profile.signed,
-    ...(profile.signed ? { signtoolOptions: {
+    signtoolOptions: profile.signed ? {
       ...base.win.signtoolOptions,
       certificateSha1: process.env.NOVA_SIGNING_THUMBPRINT || base.win.signtoolOptions.certificateSha1
-    } } : {})
+    } : undefined
   }
 };
